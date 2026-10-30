@@ -86,11 +86,11 @@
   /* Hochkant: Bahn steht senkrecht, Abwurf unten */
   canvas.hoch {
     aspect-ratio: 9 / 16; width: auto; max-width: 100%; margin: 0 auto;
-    height: min(calc(100vh - 185px), calc((100vw - 24px) * 16 / 9));
-    height: min(calc(100dvh - 185px), calc((100vw - 24px) * 16 / 9));
+    height: min(calc(100vh - 200px), calc((100vw - 24px) * 16 / 9));
+    height: min(calc(100dvh - 200px), calc((100vw - 24px) * 16 / 9));
   }
   @media (max-width: 860px) {
-    .rahmen { flex-direction: column; align-items: stretch; padding: 8px 12px 72px; gap: 8px; }
+    .rahmen { flex-direction: column; align-items: stretch; padding: 8px 12px 84px; gap: 8px; }
     .seite { width: 100%; gap: 8px; }
     .hilfe { display: none; }
     .tabs { display: flex; }
@@ -100,7 +100,19 @@
     #winkelbox h2, #winkelbox .zeile, #winkel, #puttbox p, #werfen { display: none; }
     #winkelbox .knoepfe, #puttbox .knoepfe { flex-wrap: nowrap; }
     #winkelbox .knoepfe button, #puttbox .knoepfe button { flex: 1; padding: 9px 4px; min-width: 0; }
-    button { touch-action: manipulation; }
+    button { touch-action: manipulation; font-size: 13px; }
+    /* größere Schrift auf dem Handy */
+    h1 { font-size: 19px; }
+    h2 { font-size: 13px; }
+    .klein { font-size: 12px; }
+    .spieler { font-size: 16px; gap: 8px 10px; grid-template-columns: 14px 1fr auto auto; }
+    .spieler .punkt { width: 13px; height: 13px; }
+    .scheibe { padding: 10px; font-size: 16px; }
+    .scheibe small { font-size: 12px; margin-top: 2px; }
+    .scheibe .zahlen { font-size: 14px; }
+    .scheibe .typ { height: 30px; }
+    #winkelbox .knoepfe button, #puttbox .knoepfe button { font-size: 13px; }
+    .tabs button { font-size: 15px; }
     canvas { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   }
 </style>
@@ -110,7 +122,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#5a7a5a">Version 12</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#5a7a5a">Version 13</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -200,9 +212,9 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=12"></script>
-<script src="bahnen.js?v=12"></script>
-<script src="physik.js?v=12"></script>
+<script src="taschen.js?v=13"></script>
+<script src="bahnen.js?v=13"></script>
+<script src="physik.js?v=13"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
