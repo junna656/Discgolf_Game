@@ -15,6 +15,7 @@
     --akzent: #7cd86a;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html, body { margin: 0; background: var(--bg); color: var(--text); font-family: "Silkscreen", monospace; }
   body { min-height: 100vh; }
   .rahmen { display: flex; gap: 12px; padding: 12px 16px; max-width: 1400px; margin: 0 auto; align-items: flex-start; }
@@ -51,13 +52,30 @@
   #werfen:disabled { opacity: .4; }
   kbd { font-family: inherit; background: #2b3542; border: 1px solid var(--rand); padding: 0 3px; color: var(--text); }
   .nur-mobil { display: none; }
+  /* Hauptbildschirm */
+  .menue {
+    position: fixed; inset: 0; z-index: 20; overflow-y: auto;
+    display: flex; justify-content: center; padding: 24px 16px;
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,.06) 0 8px, transparent 8px 16px),
+      linear-gradient(#1b3a22, #10261a 60%, #0c1a12);
+  }
+  .menue[hidden] { display: none; }
+  .menue-innen { margin: auto 0; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; }
+  .titel { font-size: 34px; line-height: 1.05; text-align: center; margin: 0 0 4px; color: var(--akzent); text-shadow: 3px 3px 0 #0a140c; }
+  .untertitel { text-align: center; font-size: 11px; color: #a8c8a0; margin: 0 0 14px; }
+  .korbbild { display: block; margin: 0 auto 10px; image-rendering: pixelated; width: 96px; height: 96px; border: 0; background: none; cursor: default; }
+  .gross { display: block; width: 100%; text-align: left; font-size: 17px; padding: 14px 16px; border-width: 3px; background: #22302a; }
+  .gross small { display: block; font-size: 10px; color: var(--leise); margin-top: 4px; }
+  .gross:hover, .gross:focus-visible { border-color: var(--akzent); }
+  .person { display: flex; align-items: center; gap: 12px; }
+  .person .punkt { width: 18px; height: 18px; flex-shrink: 0; }
   #scheibenchip { border-left-width: 6px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tabs {
     display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; gap: 6px;
     background: var(--panel); border-top: 3px solid var(--rand);
     padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
   }
-  #bahnwahl button { flex: 1; font-size: 13px; padding: 10px 6px; }
   .tabs button { flex: 1; font-size: 13px; padding: 12px 6px; }
   .tabs #werfen2 { flex: 1.6; background: #35502f; border-color: var(--akzent); user-select: none; -webkit-user-select: none; touch-action: none; }
   .tabs #werfen2:disabled { opacity: .4; }
@@ -84,6 +102,23 @@
 </style>
 </head>
 <body data-ansicht="feld">
+<div class="menue" id="menue">
+  <div class="menue-innen">
+    <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
+    <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark</p>
+    <div id="menue-start" class="liste" style="gap:10px">
+      <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
+      <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
+      <button class="gross" data-modus="vierer">Vierer Flight<small id="vierer-namen"></small></button>
+    </div>
+    <div id="menue-wahl" class="liste" style="gap:10px" hidden>
+      <h2 id="wahl-titel" style="text-align:center;font-size:13px">Wer spielt?</h2>
+      <div id="personen" class="liste" style="gap:10px"></div>
+      <button id="zurueck" style="margin-top:6px">← Zurück</button>
+    </div>
+  </div>
+</div>
 <div class="rahmen">
   <div class="spielfeld">
     <canvas id="c" width="320" height="180"></canvas>
@@ -113,8 +148,8 @@
       <div class="zeile"><span>Hyzer</span><span id="winkeltext">flach</span><span>Anhyzer</span></div>
     </div>
     <div class="box nur-bag">
-      <h2>Bahn wählen</h2>
-      <div class="knoepfe" id="bahnwahl"></div>
+      <h2 id="modusname">Modus</h2>
+      <div class="knoepfe"><button id="zummenue" style="flex:1;font-size:13px;padding:10px 6px">Hauptmenü</button></div>
     </div>
     <div class="box nur-bag">
       <h1>Discgolf Potsdam</h1>
@@ -311,14 +346,24 @@ function zeichneHintergrund() {
 // ---------- Spielzustand ----------
 let spieler, aktiv, zustand, wind, ziel, winkel, ladeZeit, kraft, flug, banner, puttModus, puttStil, putt, uhr = 0, fertigText;
 
+// Modus: "frei" (Weitwurf auf dem Feld), "single" (eine Person), "vierer" (alle)
+let modus = "vierer", teilnehmer = SPIELER.map((_, i) => i), marken = [], spielNr = 0;
+function spaeter(fn, ms) {
+  const nr = spielNr;
+  setTimeout(() => { if (nr === spielNr) fn(); }, ms);
+}
+
 function neuesSpiel() {
-  spieler = SPIELER.map(s => ({
+  spielNr++;
+  marken = [];
+  flug = null;
+  spieler = teilnehmer.map(i => SPIELER[i]).map(s => ({
     name: s.name, farbe: s.farbe, hand: s.hand || "rechts", tasche: s.tasche,
     wurfart: s.wurfart || "rueckhand",
     ruf: s.ruf || "",
     lie: { x: bahn.abwurf.x, y: bahn.abwurf.y }, wuerfe: 0, fertig: false,
     scheibe: Math.max(0, s.tasche.findIndex(d => d.typ === "Midrange")),
-    gelegt: false,
+    bester: 0,
   }));
   const st = 1 + Math.random() * 5, ri = Math.random() * Math.PI * 2;
   wind = { x: Math.cos(ri) * st, y: Math.sin(ri) * st };
@@ -380,6 +425,20 @@ function loslassen() {
 
 function flugEnde() {
   const s = ich(), e = flug.erg;
+  if (modus === "frei") {
+    // Weitwurf: Landepunkt markieren, dann wieder vom Abwurf
+    const d = abstand(e.lie, bahn.abwurf);
+    marken.push({ x: e.lie.x, y: e.lie.y, d, farbe: s.farbe });
+    s.bester = Math.max(s.bester, d);
+    if (e.drin) { sfx.ketten(); zeigeBanner("TREFFER!", "#ffd84a", 1.4); }
+    else if (e.typ === "baum") { sfx.baum(); zeigeBanner("BAUM!", "#9be07a"); }
+    else { sfx.landung(); zeigeBanner(Math.round(d) + " M" + (d >= s.bester ? " BEST!" : ""), d >= s.bester ? "#ffd84a" : PAL.weiss, 1.2); }
+    s.lie = e.lie;
+    zustand = "pause";
+    aktualisierePanel();
+    spaeter(() => { s.lie = { x: bahn.abwurf.x, y: bahn.abwurf.y }; naechster(); }, 1500);
+    return;
+  }
   s.lie = e.lie;
   if (e.drin) {
     s.fertig = true;
@@ -397,7 +456,7 @@ function flugEnde() {
     zeigeBanner(Math.round(e.distanz) + " m", PAL.weiss, 0.9);
   }
   zustand = "pause";
-  setTimeout(() => naechster(), 1300);
+  spaeter(naechster, 1300);
 }
 
 function zeigeErgebnis(s, extra) {
@@ -504,7 +563,7 @@ function puttEnde() {
     if (ergebnis !== "spit") sfx.landung();
   }
   zustand = "pause";
-  setTimeout(() => naechster(), 1300);
+  spaeter(naechster, 1300);
 }
 
 // ---------- Zeichnen ----------
@@ -565,6 +624,23 @@ function zeichneZiellinie() {
   for (let d = 0; d < 20; d += 3) {
     const a = ziel + k * DEG * (d / 20);
     ctx.fillRect(Math.round(ex + Math.cos(a) * d - Math.sin(ziel) * k * d * d / 400), Math.round(ey + Math.sin(a) * d + Math.cos(ziel) * k * d * d / 400), 1, 1);
+  }
+}
+
+// Freies Werfen: kleine Kreuze, wo die Scheiben gelandet sind
+function zeichneMarken() {
+  if (!marken.length) return;
+  const best = marken.reduce((a, b) => b.d > a.d ? b : a), letzte = marken[marken.length - 1];
+  for (const m of marken) {
+    const q = zuSchirm(m);
+    ctx.fillStyle = m === best ? "#ffd84a" : m === letzte ? PAL.weiss : "rgba(255,255,255,.45)";
+    for (const [dx, dy] of [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]]) ctx.fillRect(q.x + dx, q.y + dy, 1, 1);
+  }
+  const q = zuSchirm(best);
+  text(Math.round(best.d) + "", q.x, q.y - 11, "#ffd84a", "center");
+  if (letzte !== best && zustand !== "flug") {
+    const l = zuSchirm(letzte);
+    text(Math.round(letzte.d) + "", l.x, l.y - 11, PAL.weiss, "center");
   }
 }
 
@@ -697,7 +773,8 @@ function zeichneEnde() {
     text((i + 1) + ". " + s.name.toUpperCase(), 84, 58 + i * 16, s.farbe);
     text(s.wuerfe + "  (" + (d > 0 ? "+" : d === 0 ? "" : "") + (d === 0 ? "E" : d) + ")", 236, 58 + i * 16, PAL.weiss, "right");
   });
-  text(hochkant ? "TIPPEN: NOCHMAL" : "R / KLICK: NOCHMAL", 160, 134, PAL.weiss, "center");
+  text(hochkant ? "TIPPEN: NOCHMAL" : "R / KLICK: NOCHMAL", 160, 126, PAL.weiss, "center");
+  text(hochkant ? "MENÜ IM BAG" : "M: HAUPTMENÜ", 160, 137, "#8a97a8", "center");
 }
 
 let letzte = performance.now();
@@ -705,6 +782,7 @@ function schleife(jetzt) {
   const dt = Math.min(0.05, (jetzt - letzte) / 1000);
   letzte = jetzt;
   uhr += dt;
+  if (!spieler) { requestAnimationFrame(schleife); return; }
 
   if (zustand === "laden") {
     const ph = ((uhr - ladeZeit) / 1.1) % 2;
@@ -724,6 +802,7 @@ function schleife(jetzt) {
     }
   }
   zeichneKorbOben(korbWackelt);
+  if (modus === "frei") zeichneMarken();
   zeichneSpieler();
 
   if (zustand === "flug" || (zustand === "pause" && flug && flug.aktiv)) {
@@ -745,8 +824,13 @@ function schleife(jetzt) {
   if (zustand !== "ende") {
     const s = ich(), d = abstand(s.lie, bahn.korb);
     text(s.name.toUpperCase(), 4, 4, s.farbe);
-    text("WURF " + (s.wuerfe + 1) + " · " + d.toFixed(0) + " M", 4, 13, PAL.weiss);
-    text((bahn.kurz || "BAHN " + bahn.nummer) + " · PAR " + bahn.par, 4, 22, "#c8d0d8");
+    if (modus === "frei") {
+      text("WURF " + (s.wuerfe + 1) + (s.bester ? " · BEST " + Math.round(s.bester) + " M" : ""), 4, 13, PAL.weiss);
+      text("FREIES WERFEN", 4, 22, "#c8d0d8");
+    } else {
+      text("WURF " + (s.wuerfe + 1) + " · " + d.toFixed(0) + " M", 4, 13, PAL.weiss);
+      text((bahn.kurz || "BAHN " + bahn.nummer) + " · PAR " + bahn.par, 4, 22, "#c8d0d8");
+    }
     if (!puttModus) {
       const w = Math.round(winkel);
       const unten = hochkant ? SH - 46 : SH - 28;
@@ -781,10 +865,11 @@ const el = id => document.getElementById(id);
 function aktualisierePanel() {
   el("bahninfo").innerHTML =
     `${bahn.ort || ""}<br>${bahn.kurz ? "" : "Bahn " + bahn.nummer + " "}„${bahn.name}“ · Par ${bahn.par} · ${Math.round(abstand(bahn.abwurf, bahn.korb))} m`;
-  document.querySelectorAll("[data-bahn]").forEach(b => b.classList.toggle("an", BAHNEN[+b.dataset.bahn] === bahn));
+  el("modusname").textContent = { frei: "Freies Werfen", single: "Single Flight", vierer: "Vierer Flight" }[modus];
   el("spielerliste").innerHTML = spieler.map((s, i) => {
     const d = s.wuerfe - bahn.par;
-    const status = s.fertig ? (d === 0 ? "E" : (d > 0 ? "+" : "") + d) : Math.round(abstand(s.lie, bahn.korb)) + " m";
+    const status = modus === "frei" ? (s.bester ? "Best " + Math.round(s.bester) + " m" : "–")
+      : s.fertig ? (d === 0 ? "E" : (d > 0 ? "+" : "") + d) : Math.round(abstand(s.lie, bahn.korb)) + " m";
     return `<span class="punkt" style="background:${s.farbe}"></span>
       <span class="${i === aktiv && zustand !== "ende" ? "aktiv" : ""}">${i === aktiv && zustand !== "ende" ? "▶ " : ""}${s.name}</span>
       <span class="wert">${s.wuerfe}</span><span class="wert klein">${status}</span>`;
@@ -903,6 +988,8 @@ cv.addEventListener("pointerdown", e => {
 
 window.addEventListener("keydown", e => {
   const k = e.key;
+  if (!el("menue").hidden || !spieler) return;
+  if (k === "m" || k === "M") { zeigeMenue(); return; }
   if (k === " ") {
     e.preventDefault();
     if (e.repeat) return;
@@ -923,20 +1010,61 @@ window.addEventListener("keydown", e => {
 });
 window.addEventListener("keyup", e => { if (e.key === " ") loslassen(); });
 
-function waehleBahn(i) {
-  bahn = BAHNEN[i] || BAHNEN[0];
+function setzeBahn(b) {
+  bahn = b;
   S = W / bahn.welt.breite;
   zeichneHintergrund();
-  neuesSpiel();
-  try { history.replaceState(null, "", "#bahn=" + (BAHNEN.indexOf(bahn) + 1)); } catch (e) { /* egal */ }
 }
-el("bahnwahl").innerHTML = BAHNEN.map((b, i) => `<button data-bahn="${i}">${b.kurz ? b.name : "Bahn " + b.nummer}</button>`).join("");
-el("bahnwahl").addEventListener("click", e => {
-  const b = e.target.closest("[data-bahn]");
-  if (b) { waehleBahn(+b.dataset.bahn); zeigeAnsicht("feld"); }
-});
 
-waehleBahn((parseInt((location.hash.match(/bahn=(\d+)/) || [])[1], 10) || 1) - 1);
+// ---------- Hauptbildschirm ----------
+function starteModus(m, person) {
+  modus = m;
+  teilnehmer = m === "vierer" ? SPIELER.map((_, i) => i) : [person];
+  setzeBahn(m === "frei" ? (BAHNEN.find(b => b.distanzmarken) || BAHNEN[0]) : BAHNEN[0]);
+  el("menue").hidden = true;
+  zeigeAnsicht("feld");
+  neuesSpiel();
+}
+function zeigeMenue() {
+  spielNr++;
+  try { speechSynthesis.cancel(); } catch (e) { /* egal */ }
+  el("menue-start").hidden = false;
+  el("menue-wahl").hidden = true;
+  el("menue").hidden = false;
+}
+let gewaehlterModus = null;
+el("vierer-namen").textContent = SPIELER.map(s => s.name).join(", ").replace(/, ([^,]*)$/, " & $1") + " spielen zusammen";
+el("personen").innerHTML = SPIELER.map((s, i) => `
+  <button class="gross person" data-person="${i}"><span class="punkt" style="background:${s.farbe}"></span>
+    <span>${s.name}<small>${s.tasche.length} Scheiben · ${s.hand === "links" ? "Linkshand" : "Rechtshand"}</small></span></button>`).join("");
+document.querySelectorAll("[data-modus]").forEach(b => b.addEventListener("click", () => {
+  const m = b.dataset.modus;
+  if (m === "vierer") { starteModus(m); return; }
+  gewaehlterModus = m;
+  el("wahl-titel").textContent = m === "frei" ? "Mit wessen Bag wirfst du?" : "Wer spielt?";
+  el("menue-start").hidden = true;
+  el("menue-wahl").hidden = false;
+}));
+el("personen").addEventListener("click", e => {
+  const b = e.target.closest("[data-person]");
+  if (b) starteModus(gewaehlterModus, +b.dataset.person);
+});
+el("zurueck").addEventListener("click", () => { el("menue-start").hidden = false; el("menue-wahl").hidden = true; });
+el("zummenue").addEventListener("click", zeigeMenue);
+
+// kleiner Pixel-Korb als Logo
+(function () {
+  const c = el("korbbild").getContext("2d");
+  const r = (f, x, y, w, h) => { c.fillStyle = f; c.fillRect(x, y, w, h); };
+  r("#606468", 11, 3, 2, 20);
+  r("#f0c020", 4, 3, 16, 2);
+  for (let x = 5; x <= 19; x += 2) r(x % 4 === 1 ? "#d8dce0" : "#9098a0", x, 5, 1, 7);
+  r("#8a9096", 4, 12, 16, 1); r("#b0b6bc", 5, 13, 14, 3); r("#f0c020", 5, 14, 14, 1);
+  r("#3c8ce8", 15, 8, 6, 2); r("#101418", 15, 10, 6, 1);
+  r("#2f7d32", 6, 22, 12, 2);
+})();
+
+zeigeMenue();
 requestAnimationFrame(schleife);
 </script>
 </body>
