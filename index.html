@@ -7,11 +7,11 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap">
 <style>
   :root {
-    --bg: #14181f;
-    --panel: #1f2630;
-    --rand: #3a4656;
-    --text: #e8ecf0;
-    --leise: #8a97a8;
+    --bg: #0e1116;
+    --panel: #1a2029;
+    --rand: #56657a;
+    --text: #ffffff;
+    --leise: #cdd6e2;
     --akzent: #7cd86a;
   }
   * { box-sizing: border-box; }
@@ -36,15 +36,16 @@
   .spieler .wert { text-align: right; }
   .knoepfe { display: flex; flex-wrap: wrap; gap: 4px; }
   button {
-    font-family: inherit; font-size: 11px; color: var(--text); background: #2b3542;
+    font-family: inherit; font-size: 11px; color: var(--text); background: #263040;
     border: 2px solid var(--rand); padding: 5px 7px; cursor: pointer;
   }
   button:hover { border-color: var(--leise); }
   button.an { background: #35502f; border-color: var(--akzent); }
   .scheibe { display: grid; grid-template-columns: 8px 1fr auto; gap: 6px; align-items: center; width: 100%; text-align: left; }
   .scheibe .typ { width: 8px; height: 22px; }
-  .scheibe small { display: block; color: var(--leise); font-size: 9px; }
-  .scheibe .zahlen { font-size: 10px; color: var(--leise); }
+  .scheibe small { display: block; color: var(--leise); font-size: 9px; font-weight: 400; }
+  .scheibe .zahlen { font-size: 10px; color: #ffe08a; }
+  .scheibe > span:nth-child(2), .spieler span:nth-child(2) { font-weight: 700; }
   .liste { display: flex; flex-direction: column; gap: 4px; }
   input[type=range] { width: 100%; accent-color: var(--akzent); }
   .zeile { display: flex; justify-content: space-between; font-size: 10px; color: var(--leise); }
@@ -63,7 +64,7 @@
   .menue[hidden] { display: none; }
   .menue-innen { margin: auto 0; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; }
   .titel { font-size: 34px; line-height: 1.05; text-align: center; margin: 0 0 4px; color: var(--akzent); text-shadow: 3px 3px 0 #0a140c; }
-  .untertitel { text-align: center; font-size: 11px; color: #a8c8a0; margin: 0 0 14px; }
+  .untertitel { text-align: center; font-size: 11px; color: #e2f5dc; margin: 0 0 14px; }
   .korbbild { display: block; margin: 0 auto 10px; image-rendering: pixelated; width: 96px; height: 96px; border: 0; background: none; cursor: default; }
   .gross { display: block; width: 100%; text-align: left; font-size: 17px; padding: 14px 16px; border-width: 3px; background: #22302a; }
   .gross small { display: block; font-size: 10px; color: var(--leise); margin-top: 4px; }
@@ -122,7 +123,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#5a7a5a">Version 13</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 14</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -212,9 +213,9 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=13"></script>
-<script src="bahnen.js?v=13"></script>
-<script src="physik.js?v=13"></script>
+<script src="taschen.js?v=14"></script>
+<script src="bahnen.js?v=14"></script>
+<script src="physik.js?v=14"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -650,7 +651,7 @@ function text(t, x, y, farbe = PAL.weiss, ausr = "left", gr = 8) {
   ctx.textAlign = ausr;
   ctx.textBaseline = "top";
   ctx.fillStyle = PAL.schwarz;
-  ctx.fillText(t, x + 1, y + 1);
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) ctx.fillText(t, x + dx, y + dy);
   ctx.fillStyle = farbe;
   ctx.fillText(t, x, y);
 }
@@ -733,7 +734,7 @@ function zeichneWind() {
     ctx.fillRect(Math.round(cx + Math.cos(a) * 7 + Math.cos(b) * d), Math.round(cy + Math.sin(a) * 7 + Math.sin(b) * d), 1, 1);
   }
   text(st.toFixed(1), cx, y + 21, "#bfe4ff", "center");
-  text("WIND", x - 4, y + 31, "#8aa8c0", "left");
+  text("WIND", x - 4, y + 31, "#d8ecff", "left");
 }
 
 function zeichneKraftbalken() {
@@ -852,7 +853,7 @@ function zeichneEnde() {
     text(s.wuerfe + "  (" + (d > 0 ? "+" : d === 0 ? "" : "") + (d === 0 ? "E" : d) + ")", 236, 58 + i * 16, PAL.weiss, "right");
   });
   text(hochkant ? "TIPPEN: NOCHMAL" : "R / KLICK: NOCHMAL", 160, 126, PAL.weiss, "center");
-  text(hochkant ? "MENÜ IM BAG" : "M: HAUPTMENÜ", 160, 137, "#8a97a8", "center");
+  text(hochkant ? "MENÜ IM BAG" : "M: HAUPTMENÜ", 160, 137, "#d0d8e2", "center");
 }
 
 let letzte = performance.now();
@@ -876,7 +877,7 @@ function schleife(jetzt) {
     const oben = Math.min(...bahn.fairway.map(p => p[1]));
     for (let d = bahn.distanzmarken; bahn.abwurf.x + d < bahn.korb.x - 5; d += bahn.distanzmarken) {
       const q = zuSchirm({ x: bahn.abwurf.x + d, y: oben - 4 / S });
-      text(String(d), q.x, q.y - 4, "rgba(255,255,255,.75)", "center");
+      text(String(d), q.x, q.y - 4, "#ffffff", "center");
     }
   }
   zeichneKorbOben(korbWackelt);
