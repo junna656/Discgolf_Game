@@ -106,7 +106,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark</p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#5a7a5a">Version 7</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -182,9 +182,9 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js"></script>
-<script src="bahnen.js"></script>
-<script src="physik.js"></script>
+<script src="taschen.js?v=7"></script>
+<script src="bahnen.js?v=7"></script>
+<script src="physik.js?v=7"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -1020,7 +1020,9 @@ function setzeBahn(b) {
 function starteModus(m, person) {
   modus = m;
   teilnehmer = m === "vierer" ? SPIELER.map((_, i) => i) : [person];
-  setzeBahn(m === "frei" ? (BAHNEN.find(b => b.distanzmarken) || BAHNEN[0]) : BAHNEN[0]);
+  const feld = BAHNEN.find(b => b.distanzmarken);
+  if (m === "frei" && !feld) { alert("Das freie Feld wurde nicht geladen. Bitte die Seite neu laden."); return; }
+  setzeBahn(m === "frei" ? feld : BAHNEN[0]);
   el("menue").hidden = true;
   zeigeAnsicht("feld");
   neuesSpiel();
