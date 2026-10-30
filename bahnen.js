@@ -2,7 +2,8 @@
 //  BAHNEN  –  Hyzernauts Discgolfparcours, Volkspark Potsdam
 // ============================================================
 //  Koordinaten in Metern, Draufsicht: x nach rechts, y nach unten.
-//  Die Spielfläche ist welt.breite × welt.hoehe Meter groß.
+//  Die Spielfläche ist welt.breite × welt.hoehe Meter groß und wird
+//  auf den Bildschirm skaliert – hoehe muss breite × 9/16 sein.
 //
 //  ACHTUNG: Bahn 1 ist eine Annäherung an das Signature-Hole
 //  ("Bowling-Bahn", die Scheibe kann in den Korb rutschen).
@@ -14,6 +15,7 @@ window.BAHNEN = [
   {
     nummer: 1,
     name: "Bowling",
+    ort: "Hyzernauts Parcours · Volkspark",
     par: 3,
     welt: { breite: 320 / 3, hoehe: 60 },
     abwurf: { x: 6, y: 38 },
@@ -39,5 +41,20 @@ window.BAHNEN = [
     ],
     // Aus (OB): Rechtecke
     ob: [{ x: 0, y: 55, w: 320 / 3, h: 5, name: "Weg" }],
+  },
+  {
+    // Offene Wiese zum Weitwurf-Üben: 200 m bis zum Korb, keine Bäume
+    nummer: 2,
+    kurz: "FELD",
+    name: "Freies Feld",
+    ort: "Übungswiese",
+    par: 4,
+    welt: { breite: 240, hoehe: 135 },
+    abwurf: { x: 24, y: 67.5 },
+    korb: { x: 224, y: 67.5 },
+    fairway: [[0, 37.5], [240, 37.5], [240, 97.5], [0, 97.5]],
+    baeume: [],
+    ob: [],
+    distanzmarken: 25, // alle 25 m eine Markierung
   },
 ];

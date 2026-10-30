@@ -114,6 +114,7 @@
     <div class="box nur-bag">
       <h1>Discgolf Potsdam</h1>
       <div class="klein" id="bahninfo"></div>
+      <div class="knoepfe" id="bahnwahl" style="margin-top:6px"></div>
     </div>
     <div class="box nur-bag">
       <h2>Karte</h2>
@@ -149,7 +150,8 @@
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
 
-const W = 320, H = 180, S = 3; // Pixel pro Meter
+const W = 320, H = 180;
+let S = 3; // Pixel pro Meter, hängt von der Bahngröße ab
 const FLUGTEMPO = 0.55; // < 1 = Zeitlupe beim Flug
 const cv = document.getElementById("c");
 const ctx = cv.getContext("2d");
@@ -187,7 +189,7 @@ const PAL = {
   weiss: "#f4f4f0", schwarz: "#101418",
 };
 
-const bahn = BAHNEN[0];
+let bahn = BAHNEN[0];
 
 // ---------- Ton ----------
 let actx = null;
@@ -236,7 +238,7 @@ function pixelKreis(c, cx, cy, r, farbe) {
 
 const hg = document.createElement("canvas");
 hg.width = W; hg.height = H;
-(function zeichneHintergrund() {
+function zeichneHintergrund() {
   const c = hg.getContext("2d"), rnd = zufall(1);
   for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
     const x = (px + 0.5) / S, y = (py + 0.5) / S, r = rnd();
@@ -247,6 +249,14 @@ hg.width = W; hg.height = H;
     else f = r < 0.12 ? PAL.gras2 : r > 0.94 ? PAL.gras3 : PAL.gras1;
     c.fillStyle = f;
     c.fillRect(px, py, 1, 1);
+  }
+  // Entfernungsmarken: gepunktete Linien quer über die Bahn
+  if (bahn.distanzmarken) {
+    c.fillStyle = "rgba(255,255,255,.55)";
+    for (let d = bahn.distanzmarken; bahn.abwurf.x + d < bahn.korb.x - 5; d += bahn.distanzmarken) {
+      const px = Math.round((bahn.abwurf.x + d) * S);
+      for (let py = 0; py < H; py += 3) if (imPolygon(px / S, (py + 0.5) / S, bahn.fairway)) c.fillRect(px, py, 1, 1);
+    }
   }
   // OB-Linie mit weißen Pflöcken
   for (const o of bahn.ob) {
@@ -292,7 +302,7 @@ hg.width = W; hg.height = H;
       c.fillRect(Math.round(b.x * S + Math.cos(a) * d), Math.round(b.y * S + Math.sin(a) * d), 1, 1);
     }
   }
-})();
+}
 
 // ---------- Spielzustand ----------
 let spieler, aktiv, zustand, wind, ziel, winkel, ladeZeit, kraft, flug, banner, puttModus, puttStil, putt, uhr = 0, fertigText;
@@ -676,7 +686,7 @@ function zeichnePuttAnsicht() {
 
 function zeichneEnde() {
   ctx.fillStyle = "rgba(10,14,20,.85)"; ctx.fillRect(70, 30, 180, 120);
-  text("BAHN 1 GESPIELT", 160, 38, "#9be07a", "center", 8);
+  text((bahn.kurz || "BAHN " + bahn.nummer) + " GESPIELT", 160, 38, "#9be07a", "center", 8);
   const sortiert = [...spieler].sort((a, b) => a.wuerfe - b.wuerfe);
   sortiert.forEach((s, i) => {
     const d = s.wuerfe - bahn.par;
@@ -702,6 +712,13 @@ function schleife(jetzt) {
   if (zustand === "zielen" || zustand === "laden") zeichneZiellinie();
   schirmTransform();
   const korbWackelt = (flug && flug.erg.drin && zustand !== "zielen" && uhr - flug.t0 > flug.erg.dauer / FLUGTEMPO - 0.1 && uhr - flug.t0 < flug.erg.dauer / FLUGTEMPO + 0.7);
+  if (bahn.distanzmarken) {
+    const oben = Math.min(...bahn.fairway.map(p => p[1]));
+    for (let d = bahn.distanzmarken; bahn.abwurf.x + d < bahn.korb.x - 5; d += bahn.distanzmarken) {
+      const q = zuSchirm({ x: bahn.abwurf.x + d, y: oben - 4 / S });
+      text(String(d), q.x, q.y - 4, "rgba(255,255,255,.75)", "center");
+    }
+  }
   zeichneKorbOben(korbWackelt);
   zeichneSpieler();
 
@@ -725,7 +742,7 @@ function schleife(jetzt) {
     const s = ich(), d = abstand(s.lie, bahn.korb);
     text(s.name.toUpperCase(), 4, 4, s.farbe);
     text("WURF " + (s.wuerfe + 1) + " · " + d.toFixed(0) + " M", 4, 13, PAL.weiss);
-    text("BAHN " + bahn.nummer + " · PAR " + bahn.par, 4, 22, "#c8d0d8");
+    text((bahn.kurz || "BAHN " + bahn.nummer) + " · PAR " + bahn.par, 4, 22, "#c8d0d8");
     if (!puttModus) {
       const w = Math.round(winkel);
       const unten = hochkant ? SH - 46 : SH - 28;
@@ -759,7 +776,8 @@ function schleife(jetzt) {
 const el = id => document.getElementById(id);
 function aktualisierePanel() {
   el("bahninfo").innerHTML =
-    `Hyzernauts Parcours · Volkspark<br>Bahn ${bahn.nummer} „${bahn.name}“ · Par ${bahn.par} · ${Math.round(abstand(bahn.abwurf, bahn.korb))} m`;
+    `${bahn.ort || ""}<br>${bahn.kurz ? "" : "Bahn " + bahn.nummer + " "}„${bahn.name}“ · Par ${bahn.par} · ${Math.round(abstand(bahn.abwurf, bahn.korb))} m`;
+  document.querySelectorAll("[data-bahn]").forEach(b => b.classList.toggle("an", BAHNEN[+b.dataset.bahn] === bahn));
   el("spielerliste").innerHTML = spieler.map((s, i) => {
     const d = s.wuerfe - bahn.par;
     const status = s.fertig ? (d === 0 ? "E" : (d > 0 ? "+" : "") + d) : Math.round(abstand(s.lie, bahn.korb)) + " m";
@@ -901,7 +919,20 @@ window.addEventListener("keydown", e => {
 });
 window.addEventListener("keyup", e => { if (e.key === " ") loslassen(); });
 
-neuesSpiel();
+function waehleBahn(i) {
+  bahn = BAHNEN[i] || BAHNEN[0];
+  S = W / bahn.welt.breite;
+  zeichneHintergrund();
+  neuesSpiel();
+  try { history.replaceState(null, "", "#bahn=" + (BAHNEN.indexOf(bahn) + 1)); } catch (e) { /* egal */ }
+}
+el("bahnwahl").innerHTML = BAHNEN.map((b, i) => `<button data-bahn="${i}">${b.kurz ? b.name : "Bahn " + b.nummer}</button>`).join("");
+el("bahnwahl").addEventListener("click", e => {
+  const b = e.target.closest("[data-bahn]");
+  if (b) { waehleBahn(+b.dataset.bahn); zeigeAnsicht("feld"); }
+});
+
+waehleBahn((parseInt((location.hash.match(/bahn=(\d+)/) || [])[1], 10) || 1) - 1);
 requestAnimationFrame(schleife);
 </script>
 </body>
