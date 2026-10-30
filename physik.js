@@ -67,6 +67,8 @@
     const turnK = -s.turn * 0.2 * (0.3 + kraft) * clamp(1 + 0.15 * gegen, 0.3, 2) * E.turn;
     const fadeK = s.fade * 2.2 * (1.2 - 0.4 * kraft) * clamp(1 + 0.08 * gegen, 0.5, 1.6) * E.fade;
     const winkK = -winkel * DEG * 1.2 * E.winkel;
+    // Fade-Haken: am Ende rutscht die langsame Scheibe seitlich weg (Meter, nach links bei RHBH)
+    const haken = s.fade * D * 0.03 * E.fade * (1.2 - 0.4 * kraft) / 0.8 * clamp(1 + 0.08 * gegen, 0.5, 1.6);
     const H = 1.5 + 6 * kraft * (1 - winkel / 80);
     const T = 1.2 + 2.6 * kraft + 0.15 * s.glide;
     const N = 160;
@@ -86,8 +88,9 @@
       th += seite * (turnK * wT - fadeK * wF + winkK * (1 - 0.5 * u)) / N;
       const qx = -Math.sin(th), qy = Math.cos(th);
       const quer = wind.x * qx + wind.y * qy;
-      px += Math.cos(th) * ds + qx * quer * 0.2 * T / N;
-      py += Math.sin(th) * ds + qy * quer * 0.2 * T / N;
+      const hs = seite * haken * wF / (0.22 * N); // Summe aller wF ≈ 0,22·N
+      px += Math.cos(th) * ds + qx * (quer * 0.2 * T / N - hs);
+      py += Math.sin(th) * ds + qy * (quer * 0.2 * T / N - hs);
       z = 1.3 * (1 - u) + H * Math.sin(Math.PI * u);
       pfad.push({ x: px, y: py, z, t: u * T });
 
