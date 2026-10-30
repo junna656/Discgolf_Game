@@ -31,9 +31,23 @@
     return Math.hypot(p.x - qx, p.y - qy) <= l.breite / 2;
   }
 
+  function imPolygon(p, poly) {
+    let drin = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const [xi, yi] = poly[i], [xj, yj] = poly[j];
+      if ((yi > p.y) !== (yj > p.y) && p.x < (xj - xi) * (p.y - yi) / (yj - yi) + xi) drin = !drin;
+    }
+    return drin;
+  }
+
+  // OB-Zonen: Rechteck {x, y, w, h} oder Polygon {punkte: [[x, y], ...]}
+  function obZone(p, bahn) {
+    return (bahn.ob || []).find(o => o.punkte ? imPolygon(p, o.punkte) : imRechteck(p, o)) || null;
+  }
+
   function istOB(p, bahn) {
     if (p.x < 0 || p.y < 0 || p.x > bahn.welt.breite || p.y > bahn.welt.hoehe) return true;
-    return (bahn.ob || []).some(r => imRechteck(p, r));
+    return !!obZone(p, bahn);
   }
 
   // Je mehr Kraft, desto stärker die Streuung von Richtung, Kraft und Winkel
@@ -207,5 +221,5 @@
     return { pfad, lie, drin, ob, obIndex, typ, dauer: t, distanz: abstand(lie, wurf) };
   }
 
-  g.Physik = { simuliere, streue, gauss, abstand, istOB, aufBowlingbahn, DEG, einstellungen: E, STANDARD, reichweite };
+  g.Physik = { simuliere, streue, gauss, abstand, istOB, obZone, imPolygon, aufBowlingbahn, DEG, einstellungen: E, STANDARD, reichweite };
 })(typeof window !== "undefined" ? window : globalThis);
