@@ -10,6 +10,7 @@
 //  hand: "rechts" oder "links" (links spiegelt alle Kurven)
 //  wurfart (optional): "rueckhand" oder "vorhand" – Startwert, im Spiel umschaltbar
 //  Der erste Putter in der Tasche wird automatisch zum Putten genommen.
+//  ruf (optional): was der Spieler nach jedem Wurf ruft (Sprechblase + Sprachausgabe)
 // ============================================================
 
 window.SPIELER = [
@@ -17,6 +18,7 @@ window.SPIELER = [
     name: "Thomas",
     farbe: "#e8483c",
     hand: "rechts",
+    ruf: "Achtung, zweite Scheibe!",
     tasche: [
       { name: "Donnerkeil", typ: "Driver",   speed: 12, glide: 5, turn: -1, fade: 2 },
       { name: "Pfeil",      typ: "Fairway",  speed: 7,  glide: 5, turn: -1, fade: 1 },
