@@ -123,7 +123,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 14</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 15</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -213,9 +213,9 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=14"></script>
-<script src="bahnen.js?v=14"></script>
-<script src="physik.js?v=14"></script>
+<script src="taschen.js?v=15"></script>
+<script src="bahnen.js?v=15"></script>
+<script src="physik.js?v=15"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -453,7 +453,11 @@ function loslassen() {
   const wurf = streue({ x: s.lie.x, y: s.lie.y, richtung: ziel, kraft, winkel, scheibe: scheibe(), hand: s.hand, wurfart: s.wurfart });
   const erg = simuliere(bahn, wurf, boe());
   s.wuerfe++;
-  flug = { erg, t0: uhr, kraftAngezeigt: kraft };
+  // Wie stark hat die Streuung den Wurf verzogen? (für den Ruf)
+  const verzogen = Math.abs(wurf.richtung - ziel) / DEG > E.rufAbStreuung
+    || Math.abs(wurf.kraft - kraft) / Math.max(kraft, 0.1) > E.rufAbStreuung / 60
+    || Math.abs(wurf.winkel - winkel) > E.rufAbStreuung * 1.6;
+  flug = { erg, t0: uhr, kraftAngezeigt: kraft, verzogen };
   zustand = "flug";
   sfx.wurf();
   aktualisierePanel();
@@ -461,7 +465,7 @@ function loslassen() {
 
 function flugEnde() {
   const s = ich(), e = flug.erg;
-  rufe(s);
+  if (!e.drin && (e.typ === "baum" || e.ob || flug.verzogen)) rufe(s);
   if (modus === "frei") {
     // Weitwurf: Landepunkt markieren, dann wieder vom Abwurf
     const d = abstand(e.lie, bahn.abwurf);
@@ -510,7 +514,8 @@ function zeigeBanner(text, farbe, dauer = 1.2) { banner = { text, farbe, t0: uhr
 // Ruf nach dem Wurf: Sprechblase über dem Spieler und, wenn möglich, Sprachausgabe
 let sprechblase = null;
 // ---------- Rufe: eigene Aufnahme (rufDatei) oder Sprachausgabe ----------
-const TON_STANDARD = { rufStimme: "", rufTempo: 1.05, rufHoehe: 1.15 };
+// rufAbStreuung: ab so viel Grad Abweichung (bzw. entsprechend bei Kraft/Winkel) gilt ein Wurf als verzogen
+const TON_STANDARD = { rufStimme: "", rufTempo: 1.05, rufHoehe: 1.15, rufAbStreuung: 7 };
 for (const k in TON_STANDARD) if (!(k in E)) E[k] = TON_STANDARD[k];
 
 // Deutsche Stimmen, die natürlich klingen, zuerst (iOS: "Erweitert"/"Premium", Android/Chrome: "Google")
@@ -624,7 +629,7 @@ function putten() {
 
 function puttEnde() {
   const s = ich(), { o, ergebnis } = putt.flug;
-  rufe(s);
+  if (ergebnis !== "drin") rufe(s);
   const r = zumKorb(s.lie), dx = Math.cos(r), dy = Math.sin(r), qx = -dy, qy = dx;
   const k = bahn.korb, z = Math.random;
   if (ergebnis === "drin") {
@@ -1124,6 +1129,7 @@ const REGLER = [
   ["streuung", "Streuung", 0, 3, 0.1],
   ["wind", "Wind", 0, 3, 0.1],
   ["tempo", "Flugtempo (1 = Echtzeit)", 0.2, 1.5, 0.05],
+  ["rufAbStreuung", "Ruf ab Streuung (Grad)", 1, 15, 0.5],
   ["rufTempo", "Ruf: Tempo", 0.5, 1.8, 0.05],
   ["rufHoehe", "Ruf: Tonhöhe", 0.5, 2, 0.05],
 ];
