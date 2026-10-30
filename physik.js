@@ -106,7 +106,6 @@
         ereignis = { typ: Math.random() < (u > 0.6 ? 0.8 : 0.35) ? "korb" : "abpraller" };
         break flug;
       }
-      if (px < -5 || py < -5 || px > bahn.welt.breite + 5 || py > bahn.welt.hoehe + 5) break;
     }
 
     let t = pfad[pfad.length - 1].t;
@@ -165,8 +164,10 @@
 
     const letzte = pfad[pfad.length - 1];
     let lie = { x: letzte.x, y: letzte.y }, ob = false;
+    let obIndex = -1;
     if (!drin && istOB(lie, bahn)) {
       ob = true;
+      obIndex = pfad.findIndex(p => istOB(p, bahn)); // hier fliegt die Scheibe ins Aus
       // dort weiterspielen, wo die Scheibe zuletzt im Spiel war
       for (let k = pfad.length - 1; k >= 0; k--) {
         if (!istOB(pfad[k], bahn)) { lie = { x: pfad[k].x, y: pfad[k].y }; break; }
@@ -175,7 +176,7 @@
     }
     if (drin) lie = { x: bahn.korb.x, y: bahn.korb.y };
 
-    return { pfad, lie, drin, ob, typ, dauer: t, distanz: abstand(lie, wurf) };
+    return { pfad, lie, drin, ob, obIndex, typ, dauer: t, distanz: abstand(lie, wurf) };
   }
 
   g.Physik = { simuliere, streue, gauss, abstand, istOB, aufBowlingbahn, DEG, einstellungen: E, STANDARD };

@@ -123,7 +123,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 15</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 16</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -213,9 +213,9 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=15"></script>
-<script src="bahnen.js?v=15"></script>
-<script src="physik.js?v=15"></script>
+<script src="taschen.js?v=16"></script>
+<script src="bahnen.js?v=16"></script>
+<script src="physik.js?v=16"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -282,7 +282,12 @@ const sfx = {
   baum: () => { ton(140, 0.08, "square", 0.06); ton(90, 0.1, "square", 0.05, null, 0.06); },
   landung: () => ton(110, 0.08, "triangle", 0.06, 60),
   ketten: () => { for (let i = 0; i < 9; i++) ton(1400 + Math.random() * 1600, 0.12, "triangle", 0.025, null, i * 0.035); },
-  ob: () => { ton(220, 0.15, "square", 0.04, 110); ton(160, 0.25, "square", 0.04, 80, 0.15); },
+  ob: () => {
+    // zwei Pfiffe, dann ein tiefer Buzzer
+    for (let i = 0; i < 6; i++) ton(i % 2 ? 2500 : 2800, 0.05, "triangle", 0.05, null, i * 0.05);
+    for (let i = 0; i < 4; i++) ton(i % 2 ? 2500 : 2800, 0.05, "triangle", 0.05, null, 0.4 + i * 0.05);
+    ton(150, 0.5, "sawtooth", 0.06, 90, 0.7);
+  },
   jubel: () => [523, 659, 784, 1046].forEach((f, i) => ton(f, 0.14, "square", 0.035, null, i * 0.1)),
 };
 
@@ -328,6 +333,13 @@ function zeichneHintergrund() {
       for (let py = 0; py < H; py += 3) if (imPolygon(px / S, (py + 0.5) / S, bahn.fairway)) c.fillRect(px, py, 1, 1);
     }
   }
+  // Rand der Spielfläche ist OB: gestrichelte weiße Linie mit Pflöcken
+  c.fillStyle = PAL.weiss;
+  for (let px = 0; px < W; px += 6) { c.fillRect(px, 0, 3, 1); c.fillRect(px, H - 1, 3, 1); }
+  for (let py = 0; py < H; py += 6) { c.fillRect(0, py, 1, 3); c.fillRect(W - 1, py, 1, 3); }
+  c.fillStyle = "#e84030";
+  for (let px = 12; px < W; px += 24) { c.fillRect(px, 1, 2, 2); c.fillRect(px, H - 3, 2, 2); }
+  for (let py = 12; py < H; py += 24) { c.fillRect(1, py, 2, 2); c.fillRect(W - 3, py, 2, 2); }
   // OB-Linie mit weißen Pflöcken
   for (const o of bahn.ob) {
     c.fillStyle = PAL.weiss;
@@ -469,9 +481,12 @@ function flugEnde() {
   if (modus === "frei") {
     // Weitwurf: Landepunkt markieren, dann wieder vom Abwurf
     const d = abstand(e.lie, bahn.abwurf);
-    marken.push({ x: e.lie.x, y: e.lie.y, d, farbe: s.farbe });
-    s.bester = Math.max(s.bester, d);
-    if (e.drin) { sfx.ketten(); zeigeBanner("TREFFER!", "#ffd84a", 1.4); }
+    if (!e.ob) {
+      marken.push({ x: e.lie.x, y: e.lie.y, d, farbe: s.farbe });
+      s.bester = Math.max(s.bester, d);
+    }
+    if (e.ob) { if (!flug.obGezeigt) zeigeOB(false); }
+    else if (e.drin) { sfx.ketten(); zeigeBanner("TREFFER!", "#ffd84a", 1.4); }
     else if (e.typ === "baum") { sfx.baum(); zeigeBanner("BAUM!", "#9be07a"); }
     else { sfx.landung(); zeigeBanner(Math.round(d) + " M" + (d >= s.bester ? " BEST!" : ""), d >= s.bester ? "#ffd84a" : PAL.weiss, 1.2); }
     s.lie = e.lie;
@@ -487,8 +502,7 @@ function flugEnde() {
     zeigeErgebnis(s, e.typ === "bowling" ? "STRIKE!" : null);
   } else if (e.ob) {
     s.wuerfe++;
-    sfx.ob();
-    zeigeBanner("OB +1", "#ff6a5a");
+    if (!flug.obGezeigt) zeigeOB(true);
   } else if (e.typ === "baum") {
     sfx.baum();
     zeigeBanner("BAUM!", "#9be07a");
@@ -509,7 +523,11 @@ function zeigeErgebnis(s, extra) {
   zeigeBanner(t, "#ffd84a", 1.6);
 }
 
-function zeigeBanner(text, farbe, dauer = 1.2) { banner = { text, farbe, t0: uhr, dauer }; }
+function zeigeBanner(text, farbe, dauer = 1.2, gr = 16, blinkt = false) { banner = { text, farbe, t0: uhr, dauer, gr, blinkt }; }
+function zeigeOB(strafe) {
+  sfx.ob();
+  zeigeBanner(strafe ? "OB +1" : "OB", "#ff3b2f", 2.2, 32, true);
+}
 
 // Ruf nach dem Wurf: Sprechblase über dem Spieler und, wenn möglich, Sprachausgabe
 let sprechblase = null;
@@ -893,6 +911,10 @@ function schleife(jetzt) {
     const fp = flugPosition();
     flug.aktiv = !fp.fertig;
     const e = flug.erg;
+    if (e.ob && !flug.obGezeigt && fp.i >= e.obIndex) {
+      flug.obGezeigt = true;
+      zeigeOB(modus !== "frei");
+    }
     for (let k = Math.max(0, fp.i - 40); k < fp.i; k += 3) {
       const q = e.pfad[k], c = zuSchirm(q);
       ctx.fillStyle = "rgba(255,255,255,.3)";
@@ -933,7 +955,10 @@ function schleife(jetzt) {
   if (banner) {
     const t = uhr - banner.t0;
     if (t > banner.dauer) banner = null;
-    else text(banner.text, SW / 2, Math.round(SH * 0.39) - Math.min(6, t * 20), banner.farbe, "center", 16);
+    else {
+      const farbe = banner.blinkt && Math.floor(t * 7) % 2 ? PAL.weiss : banner.farbe;
+      text(banner.text, SW / 2, Math.round(SH * 0.39) - banner.gr / 2 + 8 - Math.min(6, t * 20), farbe, "center", banner.gr);
+    }
   }
   if (zustand === "ende") {
     mitteTransform();
