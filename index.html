@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Discgolf Potsdam</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap">
+<style>
+  :root {
+    --bg: #14181f;
+    --panel: #1f2630;
+    --rand: #3a4656;
+    --text: #e8ecf0;
+    --leise: #8a97a8;
+    --akzent: #7cd86a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: "Silkscreen", monospace; }
+  body { min-height: 100vh; }
+  .rahmen { display: flex; gap: 12px; padding: 12px 16px; max-width: 1400px; margin: 0 auto; align-items: flex-start; }
+  .spielfeld { flex: 1; min-width: 0; }
+  canvas {
+    display: block; width: 100%; aspect-ratio: 16 / 9;
+    image-rendering: pixelated; image-rendering: crisp-edges;
+    border: 3px solid var(--rand); background: #000; cursor: crosshair; touch-action: none;
+  }
+  .seite { width: 290px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
+  .box { background: var(--panel); border: 3px solid var(--rand); padding: 8px 10px; }
+  h1 { font-size: 16px; margin: 0 0 2px; color: var(--akzent); }
+  h2 { font-size: 11px; margin: 0 0 6px; color: var(--leise); font-weight: 400; text-transform: uppercase; }
+  .klein { font-size: 10px; color: var(--leise); line-height: 1.5; }
+  .spieler { display: grid; grid-template-columns: 12px 1fr auto auto; gap: 4px 8px; align-items: center; font-size: 12px; }
+  .spieler .punkt { width: 10px; height: 10px; }
+  .spieler .aktiv { color: var(--akzent); }
+  .spieler .wert { text-align: right; }
+  .knoepfe { display: flex; flex-wrap: wrap; gap: 4px; }
+  button {
+    font-family: inherit; font-size: 11px; color: var(--text); background: #2b3542;
+    border: 2px solid var(--rand); padding: 5px 7px; cursor: pointer;
+  }
+  button:hover { border-color: var(--leise); }
+  button.an { background: #35502f; border-color: var(--akzent); }
+  .scheibe { display: grid; grid-template-columns: 8px 1fr auto; gap: 6px; align-items: center; width: 100%; text-align: left; }
+  .scheibe .typ { width: 8px; height: 22px; }
+  .scheibe small { display: block; color: var(--leise); font-size: 9px; }
+  .scheibe .zahlen { font-size: 10px; color: var(--leise); }
+  .liste { display: flex; flex-direction: column; gap: 4px; }
+  input[type=range] { width: 100%; accent-color: var(--akzent); }
+  .zeile { display: flex; justify-content: space-between; font-size: 10px; color: var(--leise); }
+  #werfen { width: 100%; font-size: 14px; padding: 10px; background: #35502f; border-color: var(--akzent); user-select: none; touch-action: none; }
+  #werfen:disabled { opacity: .4; }
+  kbd { font-family: inherit; background: #2b3542; border: 1px solid var(--rand); padding: 0 3px; color: var(--text); }
+  @media (max-width: 860px) {
+    .rahmen { flex-direction: column; padding: 8px 16px; }
+    .seite { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="rahmen">
+  <div class="spielfeld">
+    <canvas id="c" width="320" height="180"></canvas>
+    <p class="klein">
+      <b>Zielen:</b> Maus bewegen oder <kbd>←</kbd><kbd>→</kbd> ·
+      <b>Werfen:</b> Maus / <kbd>Leertaste</kbd> gedrückt halten, loslassen = Kraft ·
+      <b>Winkel:</b> <kbd>Q</kbd> Hyzer, <kbd>W</kbd> flach, <kbd>E</kbd> Anhyzer ·
+      <b>Scheibe:</b> <kbd>↑</kbd><kbd>↓</kbd> ·
+      <b>Putten</b> (unter 10 m): Klick / <kbd>Leertaste</kbd>, wenn das Fadenkreuz auf den Ketten ist · <kbd>P</kbd> Putt/Wurf · <kbd>S</kbd> Putt-Stil
+    </p>
+  </div>
+  <div class="seite">
+    <div class="box">
+      <h1>Discgolf Potsdam</h1>
+      <div class="klein" id="bahninfo"></div>
+    </div>
+    <div class="box">
+      <h2>Karte</h2>
+      <div class="spieler" id="spielerliste"></div>
+    </div>
+    <div class="box">
+      <h2 id="taschentitel">Tasche</h2>
+      <div class="liste" id="tasche"></div>
+    </div>
+    <div class="box" id="winkelbox">
+      <h2>Abwurfwinkel</h2>
+      <div class="knoepfe" style="margin-bottom:6px">
+        <button data-winkel="15">Hyzer</button>
+        <button data-winkel="0">Flach</button>
+        <button data-winkel="-15">Anhyzer</button>
+      </div>
+      <input type="range" id="winkel" min="-30" max="30" step="1" value="0" style="direction: rtl">
+      <div class="zeile"><span>Hyzer</span><span id="winkeltext">flach</span><span>Anhyzer</span></div>
+    </div>
+    <div class="box" id="puttbox" hidden>
+      <h2>Putten</h2>
+      <div class="knoepfe">
+        <button data-stil="spin">Spin-Putt</button>
+        <button data-stil="push">Push-Putt</button>
+      </div>
+      <p class="klein" style="margin:6px 0 0">Spin: wackliger, aber windstabil. Push: ruhiger, aber der Wind trägt mehr.</p>
+    </div>
+    <button id="werfen">Werfen (halten)</button>
+    <button id="modus">Normal werfen statt putten</button>
+  </div>
+</div>
+
+<script src="taschen.js"></script>
+<script src="bahnen.js"></script>
+<script src="physik.js"></script>
+<script>
+"use strict";
+const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
+
+const W = 320, H = 180, S = 3; // Pixel pro Meter
+const cv = document.getElementById("c");
+const ctx = cv.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+
+const TYPFARBE = { Driver: "#e8483c", Fairway: "#f0a030", Midrange: "#5cc85c", Putter: "#3c8ce8" };
+const PAL = {
+  gras1: "#2f7d32", gras2: "#287028", gras3: "#368a38",
+  fair1: "#58b048", fair2: "#4fa340",
+  weg1: "#b8955a", weg2: "#a38250",
+  bahn1: "#d9bc7c", bahn2: "#c9a868", brett: "#7a5530",
+  baum1: "#1c5a24", baum2: "#2a7a30", baum3: "#3c9a3c", schatten: "rgba(0,20,0,.35)",
+  weiss: "#f4f4f0", schwarz: "#101418",
+};
+
+const bahn = BAHNEN[0];
+
+// ---------- Ton ----------
+let actx = null;
+function ton(freq, dauer, typ = "square", vol = 0.04, ziel = null, verz = 0) {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = actx.currentTime + verz;
+    const o = actx.createOscillator(), gn = actx.createGain();
+    o.type = typ;
+    o.frequency.setValueAtTime(freq, t0);
+    if (ziel) o.frequency.exponentialRampToValueAtTime(ziel, t0 + dauer);
+    gn.gain.setValueAtTime(vol, t0);
+    gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dauer);
+    o.connect(gn).connect(actx.destination);
+    o.start(t0); o.stop(t0 + dauer + 0.02);
+  } catch (e) { /* kein Ton */ }
+}
+const sfx = {
+  wurf: () => ton(300, 0.25, "triangle", 0.05, 900),
+  baum: () => { ton(140, 0.08, "square", 0.06); ton(90, 0.1, "square", 0.05, null, 0.06); },
+  landung: () => ton(110, 0.08, "triangle", 0.06, 60),
+  ketten: () => { for (let i = 0; i < 9; i++) ton(1400 + Math.random() * 1600, 0.12, "triangle", 0.025, null, i * 0.035); },
+  ob: () => { ton(220, 0.15, "square", 0.04, 110); ton(160, 0.25, "square", 0.04, 80, 0.15); },
+  jubel: () => [523, 659, 784, 1046].forEach((f, i) => ton(f, 0.14, "square", 0.035, null, i * 0.1)),
+};
+
+// ---------- Hintergrund (einmal vorgerendert) ----------
+function zufall(seed) {
+  return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function imPolygon(x, y, poly) {
+  let drin = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) drin = !drin;
+  }
+  return drin;
+}
+function pixelKreis(c, cx, cy, r, farbe) {
+  c.fillStyle = farbe;
+  for (let y = -r; y <= r; y++) {
+    const w = Math.floor(Math.sqrt(r * r - y * y) + 0.3);
+    c.fillRect(Math.round(cx - w), Math.round(cy + y), w * 2 + 1, 1);
+  }
+}
+
+const hg = document.createElement("canvas");
+hg.width = W; hg.height = H;
+(function zeichneHintergrund() {
+  const c = hg.getContext("2d"), rnd = zufall(1);
+  for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+    const x = (px + 0.5) / S, y = (py + 0.5) / S, r = rnd();
+    let f;
+    if (istOB({ x, y }, bahn)) f = r < 0.2 ? PAL.weg2 : PAL.weg1;
+    else if (aufBowlingbahn({ x, y }, bahn)) f = (px % 4 === 0) ? PAL.bahn2 : PAL.bahn1;
+    else if (imPolygon(x, y, bahn.fairway)) f = (Math.floor(px / 8) % 2 ? PAL.fair1 : PAL.fair2);
+    else f = r < 0.12 ? PAL.gras2 : r > 0.94 ? PAL.gras3 : PAL.gras1;
+    c.fillStyle = f;
+    c.fillRect(px, py, 1, 1);
+  }
+  // OB-Linie mit weißen Pflöcken
+  for (const o of bahn.ob) {
+    c.fillStyle = PAL.weiss;
+    for (let px = Math.round(o.x * S); px < (o.x + o.w) * S; px += 6) c.fillRect(px, Math.round(o.y * S) - 1, 3, 1);
+  }
+  // Ränder der Bowlingbahn
+  const l = bahn.bowlingbahn;
+  if (l) {
+    c.fillStyle = PAL.brett;
+    c.fillRect(Math.round(l.x1 * S), Math.round((l.y1 - l.breite / 2) * S) - 1, Math.round((l.x2 - l.x1) * S), 1);
+    c.fillRect(Math.round(l.x1 * S), Math.round((l.y1 + l.breite / 2) * S), Math.round((l.x2 - l.x1) * S), 1);
+    // Bowling-Pfeile
+    c.fillStyle = PAL.brett;
+    for (let i = 0; i < 3; i++) {
+      const ax = Math.round((l.x1 + 3 + i * 1.2) * S), ay = Math.round(l.y1 * S) - 3 + i * 3;
+      c.fillRect(ax, ay, 2, 1);
+    }
+  }
+  // Circle 1 (10 m) gepunktet
+  c.fillStyle = "rgba(255,255,255,.35)";
+  for (let a = 0; a < Math.PI * 2; a += 0.12) {
+    const px = Math.round((bahn.korb.x + Math.cos(a) * 10) * S), py = Math.round((bahn.korb.y + Math.sin(a) * 10) * S);
+    c.fillRect(px, py, 1, 1);
+  }
+  // Abwurf
+  const ax = Math.round(bahn.abwurf.x * S), ay = Math.round(bahn.abwurf.y * S);
+  c.fillStyle = "#5a5a5a"; c.fillRect(ax - 6, ay - 4, 12, 9);
+  c.fillStyle = "#8c8c88"; c.fillRect(ax - 5, ay - 3, 10, 7);
+  c.fillStyle = "#a8a8a2"; c.fillRect(ax - 5, ay - 3, 10, 1);
+  // Bäume: Schatten, dann Kronen
+  for (const b of bahn.baeume) pixelKreis(c, b.x * S + 2, b.y * S + 2, b.r * S, PAL.schatten);
+  for (const b of bahn.baeume) {
+    const r = b.r * S;
+    pixelKreis(c, b.x * S, b.y * S, r, PAL.baum1);
+    pixelKreis(c, b.x * S - r * 0.2, b.y * S - r * 0.2, r * 0.75, PAL.baum2);
+    pixelKreis(c, b.x * S - r * 0.4, b.y * S - r * 0.4, r * 0.3, PAL.baum3);
+    // Blätter-Dither
+    const rr = zufall(Math.round(b.x * 100 + b.y));
+    for (let i = 0; i < r * 3; i++) {
+      const a = rr() * Math.PI * 2, d = rr() * r * 0.9;
+      c.fillStyle = rr() < 0.5 ? PAL.baum1 : PAL.baum3;
+      c.fillRect(Math.round(b.x * S + Math.cos(a) * d), Math.round(b.y * S + Math.sin(a) * d), 1, 1);
+    }
+  }
+})();
+
+// ---------- Spielzustand ----------
+let spieler, aktiv, zustand, wind, ziel, winkel, ladeZeit, kraft, flug, banner, puttModus, puttStil, putt, uhr = 0, fertigText;
+
+function neuesSpiel() {
+  spieler = SPIELER.map(s => ({
+    name: s.name, farbe: s.farbe, hand: s.hand || "rechts", tasche: s.tasche,
+    lie: { x: bahn.abwurf.x, y: bahn.abwurf.y }, wuerfe: 0, fertig: false,
+    scheibe: Math.max(0, s.tasche.findIndex(d => d.typ === "Midrange")),
+    gelegt: false,
+  }));
+  const st = 1 + Math.random() * 5, ri = Math.random() * Math.PI * 2;
+  wind = { x: Math.cos(ri) * st, y: Math.sin(ri) * st };
+  puttStil = "spin";
+  banner = null;
+  fertigText = null;
+  naechster();
+}
+
+function zumKorb(p) { return Math.atan2(bahn.korb.y - p.y, bahn.korb.x - p.x); }
+
+function naechster() {
+  const offen = spieler.filter(s => !s.fertig);
+  if (!offen.length) { zustand = "ende"; aktualisierePanel(); return; }
+  const amAbwurf = offen.find(s => s.wuerfe === 0);
+  const s = amAbwurf || offen.reduce((a, b) => abstand(a.lie, bahn.korb) >= abstand(b.lie, bahn.korb) ? a : b);
+  aktiv = spieler.indexOf(s);
+  ziel = zumKorb(s.lie);
+  winkel = 0;
+  puttModus = abstand(s.lie, bahn.korb) <= 10;
+  starteZug();
+}
+
+function starteZug() {
+  zustand = puttModus ? "putt" : "zielen";
+  putt = puttModus ? { t0: uhr, flug: null } : null;
+  aktualisierePanel();
+}
+
+const ich = () => spieler[aktiv];
+const scheibe = () => ich().tasche[ich().scheibe];
+const putter = s => s.tasche.find(d => d.typ === "Putter") || s.tasche[s.tasche.length - 1];
+
+// Wind: kleine Böen pro Wurf
+function boe() {
+  const f = 0.8 + Math.random() * 0.4, a = (Math.random() - 0.5) * 20 * DEG;
+  return { x: (wind.x * Math.cos(a) - wind.y * Math.sin(a)) * f, y: (wind.x * Math.sin(a) + wind.y * Math.cos(a)) * f };
+}
+
+// ---------- Normaler Wurf ----------
+function startLaden() {
+  if (zustand !== "zielen") return;
+  zustand = "laden";
+  ladeZeit = uhr;
+  kraft = 0;
+}
+function loslassen() {
+  if (zustand !== "laden") return;
+  const s = ich();
+  const wurf = streue({ x: s.lie.x, y: s.lie.y, richtung: ziel, kraft, winkel, scheibe: scheibe(), hand: s.hand });
+  const erg = simuliere(bahn, wurf, boe());
+  s.wuerfe++;
+  flug = { erg, t0: uhr, kraftAngezeigt: kraft };
+  zustand = "flug";
+  sfx.wurf();
+  aktualisierePanel();
+}
+
+function flugEnde() {
+  const s = ich(), e = flug.erg;
+  s.lie = e.lie;
+  if (e.drin) {
+    s.fertig = true;
+    sfx.ketten();
+    zeigeErgebnis(s, e.typ === "bowling" ? "STRIKE!" : null);
+  } else if (e.ob) {
+    s.wuerfe++;
+    sfx.ob();
+    zeigeBanner("OB +1", "#ff6a5a");
+  } else if (e.typ === "baum") {
+    sfx.baum();
+    zeigeBanner("BAUM!", "#9be07a");
+  } else {
+    sfx.landung();
+    zeigeBanner(Math.round(e.distanz) + " m", PAL.weiss, 0.9);
+  }
+  zustand = "pause";
+  setTimeout(() => naechster(), 1300);
+}
+
+function zeigeErgebnis(s, extra) {
+  const diff = s.wuerfe - bahn.par;
+  const namen = { "-3": "ALBATROS!", "-2": "EAGLE!", "-1": "BIRDIE!", "0": "PAR", "1": "BOGEY", "2": "DOPPEL-BOGEY" };
+  let t = s.wuerfe === 1 ? "ACE!!!" : (namen[diff] || "+" + diff);
+  if (extra && s.wuerfe > 1) t = extra + " " + t;
+  if (diff < 0) sfx.jubel();
+  zeigeBanner(t, "#ffd84a", 1.6);
+}
+
+function zeigeBanner(text, farbe, dauer = 1.2) { banner = { text, farbe, t0: uhr, dauer }; }
+
+// ---------- Putt-Modus ----------
+// Fadenkreuz wackelt um den Korb; stärker mit Distanz und Wind
+const KETTEN = { x: 160, y: 75, bx: 12, by: 9 };
+function puttWackel(t) {
+  const s = ich(), d = abstand(s.lie, bahn.korb);
+  const stil = puttStil === "push" ? 0.65 : 1;
+  const A = (1.5 + d * 2.1) * stil * (0.7 + 0.3 * Math.sin(t * 0.9));
+  const w = 1 + d * 0.1;
+  const r = zumKorb(s.lie);
+  const quer = wind.x * -Math.sin(r) + wind.y * Math.cos(r);
+  const drift = quer * 1.6 * (puttStil === "push" ? 1.7 : 0.8) * (0.6 + 0.4 * Math.sin(t * 0.7));
+  return {
+    x: A * Math.sin(t * 2.3 * w) + A * 0.5 * Math.sin(t * 3.9 * w + 1) + drift,
+    y: A * 0.75 * Math.sin(t * 2.9 * w + 2) + A * 0.3 * Math.sin(t * 5.1 * w),
+  };
+}
+
+function putten() {
+  if (zustand !== "putt" || putt.flug) return;
+  const o = puttWackel(uhr - putt.t0);
+  const s = ich();
+  s.wuerfe++;
+  const ax = Math.abs(o.x), ay = Math.abs(o.y);
+  let ergebnis;
+  if (ax <= KETTEN.bx && ay <= KETTEN.by) {
+    const innen = ax <= 7 && ay <= 5;
+    ergebnis = innen || Math.random() < 0.6 ? "drin" : "spit";
+  } else if (o.y < -KETTEN.by) ergebnis = "hoch";
+  else if (o.y > KETTEN.by && ax < 16) ergebnis = "kurz";
+  else ergebnis = "seite";
+  putt.flug = { t0: uhr, o, ergebnis };
+  zustand = "puttflug";
+  sfx.wurf();
+  aktualisierePanel();
+}
+
+function puttEnde() {
+  const s = ich(), { o, ergebnis } = putt.flug;
+  const r = zumKorb(s.lie), dx = Math.cos(r), dy = Math.sin(r), qx = -dy, qy = dx;
+  const k = bahn.korb, z = Math.random;
+  if (ergebnis === "drin") {
+    s.lie = { x: k.x, y: k.y };
+    s.fertig = true;
+    zeigeErgebnis(s);
+  } else {
+    let p;
+    if (ergebnis === "hoch") { const a = 1 + z() * 3; p = { x: k.x + dx * a + qx * o.x * 0.08, y: k.y + dy * a + qy * o.x * 0.08 }; zeigeBanner("DRÜBER", "#ff9a5a"); }
+    else if (ergebnis === "kurz") { const a = 0.4 + z() * 1.1; p = { x: k.x - dx * a, y: k.y - dy * a }; zeigeBanner("ZU KURZ", "#ff9a5a"); }
+    else if (ergebnis === "spit") { const a = z() * Math.PI * 2, d = 0.6 + z(); p = { x: k.x + Math.cos(a) * d, y: k.y + Math.sin(a) * d }; zeigeBanner("SPIT-OUT!", "#ff9a5a"); sfx.ketten(); }
+    else { const sg = Math.sign(o.x) || 1, a = 0.8 + z() * 1.6, b = z() * 2; p = { x: k.x + qx * sg * a + dx * b, y: k.y + qy * sg * a + dy * b }; zeigeBanner("DANEBEN", "#ff9a5a"); }
+    if (istOB(p, bahn)) p = { x: k.x - dx, y: k.y - dy };
+    s.lie = p;
+    if (ergebnis !== "spit") sfx.landung();
+  }
+  zustand = "pause";
+  setTimeout(() => naechster(), 1300);
+}
+
+// ---------- Zeichnen ----------
+function text(t, x, y, farbe = PAL.weiss, ausr = "left", gr = 8) {
+  ctx.font = gr + "px Silkscreen";
+  ctx.textAlign = ausr;
+  ctx.textBaseline = "top";
+  ctx.fillStyle = PAL.schwarz;
+  ctx.fillText(t, x + 1, y + 1);
+  ctx.fillStyle = farbe;
+  ctx.fillText(t, x, y);
+}
+
+function zeichneKorbOben(wackel) {
+  const x = Math.round(bahn.korb.x * S), y = Math.round(bahn.korb.y * S);
+  const dx = wackel ? Math.round(Math.sin(uhr * 60)) : 0;
+  ctx.fillStyle = PAL.schatten; ctx.fillRect(x - 2, y + 2, 7, 4);
+  // Stange (leicht perspektivisch nach oben)
+  ctx.fillStyle = "#6a6a6a"; ctx.fillRect(x, y - 6, 1, 7);
+  // Korb
+  ctx.fillStyle = "#9aa0a6"; ctx.fillRect(x - 3 + dx, y - 9, 7, 4);
+  ctx.fillStyle = "#c8ccd0"; for (let i = -3; i <= 3; i += 2) ctx.fillRect(x + i + dx, y - 9, 1, 3);
+  ctx.fillStyle = "#f0c020"; ctx.fillRect(x - 3, y - 10, 7, 1);
+  ctx.fillStyle = "#f0c020"; ctx.fillRect(x - 3, y - 5, 7, 1);
+}
+
+function zeichneSpieler() {
+  const gezaehlt = {};
+  spieler.forEach((s, i) => {
+    if (s.fertig) return;
+    const key = Math.round(s.lie.x * 2) + ":" + Math.round(s.lie.y * 2);
+    const n = gezaehlt[key] = (gezaehlt[key] || 0) + 1;
+    const x = Math.round(s.lie.x * S) + (n - 1) * 4 - (key === Math.round(bahn.abwurf.x * 2) + ":" + Math.round(bahn.abwurf.y * 2) ? 6 : 0);
+    const y = Math.round(s.lie.y * S);
+    if (i === aktiv && zustand !== "flug") {
+      if (Math.floor(uhr * 3) % 2) { ctx.fillStyle = PAL.weiss; ctx.fillRect(x, y - 10, 3, 1); ctx.fillRect(x + 1, y - 9, 1, 1); }
+    }
+    ctx.fillStyle = PAL.schatten; ctx.fillRect(x, y + 1, 4, 2);
+    ctx.fillStyle = s.farbe; ctx.fillRect(x, y - 4, 3, 4);
+    ctx.fillStyle = "#f0c8a0"; ctx.fillRect(x, y - 7, 3, 3);
+    ctx.fillStyle = PAL.schwarz; ctx.fillRect(x, y, 1, 1); ctx.fillRect(x + 2, y, 1, 1);
+  });
+}
+
+function zeichneZiellinie() {
+  const s = ich();
+  const x0 = s.lie.x * S, y0 = s.lie.y * S;
+  for (let d = 6; d < 75; d += 4) {
+    ctx.fillStyle = d % 8 < 4 ? "rgba(255,255,255,.85)" : "rgba(255,255,255,.4)";
+    ctx.fillRect(Math.round(x0 + Math.cos(ziel) * d), Math.round(y0 + Math.sin(ziel) * d), 1, 1);
+  }
+  // Pfeilspitze mit Winkelhinweis: Hyzer zieht nach links, Anhyzer nach rechts
+  const ex = x0 + Math.cos(ziel) * 78, ey = y0 + Math.sin(ziel) * 78;
+  const hand = s.hand === "links" ? -1 : 1;
+  const k = -winkel * hand * 0.9;
+  ctx.fillStyle = "rgba(255,230,120,.8)";
+  for (let d = 0; d < 20; d += 3) {
+    const a = ziel + k * DEG * (d / 20);
+    ctx.fillRect(Math.round(ex + Math.cos(a) * d - Math.sin(ziel) * k * d * d / 400), Math.round(ey + Math.sin(a) * d + Math.cos(ziel) * k * d * d / 400), 1, 1);
+  }
+}
+
+function zeichneWind() {
+  const x = 296, y = 4, st = Math.hypot(wind.x, wind.y);
+  ctx.fillStyle = "rgba(10,14,20,.7)"; ctx.fillRect(x - 2, y, 24, 30);
+  const a = Math.atan2(wind.y, wind.x), cx = x + 10, cy = y + 11;
+  ctx.fillStyle = "#bfe4ff";
+  for (let d = -7; d <= 7; d++) ctx.fillRect(Math.round(cx + Math.cos(a) * d), Math.round(cy + Math.sin(a) * d), 1, 1);
+  for (const sg of [-1, 1]) for (let d = 0; d < 4; d++) {
+    const b = a + Math.PI + sg * 0.6;
+    ctx.fillRect(Math.round(cx + Math.cos(a) * 7 + Math.cos(b) * d), Math.round(cy + Math.sin(a) * 7 + Math.sin(b) * d), 1, 1);
+  }
+  text(st.toFixed(1), cx, y + 21, "#bfe4ff", "center");
+  text("WIND", x - 4, y + 31, "#8aa8c0", "left");
+}
+
+function zeichneKraftbalken() {
+  const x = 110, y = 166, w = 100;
+  ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 2, y - 2, w + 4, 10);
+  ctx.fillStyle = "#3a7a30"; ctx.fillRect(x, y, w * 0.7, 6);
+  ctx.fillStyle = "#c8a830"; ctx.fillRect(x + w * 0.7, y, w * 0.2, 6);
+  ctx.fillStyle = "#c84030"; ctx.fillRect(x + w * 0.9, y, w * 0.1, 6);
+  if (zustand === "laden" || zustand === "flug") {
+    const k = zustand === "laden" ? kraft : flug.kraftAngezeigt;
+    ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.fillRect(x, y, Math.round(w * k), 6);
+    ctx.fillStyle = PAL.weiss; ctx.fillRect(x + Math.round(w * k) - 1, y - 3, 2, 12);
+  }
+  text("KRAFT", x - 4, y - 1, PAL.weiss, "right");
+  text("STREUUNG", x + w + 5, y - 1, "#c86050", "left");
+}
+
+function zeichneScheibe(p, alpha = 1) {
+  const x = Math.round(p.x * S), y = Math.round(p.y * S), hz = Math.round(p.z * S * 0.6);
+  ctx.fillStyle = PAL.schatten; ctx.fillRect(x - 1, y, 3, 1);
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = TYPFARBE[scheibe().typ] || PAL.weiss;
+  ctx.fillRect(x - 1, y - hz - 1, 3, 2);
+  ctx.fillStyle = PAL.weiss; ctx.fillRect(x, y - hz - 1, 1, 1);
+  ctx.globalAlpha = 1;
+}
+
+function flugPosition() {
+  const e = flug.erg, t = (uhr - flug.t0) * 1.25;
+  if (t >= e.dauer) return { p: e.pfad[e.pfad.length - 1], i: e.pfad.length - 1, fertig: true };
+  let i = 1;
+  while (i < e.pfad.length && e.pfad[i].t < t) i++;
+  const a = e.pfad[i - 1], b = e.pfad[i], f = (t - a.t) / Math.max(1e-6, b.t - a.t);
+  return { p: { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, z: a.z + (b.z - a.z) * f }, i, fertig: false };
+}
+
+function zeichnePuttAnsicht() {
+  const s = ich(), d = abstand(s.lie, bahn.korb);
+  const bx = 86, by = 14, bw = 148, bh = 146;
+  ctx.fillStyle = PAL.schwarz; ctx.fillRect(bx - 3, by - 3, bw + 6, bh + 6);
+  // Himmel mit Dither, Baumreihe, Wiese
+  for (let y = 0; y < 100; y++) {
+    ctx.fillStyle = y < 40 ? "#5ab0e8" : y < 70 ? ((y % 2) ? "#6cc0f0" : "#5ab0e8") : "#7ccaf2";
+    ctx.fillRect(bx, by + y, bw, 1);
+  }
+  for (let i = 0; i < bw; i += 6) pixelKreis(ctx, bx + i + 3, by + 92 - ((i * 7) % 9), 6, PAL.baum1);
+  ctx.fillStyle = PAL.fair1; ctx.fillRect(bx, by + 100, bw, bh - 100);
+  for (let y = by + 104; y < by + bh; y += 4) { ctx.fillStyle = PAL.fair2; ctx.fillRect(bx, y, bw, 2); }
+
+  // Korb in Seitenansicht
+  const K = KETTEN, sh = putt.flug && putt.flug.ergebnis !== "kurz" && uhr - putt.flug.t0 > 0.45 && uhr - putt.flug.t0 < 1.1;
+  const wx = sh ? Math.round(Math.sin(uhr * 50)) : 0;
+  ctx.fillStyle = "#606468"; ctx.fillRect(K.x - 1, K.y - 12, 3, 52);
+  ctx.fillStyle = "#f0c020"; ctx.fillRect(K.x - 14, K.y - 13, 29, 4);
+  ctx.fillStyle = "#b08a10"; ctx.fillRect(K.x - 14, K.y - 10, 29, 1);
+  for (let i = -12; i <= 12; i += 3) {
+    ctx.fillStyle = (i / 3) % 2 ? "#d8dce0" : "#9098a0";
+    const krumm = Math.abs(i) > 6 ? 1 : 0;
+    ctx.fillRect(K.x + i + wx * (i % 2 ? 1 : -1), K.y - 9, 1, 9);
+    ctx.fillRect(K.x + i - (i > 0 ? krumm : -krumm) + wx, K.y, 1, 9);
+  }
+  ctx.fillStyle = "#8a9096"; ctx.fillRect(K.x - 15, K.y + 9, 31, 2);
+  ctx.fillStyle = "#b0b6bc"; ctx.fillRect(K.x - 13, K.y + 11, 27, 6);
+  ctx.fillStyle = "#f0c020"; ctx.fillRect(K.x - 13, K.y + 13, 27, 2);
+  ctx.fillStyle = "#6a7076"; ctx.fillRect(K.x - 11, K.y + 17, 23, 1);
+  ctx.fillStyle = PAL.schatten; ctx.fillRect(K.x - 8, K.y + 40, 18, 2);
+
+  text("PUTT " + d.toFixed(1) + " M", bx + 4, by + 3, PAL.weiss);
+  text(puttStil === "push" ? "PUSH" : "SPIN", bx + bw - 4, by + 3, "#ffe08a", "right");
+
+  if (!putt.flug) {
+    const o = puttWackel(uhr - putt.t0);
+    const x = Math.round(K.x + o.x), y = Math.round(K.y + o.y);
+    ctx.fillStyle = PAL.schwarz;
+    ctx.fillRect(x - 4, y - 1, 9, 3); ctx.fillRect(x - 1, y - 4, 3, 9);
+    ctx.fillStyle = Math.abs(o.x) <= K.bx && Math.abs(o.y) <= K.by ? "#9cff7a" : "#ff6a5a";
+    ctx.fillRect(x - 3, y, 7, 1); ctx.fillRect(x, y - 3, 1, 7);
+    text("KLICK / LEERTASTE", bx + bw / 2, by + bh - 12, PAL.weiss, "center");
+  } else {
+    const f = putt.flug, t = (uhr - f.t0) / 0.45;
+    const zx = K.x + f.o.x, zy = K.y + f.o.y;
+    let x, y;
+    if (t < 1) {
+      x = 160 + (zx - 160) * t; y = (by + bh - 10) + (zy - (by + bh - 10)) * t - Math.sin(Math.PI * t) * 10;
+    } else {
+      const t2 = Math.min(1, (t - 1) * 1.6);
+      x = zx;
+      const boden = f.ergebnis === "drin" || f.ergebnis === "kurz" && Math.abs(f.o.x) < 13 ? K.y + 12 : by + 104;
+      y = zy + (boden - zy) * t2;
+      if (f.ergebnis === "hoch") { x = zx + t2 * 10; y = zy + (by + 98 - zy) * t2; }
+    }
+    ctx.fillStyle = PAL.schwarz; ctx.fillRect(Math.round(x) - 4, Math.round(y) - 1, 9, 4);
+    ctx.fillStyle = TYPFARBE.Putter; ctx.fillRect(Math.round(x) - 3, Math.round(y), 7, 2);
+    if (t > 1 && t < 1.05 && !f.ton) {
+      f.ton = true;
+      if (f.ergebnis === "drin" || f.ergebnis === "spit") sfx.ketten(); else sfx.landung();
+    }
+    if (t > 2.6 && !f.fertig) { f.fertig = true; puttEnde(); }
+  }
+}
+
+function zeichneEnde() {
+  ctx.fillStyle = "rgba(10,14,20,.85)"; ctx.fillRect(70, 30, 180, 120);
+  text("BAHN 1 GESPIELT", 160, 38, "#9be07a", "center", 8);
+  const sortiert = [...spieler].sort((a, b) => a.wuerfe - b.wuerfe);
+  sortiert.forEach((s, i) => {
+    const d = s.wuerfe - bahn.par;
+    text((i + 1) + ". " + s.name.toUpperCase(), 84, 58 + i * 16, s.farbe);
+    text(s.wuerfe + "  (" + (d > 0 ? "+" : d === 0 ? "" : "") + (d === 0 ? "E" : d) + ")", 236, 58 + i * 16, PAL.weiss, "right");
+  });
+  text("R / KLICK: NOCHMAL", 160, 134, PAL.weiss, "center");
+}
+
+let letzte = performance.now();
+function schleife(jetzt) {
+  const dt = Math.min(0.05, (jetzt - letzte) / 1000);
+  letzte = jetzt;
+  uhr += dt;
+
+  if (zustand === "laden") {
+    const ph = ((uhr - ladeZeit) / 1.1) % 2;
+    kraft = ph < 1 ? ph : 2 - ph;
+  }
+
+  ctx.drawImage(hg, 0, 0);
+  const korbWackelt = (flug && flug.erg.drin && zustand !== "zielen" && uhr - flug.t0 > flug.erg.dauer / 1.25 - 0.1 && uhr - flug.t0 < flug.erg.dauer / 1.25 + 0.7);
+  zeichneKorbOben(korbWackelt);
+
+  if (zustand === "zielen" || zustand === "laden") zeichneZiellinie();
+  zeichneSpieler();
+
+  if (zustand === "flug" || (zustand === "pause" && flug && flug.aktiv)) {
+    const fp = flugPosition();
+    flug.aktiv = !fp.fertig;
+    const e = flug.erg;
+    for (let k = Math.max(0, fp.i - 40); k < fp.i; k += 3) {
+      const q = e.pfad[k];
+      ctx.fillStyle = "rgba(255,255,255,.3)";
+      ctx.fillRect(Math.round(q.x * S), Math.round((q.y - q.z * 0.6) * S), 1, 1);
+    }
+    zeichneScheibe(fp.p);
+    if (fp.fertig && zustand === "flug") flugEnde();
+  } else if (zustand === "pause" && flug && !puttModus) {
+    zeichneScheibe(flug.erg.pfad[flug.erg.pfad.length - 1]);
+  }
+
+  zeichneWind();
+  if (zustand !== "ende") {
+    const s = ich(), d = abstand(s.lie, bahn.korb);
+    text(s.name.toUpperCase(), 4, 4, s.farbe);
+    text("WURF " + (s.wuerfe + 1) + " · " + d.toFixed(0) + " M", 4, 13, PAL.weiss);
+    text("BAHN " + bahn.nummer + " · PAR " + bahn.par, 4, 22, "#c8d0d8");
+    if (!puttModus) {
+      const w = Math.round(winkel);
+      text(w > 0 ? "HYZER " + w + "°" : w < 0 ? "ANHYZER " + -w + "°" : "FLACH", 4, 152, "#ffe08a");
+      text(scheibe().name.toUpperCase(), 4, 161, TYPFARBE[scheibe().typ]);
+    }
+    if (!puttModus || zustand === "flug") zeichneKraftbalken();
+  }
+  if ((zustand === "putt" || zustand === "puttflug" || (zustand === "pause" && putt && putt.flug)) && puttModus) zeichnePuttAnsicht();
+
+  if (banner) {
+    const t = uhr - banner.t0;
+    if (t > banner.dauer) banner = null;
+    else text(banner.text, 160, 70 - Math.min(6, t * 20), banner.farbe, "center", 16);
+  }
+  if (zustand === "ende") zeichneEnde();
+
+  requestAnimationFrame(schleife);
+}
+
+// ---------- Panel ----------
+const el = id => document.getElementById(id);
+function aktualisierePanel() {
+  el("bahninfo").innerHTML =
+    `Hyzernauts Parcours · Volkspark<br>Bahn ${bahn.nummer} „${bahn.name}“ · Par ${bahn.par} · ${Math.round(abstand(bahn.abwurf, bahn.korb))} m`;
+  el("spielerliste").innerHTML = spieler.map((s, i) => {
+    const d = s.wuerfe - bahn.par;
+    const status = s.fertig ? (d === 0 ? "E" : (d > 0 ? "+" : "") + d) : Math.round(abstand(s.lie, bahn.korb)) + " m";
+    return `<span class="punkt" style="background:${s.farbe}"></span>
+      <span class="${i === aktiv && zustand !== "ende" ? "aktiv" : ""}">${i === aktiv && zustand !== "ende" ? "▶ " : ""}${s.name}</span>
+      <span class="wert">${s.wuerfe}</span><span class="wert klein">${status}</span>`;
+  }).join("");
+  if (zustand === "ende") {
+    el("werfen").disabled = true;
+    el("modus").hidden = true;
+    return;
+  }
+  const s = ich();
+  el("taschentitel").textContent = "Tasche von " + s.name;
+  el("tasche").innerHTML = s.tasche.map((d, i) => `
+    <button class="scheibe ${i === s.scheibe && !puttModus ? "an" : ""}" data-scheibe="${i}">
+      <span class="typ" style="background:${TYPFARBE[d.typ] || "#888"}"></span>
+      <span>${d.name}<small>${d.typ}</small></span>
+      <span class="zahlen">${d.speed} | ${d.glide} | ${d.turn} | ${d.fade}</span>
+    </button>`).join("");
+  el("winkel").value = winkel;
+  const w = Math.round(winkel);
+  el("winkeltext").textContent = w > 0 ? "Hyzer " + w + "°" : w < 0 ? "Anhyzer " + -w + "°" : "flach";
+  el("winkelbox").hidden = puttModus;
+  el("puttbox").hidden = !puttModus;
+  document.querySelectorAll("[data-stil]").forEach(b => b.classList.toggle("an", b.dataset.stil === puttStil));
+  document.querySelectorAll("[data-winkel]").forEach(b => b.classList.toggle("an", +b.dataset.winkel === w));
+  const nah = abstand(s.lie, bahn.korb) <= 10;
+  el("modus").hidden = !nah;
+  el("modus").textContent = puttModus ? "Normal werfen statt putten" : "Zurück zum Putten";
+  el("werfen").textContent = puttModus ? "Putten (klick)" : "Werfen (halten)";
+  el("werfen").disabled = !(zustand === "zielen" || zustand === "laden" || zustand === "putt");
+}
+
+function setzeWinkel(w) {
+  if (zustand !== "zielen") return;
+  winkel = Math.max(-30, Math.min(30, w));
+  aktualisierePanel();
+}
+function wechsleModus() {
+  if (zustand !== "zielen" && zustand !== "putt") return;
+  if (abstand(ich().lie, bahn.korb) > 10) return;
+  puttModus = !puttModus;
+  if (!puttModus) ich().scheibe = Math.max(0, ich().tasche.indexOf(putter(ich())));
+  starteZug();
+}
+function waehleScheibe(i) {
+  if (zustand !== "zielen") return;
+  const n = ich().tasche.length;
+  ich().scheibe = (i + n) % n;
+  aktualisierePanel();
+}
+
+el("tasche").addEventListener("click", e => {
+  const b = e.target.closest("[data-scheibe]");
+  if (b) waehleScheibe(+b.dataset.scheibe);
+});
+document.querySelectorAll("[data-winkel]").forEach(b => b.addEventListener("click", () => setzeWinkel(+b.dataset.winkel)));
+document.querySelectorAll("[data-stil]").forEach(b => b.addEventListener("click", () => { puttStil = b.dataset.stil; aktualisierePanel(); }));
+el("winkel").addEventListener("input", e => setzeWinkel(+e.target.value));
+el("modus").addEventListener("click", wechsleModus);
+
+const werfenKnopf = el("werfen");
+werfenKnopf.addEventListener("pointerdown", e => { e.preventDefault(); if (zustand === "putt") putten(); else startLaden(); });
+window.addEventListener("pointerup", () => loslassen());
+window.addEventListener("pointercancel", () => loslassen());
+
+// Zielen mit der Maus, Werfen durch Halten auf dem Spielfeld
+function weltPunkt(e) {
+  const r = cv.getBoundingClientRect();
+  return { x: (e.clientX - r.left) / r.width * W / S, y: (e.clientY - r.top) / r.height * H / S };
+}
+function zieleAuf(e) {
+  if (zustand !== "zielen") return;
+  const p = weltPunkt(e), s = ich();
+  if (abstand(p, s.lie) > 1) ziel = Math.atan2(p.y - s.lie.y, p.x - s.lie.x);
+}
+cv.addEventListener("pointermove", zieleAuf);
+cv.addEventListener("pointerdown", e => {
+  e.preventDefault();
+  if (zustand === "ende") { neuesSpiel(); return; }
+  if (zustand === "putt") { putten(); return; }
+  zieleAuf(e);
+  startLaden();
+});
+
+window.addEventListener("keydown", e => {
+  const k = e.key;
+  if (k === " ") {
+    e.preventDefault();
+    if (e.repeat) return;
+    if (zustand === "putt") putten(); else if (zustand === "ende") neuesSpiel(); else startLaden();
+  } else if (k === "ArrowLeft" || k === "ArrowRight") {
+    e.preventDefault();
+    if (zustand === "zielen") ziel += (k === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 0.2 : 1) * DEG;
+  } else if (k === "ArrowUp" || k === "ArrowDown") {
+    e.preventDefault();
+    waehleScheibe(ich().scheibe + (k === "ArrowUp" ? -1 : 1));
+  } else if (k === "q" || k === "Q") setzeWinkel(winkel + 5);
+  else if (k === "e" || k === "E") setzeWinkel(winkel - 5);
+  else if (k === "w" || k === "W") setzeWinkel(0);
+  else if (k === "p" || k === "P") wechsleModus();
+  else if (k === "s" || k === "S") { if (zustand === "putt") { puttStil = puttStil === "spin" ? "push" : "spin"; aktualisierePanel(); } }
+  else if (k === "r" || k === "R") neuesSpiel();
+});
+window.addEventListener("keyup", e => { if (e.key === " ") loslassen(); });
+
+neuesSpiel();
+requestAnimationFrame(schleife);
+</script>
+</body>
+</html>
