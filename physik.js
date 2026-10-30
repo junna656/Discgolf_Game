@@ -12,7 +12,7 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   // Stellschrauben für die Entwicklung (im Spiel unter "Einstellungen" änderbar)
-  const STANDARD = { winkel: 1.6, turn: 1.5, fade: 1.5, weite: 1, streuung: 1, wind: 1, tempo: 0.55 };
+  const STANDARD = { winkel: 1.6, turn: 1.5, fade: 1.5, weite: 1, streuung: 1, wind: 1, tempo: 0.55, kick: 1 };
   const E = Object.assign({}, STANDARD);
   const abstand = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -138,8 +138,25 @@
       const a = Math.random() * Math.PI * 2, r = 1 + Math.random() * 2.5;
       fallen(bahn.korb.x + Math.cos(a) * r, bahn.korb.y + Math.sin(a) * r, 0.5);
     } else if (typ === "baum") {
-      const r = 0.3 + Math.random() * 1.2, q = gauss() * 0.8;
-      fallen(px - Math.cos(th) * r - Math.sin(th) * q, py - Math.sin(th) * r + Math.cos(th) * q, 0.45);
+      // Kick: die Scheibe prallt wie von einer Wand ab (Einfallswinkel = Ausfallswinkel, plus Zufall)
+      // und fliegt je nach Restgeschwindigkeit ein paar Meter weg, statt am Stamm liegen zu bleiben
+      const b = ereignis.baum, nl = Math.hypot(px - b.x, py - b.y) || 1;
+      const nx = (px - b.x) / nl, ny = (py - b.y) / nl;
+      const vx = Math.cos(th), vy = Math.sin(th), dot = vx * nx + vy * ny;
+      const ab = Math.atan2(vy - 2 * dot * ny, vx - 2 * dot * nx) + gauss() * 0.6;
+      let weit = (1 + (1 - u) * D * 0.045) * (0.7 + Math.random() * 0.6) * E.kick;
+      // mindestens ein Stück aus der Krone heraus
+      const zx = px + Math.cos(ab) * weit, zy = py + Math.sin(ab) * weit;
+      const raus = Math.hypot(zx - b.x, zy - b.y) < b.r * 0.8 ? b.r * 0.8 : 0;
+      const ex = zx + Math.cos(ab) * raus, ey = zy + Math.sin(ab) * raus;
+      const start = pfad[pfad.length - 1], n = 14, dauer = 0.35 + weit * 0.05;
+      for (let k = 1; k <= n; k++) {
+        const a = k / n;
+        // fällt ab und hüpft einmal kurz auf
+        const hz = start.z * (1 - a) * (1 - a) + Math.sin(Math.PI * a) * 0.6;
+        pfad.push({ x: start.x + (ex - start.x) * a, y: start.y + (ey - start.y) * a, z: Math.max(0, hz), t: t + a * dauer });
+      }
+      t += dauer;
     } else {
       // Landung, dann Rutschen – auf der Bowlingbahn sehr weit
       const ende = pfad[pfad.length - 1];
