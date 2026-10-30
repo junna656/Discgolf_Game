@@ -1,0 +1,1 @@
+Hier eigene Ruf-Aufnahmen ablegen (z. B. thomas.m4a) und in taschen.js als rufDatei eintragen.

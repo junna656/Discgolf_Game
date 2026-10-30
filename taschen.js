@@ -11,7 +11,9 @@
 //  wurfart (optional): "rueckhand" oder "vorhand" – Startwert, im Spiel umschaltbar
 //  Der erste Putter in der Tasche wird automatisch zum Putten genommen.
 //  standard: true – diese Scheibe ist zu Beginn ausgewählt.
-//  ruf (optional): was der Spieler nach jedem Wurf ruft (Sprechblase + Sprachausgabe)
+//  ruf (optional): was der Spieler ruft, wenn seine Scheibe gelandet ist
+//  rufDatei (optional): eigene Aufnahme, z. B. "rufe/thomas.m4a" (mp3/m4a/wav)
+//    – klingt viel echter als die Computerstimme. Ohne Datei spricht der Browser.
 // ============================================================
 
 window.SPIELER = [
@@ -20,6 +22,7 @@ window.SPIELER = [
     farbe: "#e8483c",
     hand: "rechts",
     ruf: "Achtung, zweite Scheibe!",
+    // rufDatei: "rufe/thomas.m4a",   // <- Aufnahme in den Ordner "rufe" legen und diese Zeile aktivieren
     tasche: [
       { name: "Donnerkeil", typ: "Driver",   speed: 12, glide: 5, turn: -1, fade: 2 },
       { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1, standard: true }, // Latitude 64°

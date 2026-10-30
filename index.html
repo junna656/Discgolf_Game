@@ -110,7 +110,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#5a7a5a">Version 10</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#5a7a5a">Version 11</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -123,6 +123,10 @@
       <div class="zeile"><span style="color:#ffd84a">Hyzer 20°</span><span style="color:#f4f4f0">Flach</span><span style="color:#7cc8ff">Anhyzer 20°</span></div>
       <select id="vorschau-scheibe"></select>
       <div id="regler" class="liste" style="gap:6px"></div>
+      <h2 style="margin:6px 0 0">Stimme für Rufe</h2>
+      <select id="stimmen"></select>
+      <button id="probe">Probe hören: „Achtung, zweite Scheibe!“</button>
+      <p class="klein" style="margin:0">Tipp iPhone: Einstellungen → Bedienungshilfen → Gesprochene Inhalte → Stimmen → Deutsch, dort eine „Erweitert“- oder „Premium“-Stimme laden. Echter klingt nur eine eigene Aufnahme (siehe taschen.js).</p>
       <div class="knoepfe"><button id="einst-standard" style="flex:1">Standard</button><button id="einst-zurueck" style="flex:1">← Zurück</button></div>
       <p class="klein" style="margin:0">Wird in diesem Browser gespeichert. Vorschau: volle Kraft, kein Wind, keine Streuung.</p>
     </div>
@@ -196,9 +200,9 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=10"></script>
-<script src="bahnen.js?v=10"></script>
-<script src="physik.js?v=10"></script>
+<script src="taschen.js?v=11"></script>
+<script src="bahnen.js?v=11"></script>
+<script src="physik.js?v=11"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -492,29 +496,57 @@ function zeigeBanner(text, farbe, dauer = 1.2) { banner = { text, farbe, t0: uhr
 
 // Ruf nach dem Wurf: Sprechblase über dem Spieler und, wenn möglich, Sprachausgabe
 let sprechblase = null;
-let stimme = null;
-function waehleStimme() {
-  try { stimme = speechSynthesis.getVoices().find(v => /^de/i.test(v.lang)) || null; } catch (e) { /* egal */ }
+// ---------- Rufe: eigene Aufnahme (rufDatei) oder Sprachausgabe ----------
+const TON_STANDARD = { rufStimme: "", rufTempo: 1.05, rufHoehe: 1.15 };
+for (const k in TON_STANDARD) if (!(k in E)) E[k] = TON_STANDARD[k];
+
+// Deutsche Stimmen, die natürlich klingen, zuerst (iOS: "Erweitert"/"Premium", Android/Chrome: "Google")
+function deutscheStimmen() {
+  let v = [];
+  try { v = speechSynthesis.getVoices().filter(x => /^de/i.test(x.lang)); } catch (e) { /* egal */ }
+  const rang = x => (/premium|erweitert|enhanced|neural|natural/i.test(x.name) ? 0 : /google/i.test(x.name) ? 1 : 2) * 2 + (/markus|yannick|martin|viktor|männ|male/i.test(x.name) ? 0 : 1);
+  return v.sort((a, b) => rang(a) - rang(b));
 }
-try { speechSynthesis.addEventListener("voiceschanged", waehleStimme); waehleStimme(); } catch (e) { /* egal */ }
-// Beim ersten Tippen die Sprachausgabe "aufwecken", sonst kommt der erste Ruf auf dem Handy verspätet
-let spracheWach = false;
+function stimme() {
+  const v = deutscheStimmen();
+  return v.find(x => x.name === E.rufStimme) || v[0] || null;
+}
+
+// Beim ersten Tippen Sprachausgabe und Aufnahmen "aufwecken", sonst blockiert das Handy sie später
+const aufnahmen = {};
+let tonWach = false;
 function weckeSprache() {
-  if (spracheWach) return;
-  spracheWach = true;
+  if (tonWach) return;
+  tonWach = true;
   try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } catch (e) { /* egal */ }
+  for (const sp of SPIELER) if (sp.rufDatei) {
+    const a = aufnahmen[sp.name] = new Audio(sp.rufDatei);
+    a.muted = true;
+    a.play().then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; });
+  }
 }
-function rufe(s) {
-  if (!s.ruf) return;
-  sprechblase = { text: s.ruf, pos: { x: s.lie.x, y: s.lie.y }, t0: uhr, dauer: 2.4 };
+
+function sprich(text) {
   try {
-    const u = new SpeechSynthesisUtterance(s.ruf);
-    u.lang = "de-DE"; u.rate = 1.2; u.pitch = 0.9;
-    if (stimme) u.voice = stimme;
+    // Ausrufezeichen statt Komma: die Stimme betont dann stärker
+    const u = new SpeechSynthesisUtterance(text.replace(/,\s*/g, "! "));
+    u.lang = "de-DE"; u.rate = E.rufTempo; u.pitch = E.rufHoehe; u.volume = 1;
+    const st = stimme();
+    if (st) u.voice = st;
     // cancel() direkt vor speak() verzögert die Ausgabe in Safari – nur abbrechen, wenn noch etwas läuft
     if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
     speechSynthesis.speak(u);
   } catch (e) { /* keine Sprachausgabe */ }
+}
+
+function rufe(s) {
+  if (!s.ruf) return;
+  sprechblase = { text: s.ruf, pos: { x: s.lie.x, y: s.lie.y }, t0: uhr, dauer: 2.4 };
+  const a = aufnahmen[s.name];
+  if (a && !a.error) {
+    a.currentTime = 0;
+    a.play().catch(() => sprich(s.ruf));
+  } else sprich(s.ruf);
 }
 
 function zeichneSprechblase() {
@@ -1079,6 +1111,8 @@ const REGLER = [
   ["streuung", "Streuung", 0, 3, 0.1],
   ["wind", "Wind", 0, 3, 0.1],
   ["tempo", "Flugtempo (1 = Echtzeit)", 0.2, 1.5, 0.05],
+  ["rufTempo", "Ruf: Tempo", 0.5, 1.8, 0.05],
+  ["rufHoehe", "Ruf: Tonhöhe", 0.5, 2, 0.05],
 ];
 const SPEICHER = "discgolf-einstellungen";
 try { Object.assign(E, JSON.parse(localStorage.getItem(SPEICHER) || "{}")); } catch (e) { /* egal */ }
@@ -1121,15 +1155,31 @@ function zeichneVorschau() {
   c.fillStyle = "#8c8c88"; c.fillRect(4, y0 - 3, 6, 6);
 }
 el("vorschau-scheibe").addEventListener("change", zeichneVorschau);
+function zeigeStimmen() {
+  const v = deutscheStimmen(), akt = stimme();
+  el("stimmen").innerHTML = v.length
+    ? v.map(x => `<option ${x === akt ? "selected" : ""}>${x.name}</option>`).join("")
+    : "<option>Keine deutsche Stimme gefunden</option>";
+}
+try { speechSynthesis.addEventListener("voiceschanged", zeigeStimmen); } catch (e) { /* egal */ }
+el("stimmen").addEventListener("change", e => { E.rufStimme = e.target.value; speichereEinstellungen(); sprich("Achtung, zweite Scheibe!"); });
+el("probe").addEventListener("click", () => {
+  weckeSprache();
+  const t = SPIELER.find(sp => sp.ruf);
+  if (t && t.rufDatei) rufe({ name: t.name, ruf: t.ruf, lie: { x: 0, y: 0 } });
+  else sprich((t && t.ruf) || "Achtung, zweite Scheibe!");
+});
 el("zu-einst").addEventListener("click", () => {
   zeigeRegler();
+  zeigeStimmen();
   el("menue-start").hidden = true;
   el("menue-einst").hidden = false;
   zeichneVorschau();
 });
 el("einst-zurueck").addEventListener("click", () => { el("menue-start").hidden = false; el("menue-einst").hidden = true; });
 el("einst-standard").addEventListener("click", () => {
-  Object.assign(E, Physik.STANDARD);
+  Object.assign(E, Physik.STANDARD, TON_STANDARD);
+  zeigeStimmen();
   speichereEinstellungen();
   zeigeRegler();
   zeichneVorschau();
