@@ -70,6 +70,10 @@
   .gross:hover, .gross:focus-visible { border-color: var(--akzent); }
   .person { display: flex; align-items: center; gap: 12px; }
   .person .punkt { width: 18px; height: 18px; flex-shrink: 0; }
+  #vorschau { aspect-ratio: 320 / 150; cursor: default; }
+  select { font-family: inherit; font-size: 12px; background: #2b3542; color: var(--text); border: 2px solid var(--rand); padding: 6px; }
+  .regler label { display: flex; justify-content: space-between; font-size: 11px; }
+  .regler output { color: var(--akzent); }
   #scheibenchip { border-left-width: 6px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tabs {
     display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; gap: 6px;
@@ -106,11 +110,21 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#5a7a5a">Version 7</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#5a7a5a">Version 8</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
       <button class="gross" data-modus="vierer">Vierer Flight<small id="vierer-namen"></small></button>
+      <button class="gross" id="zu-einst" style="font-size:12px;padding:10px 16px;margin-top:8px">Einstellungen (Entwicklung)<small>Stärke von Hyzer, Anhyzer, Turn, Fade …</small></button>
+    </div>
+    <div id="menue-einst" class="liste" style="gap:8px" hidden>
+      <h2 style="text-align:center;font-size:13px">Einstellungen (Entwicklung)</h2>
+      <canvas id="vorschau" width="320" height="150"></canvas>
+      <div class="zeile"><span style="color:#ffd84a">Hyzer 20°</span><span style="color:#f4f4f0">Flach</span><span style="color:#7cc8ff">Anhyzer 20°</span></div>
+      <select id="vorschau-scheibe"></select>
+      <div id="regler" class="liste" style="gap:6px"></div>
+      <div class="knoepfe"><button id="einst-standard" style="flex:1">Standard</button><button id="einst-zurueck" style="flex:1">← Zurück</button></div>
+      <p class="klein" style="margin:0">Wird in diesem Browser gespeichert. Vorschau: volle Kraft, kein Wind, keine Streuung.</p>
     </div>
     <div id="menue-wahl" class="liste" style="gap:10px" hidden>
       <h2 id="wahl-titel" style="text-align:center;font-size:13px">Wer spielt?</h2>
@@ -182,16 +196,16 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=7"></script>
-<script src="bahnen.js?v=7"></script>
-<script src="physik.js?v=7"></script>
+<script src="taschen.js?v=8"></script>
+<script src="bahnen.js?v=8"></script>
+<script src="physik.js?v=8"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
 
 const W = 320, H = 180;
 let S = 3; // Pixel pro Meter, hängt von der Bahngröße ab
-const FLUGTEMPO = 0.55; // < 1 = Zeitlupe beim Flug
+const E = Physik.einstellungen; // E.tempo < 1 = Zeitlupe beim Flug
 const cv = document.getElementById("c");
 const ctx = cv.getContext("2d");
 ctx.imageSmoothingEnabled = false;
@@ -413,13 +427,13 @@ function startLaden() {
 function loslassen() {
   if (zustand !== "laden") return;
   const s = ich();
+  rufe(s);
   const wurf = streue({ x: s.lie.x, y: s.lie.y, richtung: ziel, kraft, winkel, scheibe: scheibe(), hand: s.hand, wurfart: s.wurfart });
   const erg = simuliere(bahn, wurf, boe());
   s.wuerfe++;
   flug = { erg, t0: uhr, kraftAngezeigt: kraft };
   zustand = "flug";
   sfx.wurf();
-  rufe(s);
   aktualisierePanel();
 }
 
@@ -472,13 +486,27 @@ function zeigeBanner(text, farbe, dauer = 1.2) { banner = { text, farbe, t0: uhr
 
 // Ruf nach dem Wurf: Sprechblase über dem Spieler und, wenn möglich, Sprachausgabe
 let sprechblase = null;
+let stimme = null;
+function waehleStimme() {
+  try { stimme = speechSynthesis.getVoices().find(v => /^de/i.test(v.lang)) || null; } catch (e) { /* egal */ }
+}
+try { speechSynthesis.addEventListener("voiceschanged", waehleStimme); waehleStimme(); } catch (e) { /* egal */ }
+// Beim ersten Tippen die Sprachausgabe "aufwecken", sonst kommt der erste Ruf auf dem Handy verspätet
+let spracheWach = false;
+function weckeSprache() {
+  if (spracheWach) return;
+  spracheWach = true;
+  try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } catch (e) { /* egal */ }
+}
 function rufe(s) {
   if (!s.ruf) return;
   sprechblase = { text: s.ruf, pos: { x: s.lie.x, y: s.lie.y }, t0: uhr, dauer: 2.4 };
   try {
     const u = new SpeechSynthesisUtterance(s.ruf);
-    u.lang = "de-DE"; u.rate = 1.15; u.pitch = 0.9;
-    speechSynthesis.cancel();
+    u.lang = "de-DE"; u.rate = 1.2; u.pitch = 0.9;
+    if (stimme) u.voice = stimme;
+    // cancel() direkt vor speak() verzögert die Ausgabe in Safari – nur abbrechen, wenn noch etwas läuft
+    if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
     speechSynthesis.speak(u);
   } catch (e) { /* keine Sprachausgabe */ }
 }
@@ -537,10 +565,10 @@ function putten() {
   } else if (o.y < -KETTEN.by) ergebnis = "hoch";
   else if (o.y > KETTEN.by && ax < 16) ergebnis = "kurz";
   else ergebnis = "seite";
+  rufe(s);
   putt.flug = { t0: uhr, o, ergebnis };
   zustand = "puttflug";
   sfx.wurf();
-  rufe(s);
   aktualisierePanel();
 }
 
@@ -691,7 +719,7 @@ function zeichneScheibe(p, dreht = false) {
 }
 
 function flugPosition() {
-  const e = flug.erg, t = (uhr - flug.t0) * FLUGTEMPO;
+  const e = flug.erg, t = (uhr - flug.t0) * E.tempo;
   if (t >= e.dauer) return { p: e.pfad[e.pfad.length - 1], i: e.pfad.length - 1, fertig: true };
   let i = 1;
   while (i < e.pfad.length && e.pfad[i].t < t) i++;
@@ -793,7 +821,7 @@ function schleife(jetzt) {
   ctx.drawImage(hg, 0, 0);
   if (zustand === "zielen" || zustand === "laden") zeichneZiellinie();
   schirmTransform();
-  const korbWackelt = (flug && flug.erg.drin && zustand !== "zielen" && uhr - flug.t0 > flug.erg.dauer / FLUGTEMPO - 0.1 && uhr - flug.t0 < flug.erg.dauer / FLUGTEMPO + 0.7);
+  const korbWackelt = (flug && flug.erg.drin && zustand !== "zielen" && uhr - flug.t0 > flug.erg.dauer / E.tempo - 0.1 && uhr - flug.t0 < flug.erg.dauer / E.tempo + 0.7);
   if (bahn.distanzmarken) {
     const oben = Math.min(...bahn.fairway.map(p => p[1]));
     for (let d = bahn.distanzmarken; bahn.abwurf.x + d < bahn.korb.x - 5; d += bahn.distanzmarken) {
@@ -1032,8 +1060,74 @@ function zeigeMenue() {
   try { speechSynthesis.cancel(); } catch (e) { /* egal */ }
   el("menue-start").hidden = false;
   el("menue-wahl").hidden = true;
+  el("menue-einst").hidden = true;
   el("menue").hidden = false;
 }
+
+// ---------- Einstellungen (Entwicklung) ----------
+const REGLER = [
+  ["winkel", "Hyzer / Anhyzer", 0, 4, 0.1],
+  ["turn", "Turn", 0, 4, 0.1],
+  ["fade", "Fade", 0, 4, 0.1],
+  ["weite", "Weite", 0.5, 1.5, 0.05],
+  ["streuung", "Streuung", 0, 3, 0.1],
+  ["wind", "Wind", 0, 3, 0.1],
+  ["tempo", "Flugtempo (1 = Echtzeit)", 0.2, 1.5, 0.05],
+];
+const SPEICHER = "discgolf-einstellungen";
+try { Object.assign(E, JSON.parse(localStorage.getItem(SPEICHER) || "{}")); } catch (e) { /* egal */ }
+function speichereEinstellungen() {
+  try { localStorage.setItem(SPEICHER, JSON.stringify(E)); } catch (e) { /* egal */ }
+}
+const alleScheiben = SPIELER.flatMap(sp => sp.tasche.map(d => ({ d, sp })));
+el("vorschau-scheibe").innerHTML = alleScheiben.map((x, i) =>
+  `<option value="${i}">${x.d.name} (${x.sp.name}) · ${x.d.speed} | ${x.d.glide} | ${x.d.turn} | ${x.d.fade}</option>`).join("");
+function zeigeRegler() {
+  el("regler").innerHTML = REGLER.map(([k, name, min, max, step]) => `
+    <div class="regler"><label>${name}<output id="w-${k}">${E[k].toFixed(2)}</output></label>
+    <input type="range" data-einst="${k}" min="${min}" max="${max}" step="${step}" value="${E[k]}"></div>`).join("");
+}
+el("regler").addEventListener("input", e => {
+  const k = e.target.dataset.einst;
+  if (!k) return;
+  E[k] = +e.target.value;
+  el("w-" + k).textContent = E[k].toFixed(2);
+  speichereEinstellungen();
+  zeichneVorschau();
+});
+// Draufsicht von drei Würfen der gewählten Scheibe: Hyzer, flach, Anhyzer
+function zeichneVorschau() {
+  const c = el("vorschau").getContext("2d"), x = alleScheiben[+el("vorschau-scheibe").value || 0];
+  const leer = { welt: { breite: 1e4, hoehe: 1e4 }, baeume: [], ob: [], korb: { x: -1e3, y: -1e3 } };
+  const VS = 2.2, y0 = 75;
+  c.fillStyle = PAL.gras1; c.fillRect(0, 0, 320, 150);
+  c.fillStyle = "rgba(255,255,255,.25)";
+  for (let m = 25; m * VS < 320; m += 25) for (let py = 0; py < 150; py += 3) c.fillRect(Math.round(8 + m * VS), py, 1, 1);
+  c.fillStyle = "rgba(255,255,255,.7)"; c.font = "8px Silkscreen"; c.textBaseline = "top";
+  for (let m = 50; m * VS < 310; m += 50) c.fillText(m + "", 10 + m * VS, 2);
+  [[20, "#ffd84a"], [0, "#f4f4f0"], [-20, "#7cc8ff"]].forEach(([w, f]) => {
+    const e = simuliere(leer, { x: 0, y: 5000, richtung: 0, kraft: 1, winkel: w, scheibe: x.d, hand: x.sp.hand || "rechts", wurfart: "rueckhand" }, { x: 0, y: 0 });
+    c.fillStyle = f;
+    e.pfad.forEach((p, i) => { if (i % 2 === 0) c.fillRect(Math.round(8 + p.x * VS), Math.round(y0 + (p.y - 5000) * VS), 1, 1); });
+    const l = e.pfad[e.pfad.length - 1];
+    c.fillRect(Math.round(8 + l.x * VS) - 1, Math.round(y0 + (l.y - 5000) * VS) - 1, 3, 3);
+  });
+  c.fillStyle = "#8c8c88"; c.fillRect(4, y0 - 3, 6, 6);
+}
+el("vorschau-scheibe").addEventListener("change", zeichneVorschau);
+el("zu-einst").addEventListener("click", () => {
+  zeigeRegler();
+  el("menue-start").hidden = true;
+  el("menue-einst").hidden = false;
+  zeichneVorschau();
+});
+el("einst-zurueck").addEventListener("click", () => { el("menue-start").hidden = false; el("menue-einst").hidden = true; });
+el("einst-standard").addEventListener("click", () => {
+  Object.assign(E, Physik.STANDARD);
+  speichereEinstellungen();
+  zeigeRegler();
+  zeichneVorschau();
+});
 let gewaehlterModus = null;
 el("vierer-namen").textContent = SPIELER.map(s => s.name).join(", ").replace(/, ([^,]*)$/, " & $1") + " spielen zusammen";
 el("personen").innerHTML = SPIELER.map((s, i) => `
@@ -1041,6 +1135,7 @@ el("personen").innerHTML = SPIELER.map((s, i) => `
     <span>${s.name}<small>${s.tasche.length} Scheiben · ${s.hand === "links" ? "Linkshand" : "Rechtshand"}</small></span></button>`).join("");
 document.querySelectorAll("[data-modus]").forEach(b => b.addEventListener("click", () => {
   const m = b.dataset.modus;
+  weckeSprache();
   if (m === "vierer") { starteModus(m); return; }
   gewaehlterModus = m;
   el("wahl-titel").textContent = m === "frei" ? "Mit wessen Bag wirfst du?" : "Wer spielt?";

@@ -10,6 +10,10 @@
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
   }
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  // Stellschrauben für die Entwicklung (im Spiel unter "Einstellungen" änderbar)
+  const STANDARD = { winkel: 1.6, turn: 1.5, fade: 1.5, weite: 1, streuung: 1, wind: 1, tempo: 0.55 };
+  const E = Object.assign({}, STANDARD);
   const abstand = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
   function imRechteck(p, r) {
@@ -35,11 +39,11 @@
   // Je mehr Kraft, desto stärker die Streuung von Richtung, Kraft und Winkel
   // (Vorhand streut etwas mehr)
   function streue(wurf) {
-    const p = wurf.kraft, vh = wurf.wurfart === "vorhand" ? 1.2 : 1;
+    const p = wurf.kraft, vh = wurf.wurfart === "vorhand" ? 1.2 : 1, st = E.streuung;
     return Object.assign({}, wurf, {
-      richtung: wurf.richtung + gauss() * (0.8 + 7 * Math.pow(p, 2.5)) * vh * DEG,
-      kraft: clamp(p * (1 + gauss() * (0.02 + 0.05 * p)), 0.05, 1.08),
-      winkel: wurf.winkel + gauss() * (1 + 6 * p * p),
+      richtung: wurf.richtung + gauss() * (0.8 + 7 * Math.pow(p, 2.5)) * vh * st * DEG,
+      kraft: clamp(p * (1 + gauss() * (0.02 + 0.05 * p) * st), 0.05, 1.08),
+      winkel: wurf.winkel + gauss() * (1 + 6 * p * p) * st,
     });
   }
 
@@ -47,6 +51,7 @@
   // wind: {x, y} in m/s (Richtung, in die der Wind weht)
   function simuliere(bahn, wurf, wind) {
     const s = wurf.scheibe, kraft = wurf.kraft, winkel = wurf.winkel;
+    wind = { x: wind.x * E.wind, y: wind.y * E.wind };
     // Linkshänder und Vorhand spiegeln die Kurven (beides zusammen hebt sich auf)
     const seite = (wurf.hand === "links" ? -1 : 1) * (wurf.wurfart === "vorhand" ? -1 : 1);
     const gegen = -(wind.x * Math.cos(wurf.richtung) + wind.y * Math.sin(wurf.richtung)); // Gegenwind > 0
@@ -54,13 +59,14 @@
     let D = (30 + s.speed * 6.5 + s.glide * 2) * (0.25 + 0.75 * kraft);
     D *= 1 - Math.min(Math.abs(winkel), 40) / 40 * 0.12;
     if (wurf.wurfart === "vorhand") D *= 0.9;
+    D *= E.weite;
     D *= clamp(1 - 0.03 * gegen, 0.7, 1.15);
 
     // Gegenwind macht Scheiben instabiler (mehr Turn), Rückenwind stabiler
     // Gesamte Richtungsänderung (rad) durch Turn, Fade und Abwurfwinkel
-    const turnK = -s.turn * 0.2 * (0.3 + kraft) * clamp(1 + 0.15 * gegen, 0.3, 2);
-    const fadeK = s.fade * 2.2 * (1.2 - 0.4 * kraft) * clamp(1 + 0.08 * gegen, 0.5, 1.6);
-    const winkK = -winkel * DEG * 1.2;
+    const turnK = -s.turn * 0.2 * (0.3 + kraft) * clamp(1 + 0.15 * gegen, 0.3, 2) * E.turn;
+    const fadeK = s.fade * 2.2 * (1.2 - 0.4 * kraft) * clamp(1 + 0.08 * gegen, 0.5, 1.6) * E.fade;
+    const winkK = -winkel * DEG * 1.2 * E.winkel;
     const H = 1.5 + 6 * kraft * (1 - winkel / 80);
     const T = 1.2 + 2.6 * kraft + 0.15 * s.glide;
     const N = 160;
@@ -172,5 +178,5 @@
     return { pfad, lie, drin, ob, typ, dauer: t, distanz: abstand(lie, wurf) };
   }
 
-  g.Physik = { simuliere, streue, gauss, abstand, istOB, aufBowlingbahn, DEG };
+  g.Physik = { simuliere, streue, gauss, abstand, istOB, aufBowlingbahn, DEG, einstellungen: E, STANDARD };
 })(typeof window !== "undefined" ? window : globalThis);
