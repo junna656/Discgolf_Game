@@ -26,6 +26,7 @@ window.SPIELER = [
     rufDatei: "rufe/thomas.mp3",   // KI-Stimme; eigene Aufnahme einfach unter gleichem Namen ersetzen
     tasche: [
       { name: "Donnerkeil", typ: "Driver",   speed: 12, glide: 5, turn: -1, fade: 2 },
+      { name: "Trace", typ: "Driver", speed: 11, glide: 5, turn: -1, fade: 2 }, // Streamline Discs Trace (Neutron)
       { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1, standard: true }, // Latitude 64°
       { name: "Pfeil",      typ: "Fairway",  speed: 7,  glide: 5, turn: -1, fade: 1 },
       { name: "Fels",       typ: "Midrange", speed: 5,  glide: 4, turn: 0,  fade: 2 },
@@ -63,6 +64,7 @@ window.SPIELER = [
     hand: "rechts",
     tasche: [
       { name: "Orkan",      typ: "Driver",   speed: 12, glide: 5, turn: -3, fade: 1 },
+      { name: "Trace", typ: "Driver", speed: 11, glide: 5, turn: -1, fade: 2 }, // Streamline Discs Trace (Neutron)
       { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1, standard: true }, // Latitude 64°
       { name: "Sense",      typ: "Fairway",  speed: 9,  glide: 4, turn: 0,  fade: 3 },
       { name: "Eule",       typ: "Midrange", speed: 4,  glide: 6, turn: -1, fade: 0 },
