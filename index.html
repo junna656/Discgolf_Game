@@ -123,7 +123,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 26</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 27</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -215,25 +215,23 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=26"></script>
-<script src="bahnen.js?v=26"></script>
-<script src="physik.js?v=26"></script>
+<script src="taschen.js?v=27"></script>
+<script src="bahnen.js?v=27"></script>
+<script src="physik.js?v=27"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
 
 const W = 320, H = 180;
-let S = 3; // Pixel pro Meter, hängt von der Bahngröße ab
+let S0 = 3, S = 3; // Pixel pro Meter: S0 für die ganze Bahn, S für die aktuelle Zoomstufe
+const STUFEN = [1, 1.8, 3]; // Zoomstufen: Übersicht, mittel, nah
 const E = Physik.einstellungen; // E.tempo < 1 = Zeitlupe beim Flug
 const cv = document.getElementById("c");
-const hauptCtx = cv.getContext("2d");
-hauptCtx.imageSmoothingEnabled = false;
-// Die Bahn wird erst auf eine eigene Ebene gezeichnet und dann mit der Kamera (Zoom) ins Bild kopiert
-const weltCv = document.createElement("canvas");
-const weltCtx = weltCv.getContext("2d");
-let ctx = hauptCtx; // zeigt auf die Ebene, auf die gerade gezeichnet wird
+const ctx = cv.getContext("2d");
+ctx.imageSmoothingEnabled = false;
 
-let kamera = null; // {x, y, z}: Mittelpunkt (Bildpunkte der Bahn-Ebene) und Zoom
+// Kamera: Zoomstufe z und Mittelpunkt (x, y) in Bildpunkten der Bahn bei dieser Stufe; kx/ky = linke obere Ecke
+let kamera = null, kx = 0, ky = 0;
 // Handy hochkant: Bahn um 90° drehen (Abwurf unten, Korb oben). SW/SH = Bildschirmgröße in Pixeln
 let hochkant = false, SW = W, SH = H;
 const hochMQ = matchMedia("(max-width: 860px) and (orientation: portrait)");
@@ -241,17 +239,24 @@ function pruefeAusrichtung() {
   hochkant = hochMQ.matches;
   SW = hochkant ? H : W;
   SH = hochkant ? W : H;
-  if (cv.width !== SW) { cv.width = weltCv.width = SW; cv.height = weltCv.height = SH; hauptCtx.imageSmoothingEnabled = false; kamera = null; }
+  if (cv.width !== SW) { cv.width = SW; cv.height = SH; ctx.imageSmoothingEnabled = false; kamera = null; }
   cv.classList.toggle("hoch", hochkant);
 }
 hochMQ.addEventListener("change", pruefeAusrichtung);
 pruefeAusrichtung();
-// Welt (Meter) -> Bildschirm-Pixel
-function zuSchirm(p) {
-  return hochkant ? { x: Math.round(p.y * S), y: Math.round(W - p.x * S) } : { x: Math.round(p.x * S), y: Math.round(p.y * S) };
+// Welt (Meter) -> Bildpunkte der Bahn bei Zoomstufe z (Bildschirm-Ausrichtung, ohne Kamera-Verschiebung)
+function projiziere(p, z) {
+  const k = S0 * z;
+  return hochkant ? { x: p.y * k, y: W * z - p.x * k } : { x: p.x * k, y: p.y * k };
 }
-// Zeichnen in Welt-Pixeln (320×180), auf Wunsch gedreht
-const weltTransform = () => hochkant ? ctx.setTransform(0, -1, 1, 0, 0, W) : ctx.setTransform(1, 0, 0, 1, 0, 0);
+function zuSchirm(p) {
+  const q = projiziere(p, S / S0);
+  return { x: Math.round(q.x), y: Math.round(q.y) };
+}
+// Bahnbild (ungedreht) mit Kamera-Verschiebung und ggf. gedreht zeichnen
+const weltTransform = () => hochkant ? ctx.setTransform(0, -1, 1, 0, -kx, W * S / S0 - ky) : ctx.setTransform(1, 0, 0, 1, -kx, -ky);
+// Figuren in Bildschirm-Ausrichtung mit Kamera-Verschiebung
+const figurTransform = () => ctx.setTransform(1, 0, 0, 1, -kx, -ky);
 const schirmTransform = (ox = 0, oy = 0) => ctx.setTransform(1, 0, 0, 1, ox, oy);
 // Putt-Ansicht und Endwertung sind für 320×180 gebaut und werden mittig verschoben
 const mitteTransform = () => schirmTransform((SW - W) / 2, (SH - H) / 2);
@@ -318,24 +323,41 @@ function pixelKreis(c, cx, cy, r, farbe) {
   }
 }
 
-const hg = document.createElement("canvas");
-hg.width = W; hg.height = H;
 // Flächen einmal auf eine Maske zeichnen, statt jeden Bildpunkt einzeln zu prüfen (schnell auch auf dem Handy)
-function maske(zeichne) {
+function maske(zeichne, BW, BH) {
   const m = document.createElement("canvas");
-  m.width = W; m.height = H;
+  m.width = BW; m.height = BH;
   const c = m.getContext("2d");
   c.setTransform(S, 0, 0, S, -0.5, -0.5);
   c.fillStyle = c.strokeStyle = "#fff";
   c.lineCap = c.lineJoin = "round";
   zeichne(c);
-  const d = c.getImageData(0, 0, W, H).data;
-  return (px, py) => d[(py * W + px) * 4 + 3] > 127;
+  const d = c.getImageData(0, 0, BW, BH).data;
+  return (px, py) => d[(py * BW + px) * 4 + 3] > 127;
 }
 const polygonPfad = (c, pk) => { c.beginPath(); pk.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); };
+const rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 
-function zeichneHintergrund() {
-  const c = hg.getContext("2d"), rnd = zufall(1);
+// Grenzlinie als Fläche zum Zeichnen: Linie plus weit entfernte Punkte auf der OB-Seite
+function linienFlaeche(o) {
+  const L = o.linie, n = L.length, innen = Physik.seiteVonLinie({ x: o.innen[0], y: o.innen[1] }, L) || 1;
+  const aus = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1; return [dy / l * innen * 2000, -dx / l * innen * 2000]; };
+  const [ax, ay] = aus(L[0], L[1]), [bx, by] = aus(L[n - 2], L[n - 1]);
+  return [...L, [L[n - 1][0] + bx, L[n - 1][1] + by], [L[0][0] + ax, L[0][1] + ay]];
+}
+
+// Bahnbild für Zoomstufe z: mehr Bildpunkte pro Meter = mehr Details beim Reinzoomen
+const stufenBilder = {};
+function bahnBild(z) {
+  if (!stufenBilder[z]) { const alt = S; S = S0 * z; stufenBilder[z] = zeichneHintergrund(z); S = alt; }
+  return stufenBilder[z];
+}
+
+function zeichneHintergrund(z) {
+  const BW = Math.round(W * z), BH = Math.round(H * z);
+  const hg = document.createElement("canvas");
+  hg.width = BW; hg.height = BH;
+  const c = hg.getContext("2d"), rnd = zufall(1), zr = Math.max(1, Math.round(z));
   // Wege nur als Bild: Polylinien mit Breite (wege) oder Flächen (wegFlaechen)
   const aufWeg = maske(m => {
     for (const f of bahn.wegFlaechen || []) { polygonPfad(m, f); m.fill(); }
@@ -344,44 +366,46 @@ function zeichneHintergrund() {
       w.punkte.forEach(([x, y], i) => i ? m.lineTo(x, y) : m.moveTo(x, y));
       m.stroke();
     }
-  });
-  const aufFairway = maske(m => { if (bahn.fairway && bahn.fairway.length) { polygonPfad(m, bahn.fairway); m.fill(); } });
-  // OB-Flächen als Masken (Polygone können viele Punkte haben); Grenzlinien direkt prüfen
+  }, BW, BH);
+  const aufFairway = maske(m => { if (bahn.fairway && bahn.fairway.length) { polygonPfad(m, bahn.fairway); m.fill(); } }, BW, BH);
+  // OB-Flächen als Masken (auch Grenzlinien, als Fläche auf ihrer OB-Seite)
   const obTests = (bahn.ob || []).map(o => {
-    if (o.punkte || o.insel) {
-      const m = maske(c => { polygonPfad(c, o.punkte || o.insel); c.fill(); });
-      return o.insel ? (px, py, x) => x >= o.ab && !m(px, py) : (px, py) => m(px, py);
-    }
-    return (px, py, x, y) => Physik.obZone({ x, y }, { ob: [o] }) !== null;
+    if (o.w !== undefined) return (px, py, x, y) => x >= o.x && x <= o.x + o.w && y >= o.y && y <= o.y + o.h;
+    const m = maske(c => { polygonPfad(c, o.linie ? linienFlaeche(o) : o.punkte || o.insel); c.fill(); }, BW, BH);
+    return o.insel ? (px, py, x) => x >= o.ab && !m(px, py) : (px, py) => m(px, py);
   });
-  for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+  const P = { weg1: rgb(PAL.weg1), weg2: rgb(PAL.weg2), bahn1: rgb(PAL.bahn1), bahn2: rgb(PAL.bahn2), fair1: rgb(PAL.fair1), fair2: rgb(PAL.fair2),
+    gras1: rgb(PAL.gras1), gras2: rgb(PAL.gras2), gras3: rgb(PAL.gras3), aus1: rgb("#245f28"), aus2: rgb("#1f5523"), aus3: rgb("#2c6a30") };
+  const bild = c.createImageData(BW, BH), d = bild.data, streifen = Math.round(8 * z), brett = Math.round(4 * z);
+  for (let py = 0; py < BH; py++) for (let px = 0; px < BW; px++) {
     const x = (px + 0.5) / S, y = (py + 0.5) / S, r = rnd();
     let f;
     const zi = obTests.findIndex(t => t(px, py, x, y)), zone = zi >= 0 ? bahn.ob[zi] : null;
-    if (zone && zone.w !== undefined && !zone.art) f = r < 0.2 ? PAL.weg2 : PAL.weg1; // OB-Rechteck ohne Art = Weg
-    else if (aufBowlingbahn({ x, y }, bahn)) f = (px % 4 === 0) ? PAL.bahn2 : PAL.bahn1;
-    else if (aufWeg(px, py)) f = r < 0.2 ? PAL.weg2 : PAL.weg1;
-    else if (zone) f = r < 0.15 ? "#1f5523" : r > 0.95 ? "#2c6a30" : "#245f28"; // Aus: dunkleres Gras
-    else if (aufFairway(px, py)) f = (Math.floor(px / 8) % 2 ? PAL.fair1 : PAL.fair2);
-    else f = r < 0.12 ? PAL.gras2 : r > 0.94 ? PAL.gras3 : PAL.gras1;
-    c.fillStyle = f;
-    c.fillRect(px, py, 1, 1);
+    if (zone && zone.w !== undefined && !zone.art) f = r < 0.2 ? P.weg2 : P.weg1; // OB-Rechteck ohne Art = Weg
+    else if (aufBowlingbahn({ x, y }, bahn)) f = (px % brett === 0) ? P.bahn2 : P.bahn1;
+    else if (aufWeg(px, py)) f = r < 0.2 ? P.weg2 : P.weg1;
+    else if (zone) f = r < 0.15 ? P.aus2 : r > 0.95 ? P.aus3 : P.aus1; // Aus: dunkleres Gras
+    else if (aufFairway(px, py)) f = (Math.floor(px / streifen) % 2 ? P.fair1 : P.fair2);
+    else f = r < 0.12 ? P.gras2 : r > 0.94 ? P.gras3 : P.gras1;
+    const i = (py * BW + px) * 4;
+    d[i] = f[0]; d[i + 1] = f[1]; d[i + 2] = f[2]; d[i + 3] = 255;
   }
+  c.putImageData(bild, 0, 0);
   // Entfernungsmarken: gepunktete Linien quer über die Bahn
   if (bahn.distanzmarken) {
     c.fillStyle = "rgba(255,255,255,.55)";
-    for (let d = bahn.distanzmarken; bahn.abwurf.x + d < bahn.korb.x - 5; d += bahn.distanzmarken) {
-      const px = Math.round((bahn.abwurf.x + d) * S);
-      for (let py = 0; py < H; py += 3) if (imPolygon(px / S, (py + 0.5) / S, bahn.fairway)) c.fillRect(px, py, 1, 1);
+    for (let dm = bahn.distanzmarken; bahn.abwurf.x + dm < bahn.korb.x - 5; dm += bahn.distanzmarken) {
+      const px = Math.round((bahn.abwurf.x + dm) * S);
+      for (let py = 0; py < BH; py += 3) if (aufFairway(px, py)) c.fillRect(px, py, 1, 1);
     }
   }
   // Rand der Spielfläche ist OB: gestrichelte weiße Linie mit Pflöcken
   c.fillStyle = PAL.weiss;
-  for (let px = 0; px < W; px += 6) { c.fillRect(px, 0, 3, 1); c.fillRect(px, H - 1, 3, 1); }
-  for (let py = 0; py < H; py += 6) { c.fillRect(0, py, 1, 3); c.fillRect(W - 1, py, 1, 3); }
+  for (let px = 0; px < BW; px += 6) { c.fillRect(px, 0, 3, 1); c.fillRect(px, BH - 1, 3, 1); }
+  for (let py = 0; py < BH; py += 6) { c.fillRect(0, py, 1, 3); c.fillRect(BW - 1, py, 1, 3); }
   c.fillStyle = "#e84030";
-  for (let px = 12; px < W; px += 24) { c.fillRect(px, 1, 2, 2); c.fillRect(px, H - 3, 2, 2); }
-  for (let py = 12; py < H; py += 24) { c.fillRect(1, py, 2, 2); c.fillRect(W - 3, py, 2, 2); }
+  for (let px = 12; px < BW; px += 24) { c.fillRect(px, 1, 2, 2); c.fillRect(px, BH - 3, 2, 2); }
+  for (let py = 12; py < BH; py += 24) { c.fillRect(1, py, 2, 2); c.fillRect(BW - 3, py, 2, 2); }
   // OB-Grenzen: Zaun (grau mit Pfosten) oder weiße Linie mit roten Pflöcken; Kanten am Spielfeldrand auslassen
   const am = (v, m) => v <= 0.01 || v >= m - 0.01;
   for (const o of bahn.ob) {
@@ -395,10 +419,10 @@ function zeichneHintergrund() {
         const px = Math.round((a[0] + (b[0] - a[0]) * k / n) * S), py = Math.round((a[1] + (b[1] - a[1]) * k / n) * S);
         if (o.art === "zaun") {
           c.fillStyle = k % 5 === 0 ? "#6c6c66" : "#d4d4cc";
-          c.fillRect(px, py, 1, k % 5 === 0 ? 2 : 1);
+          c.fillRect(px, py, zr, k % 5 === 0 ? 2 * zr : zr);
         } else {
-          if (k % 6 < 3) { c.fillStyle = PAL.weiss; c.fillRect(px, py, 1, 1); }
-          if (k % 24 === 12) { c.fillStyle = "#e84030"; c.fillRect(px, py - 1, 2, 2); }
+          if (k % 6 < 3) { c.fillStyle = PAL.weiss; c.fillRect(px, py, zr, zr); }
+          if (k % 24 === 12) { c.fillStyle = "#e84030"; c.fillRect(px, py - zr, 2 * zr, 2 * zr); }
         }
       }
     });
@@ -407,28 +431,27 @@ function zeichneHintergrund() {
   const l = bahn.bowlingbahn;
   if (l) {
     c.fillStyle = PAL.brett;
-    c.fillRect(Math.round(l.x1 * S), Math.round((l.y1 - l.breite / 2) * S) - 1, Math.round((l.x2 - l.x1) * S), 1);
-    c.fillRect(Math.round(l.x1 * S), Math.round((l.y1 + l.breite / 2) * S), Math.round((l.x2 - l.x1) * S), 1);
+    c.fillRect(Math.round(l.x1 * S), Math.round((l.y1 - l.breite / 2) * S) - zr, Math.round((l.x2 - l.x1) * S), zr);
+    c.fillRect(Math.round(l.x1 * S), Math.round((l.y1 + l.breite / 2) * S), Math.round((l.x2 - l.x1) * S), zr);
     // Bowling-Pfeile
-    c.fillStyle = PAL.brett;
     for (let i = 0; i < 3; i++) {
-      const ax = Math.round((l.x1 + 3 + i * 1.2) * S), ay = Math.round(l.y1 * S) - 3 + i * 3;
-      c.fillRect(ax, ay, 2, 1);
+      const ax = Math.round((l.x1 + 3 + i * 1.2) * S), ay = Math.round((l.y1 + (i - 1) * 1) * S);
+      c.fillRect(ax, ay, 2 * zr, zr);
     }
   }
   // Circle 1 (10 m) gepunktet
   c.fillStyle = "rgba(255,255,255,.35)";
-  for (let a = 0; a < Math.PI * 2; a += 0.12) {
+  for (let a = 0; a < Math.PI * 2; a += 0.12 / z) {
     const px = Math.round((bahn.korb.x + Math.cos(a) * 10) * S), py = Math.round((bahn.korb.y + Math.sin(a) * 10) * S);
     c.fillRect(px, py, 1, 1);
   }
-  // Abwurf
-  const ax = Math.round(bahn.abwurf.x * S), ay = Math.round(bahn.abwurf.y * S);
-  c.fillStyle = "#5a5a5a"; c.fillRect(ax - 6, ay - 4, 12, 9);
-  c.fillStyle = "#8c8c88"; c.fillRect(ax - 5, ay - 3, 10, 7);
-  c.fillStyle = "#a8a8a2"; c.fillRect(ax - 5, ay - 3, 10, 1);
+  // Abwurf (Pflaster, 3 × 2 m)
+  const ax = Math.round(bahn.abwurf.x * S), ay = Math.round(bahn.abwurf.y * S), tw = Math.max(12, Math.round(3.2 * S)), th = Math.max(9, Math.round(2.2 * S));
+  c.fillStyle = "#5a5a5a"; c.fillRect(ax - tw / 2, ay - th / 2, tw, th);
+  c.fillStyle = "#8c8c88"; c.fillRect(ax - tw / 2 + 1, ay - th / 2 + 1, tw - 2, th - 2);
+  c.fillStyle = "#a8a8a2"; c.fillRect(ax - tw / 2 + 1, ay - th / 2 + 1, tw - 2, zr);
   // Bäume: Schatten, dann Kronen
-  for (const b of bahn.baeume) pixelKreis(c, b.x * S + 2, b.y * S + 2, b.r * S, PAL.schatten);
+  for (const b of bahn.baeume) pixelKreis(c, b.x * S + 2 * z, b.y * S + 2 * z, b.r * S, PAL.schatten);
   for (const b of bahn.baeume) {
     const r = b.r * S;
     pixelKreis(c, b.x * S, b.y * S, r, PAL.baum1);
@@ -437,11 +460,12 @@ function zeichneHintergrund() {
     // Blätter-Dither
     const rr = zufall(Math.round(b.x * 100 + b.y));
     for (let i = 0; i < r * 3; i++) {
-      const a = rr() * Math.PI * 2, d = rr() * r * 0.9;
+      const a = rr() * Math.PI * 2, dd = rr() * r * 0.9;
       c.fillStyle = rr() < 0.5 ? PAL.baum1 : PAL.baum3;
-      c.fillRect(Math.round(b.x * S + Math.cos(a) * d), Math.round(b.y * S + Math.sin(a) * d), 1, 1);
+      c.fillRect(Math.round(b.x * S + Math.cos(a) * dd), Math.round(b.y * S + Math.sin(a) * dd), 1, 1);
     }
   }
+  return hg;
 }
 
 // ---------- Spielzustand ----------
@@ -698,7 +722,7 @@ function zeichneSprechblase() {
   }
   const bw = Math.ceil(Math.max(...zeilen.map(z => ctx.measureText(z).width))) + 8, bh = zeilen.length * 9 + 5;
   const p = zuSchirm(b.pos), hops = Math.round(Math.abs(Math.sin((uhr - b.t0) * 8)) * 2 * Math.max(0, 1 - (uhr - b.t0)));
-  const x = Math.max(2, Math.min(SW - bw - 2, p.x - 6)), y = Math.max(2, p.y - 14 - bh - hops);
+  const x = Math.max(kx + 2, Math.min(kx + SW - bw - 2, p.x - 6)), y = Math.max(ky + 2, p.y - 14 - bh - hops);
   ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 1, y - 1, bw + 2, bh + 2);
   ctx.fillStyle = PAL.weiss; ctx.fillRect(x, y, bw, bh);
   // Zipfel zum Spieler
@@ -1001,39 +1025,55 @@ function weiter() {
   starteBahn();
 }
 
-// ---------- Kamera: zoomt auf das, was gerade wichtig ist ----------
-function kameraZiel() {
-  if (zustand === "ende" || E.zoom <= 1) return { x: SW / 2, y: SH / 2, z: 1 };
+// ---------- Kamera: wählt automatisch eine von drei Zoomstufen ----------
+// Beim Zielen: Spieler und Ziel im Bild. Im Flug und direkt nach der Landung bleibt die Stufe,
+// die Kamera schiebt nur mit, wenn die Scheibe aus dem Bild fliegen würde.
+function passendeStufe() {
+  if (zustand === "ende") return 1;
   const s = ich(), dKorb = abstand(s.lie, bahn.korb);
   let punkte;
-  if (zustand === "flug" || (zustand === "pause" && flug && flug.aktiv)) {
-    punkte = [flug.start, flugPosition().p]; // Abwurf und Scheibe im Bild halten
-  } else if (zustand === "pause" && flug) {
-    const l = flug.erg.lie;
-    punkte = abstand(l, bahn.korb) < 35 ? [l, bahn.korb] : [l];
-  } else if (puttModus) {
-    punkte = [s.lie, bahn.korb];
-  } else {
-    // beim Zielen: Spieler und den Punkt, den die Scheibe etwa erreicht
+  if (puttModus) punkte = [s.lie, bahn.korb];
+  else {
     const vor = Math.min(dKorb, Physik.reichweite(scheibe()) * 0.9);
     punkte = [s.lie, { x: s.lie.x + Math.cos(ziel) * vor, y: s.lie.y + Math.sin(ziel) * vor }];
     if (dKorb < vor * 1.3) punkte.push(bahn.korb);
   }
-  const q = punkte.map(zuSchirm), rand = 30;
-  const x0 = Math.min(...q.map(p => p.x)) - rand, x1 = Math.max(...q.map(p => p.x)) + rand;
-  const y0 = Math.min(...q.map(p => p.y)) - rand, y1 = Math.max(...q.map(p => p.y)) + rand;
-  const z = Math.max(1, Math.min(E.zoom, SW / (x1 - x0), SH / (y1 - y0)));
-  return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, z };
+  const q = punkte.map(p => projiziere(p, 1)), rand = 14;
+  const bw = Math.max(...q.map(p => p.x)) - Math.min(...q.map(p => p.x)) + 2 * rand;
+  const bh = Math.max(...q.map(p => p.y)) - Math.min(...q.map(p => p.y)) + 2 * rand;
+  const passt = Math.min(SW / bw, SH / bh);
+  return STUFEN.filter(z => z <= passt && z <= E.zoomStufe + 0.01).pop() || 1;
+}
+function mitteVon(punkte, z) {
+  const q = punkte.map(p => projiziere(p, z));
+  return { x: (Math.min(...q.map(p => p.x)) + Math.max(...q.map(p => p.x))) / 2, y: (Math.min(...q.map(p => p.y)) + Math.max(...q.map(p => p.y))) / 2 };
 }
 function bewegeKamera(dt) {
-  const ziel = kameraZiel();
-  if (!kamera) kamera = { ...ziel };
-  const k = Math.min(1, dt * 2.5);
-  for (const a of ["x", "y", "z"]) kamera[a] += (ziel[a] - kamera[a]) * k;
+  const fliegt = zustand === "flug" || (zustand === "pause" && !puttModus);
+  let z = kamera && fliegt ? kamera.z : passendeStufe(), ziel2;
+  if (zustand === "flug" && flug) {
+    // nur nachschieben, wenn die Scheibe den mittleren Bereich verlässt
+    const p = projiziere(flugPosition().p, z), mx = SW * 0.3, my = SH * 0.3;
+    ziel2 = { x: kamera.x, y: kamera.y };
+    if (p.x < kamera.x - mx) ziel2.x = p.x + mx; else if (p.x > kamera.x + mx) ziel2.x = p.x - mx;
+    if (p.y < kamera.y - my) ziel2.y = p.y + my; else if (p.y > kamera.y + my) ziel2.y = p.y - my;
+  } else if (zustand === "pause" && flug && !puttModus) ziel2 = mitteVon([flug.erg.lie], z);
+  else if (zustand === "ende") ziel2 = { x: SW / 2, y: SH / 2 };
+  else {
+    const s = ich(), dKorb = abstand(s.lie, bahn.korb);
+    const vor = puttModus ? dKorb : Math.min(dKorb, Physik.reichweite(scheibe()) * 0.9);
+    ziel2 = mitteVon([s.lie, puttModus ? bahn.korb : { x: s.lie.x + Math.cos(ziel) * vor, y: s.lie.y + Math.sin(ziel) * vor }], z);
+  }
+  if (!kamera || kamera.z !== z) kamera = { z, ...ziel2 }; // Stufenwechsel: direkter Schnitt
+  const k = Math.min(1, dt * (zustand === "flug" ? 6 : 2.5));
+  kamera.x += (ziel2.x - kamera.x) * k;
+  kamera.y += (ziel2.y - kamera.y) * k;
   // nicht über den Rand der Bahn hinaus
-  const w = SW / kamera.z / 2, h = SH / kamera.z / 2;
-  kamera.x = Math.max(w, Math.min(SW - w, kamera.x));
-  kamera.y = Math.max(h, Math.min(SH - h, kamera.y));
+  kamera.x = Math.max(SW / 2, Math.min(SW * z - SW / 2, kamera.x));
+  kamera.y = Math.max(SH / 2, Math.min(SH * z - SH / 2, kamera.y));
+  S = S0 * z;
+  kx = Math.round(kamera.x - SW / 2);
+  ky = Math.round(kamera.y - SH / 2);
 }
 
 let letzte = performance.now();
@@ -1048,11 +1088,11 @@ function schleife(jetzt) {
     kraft = ph < 1 ? ph : 2 - ph;
   }
 
-  ctx = weltCtx;
+  bewegeKamera(dt);
   weltTransform();
-  ctx.drawImage(hg, 0, 0);
+  ctx.drawImage(bahnBild(kamera.z), 0, 0);
   if (zustand === "zielen" || zustand === "laden") zeichneZiellinie();
-  schirmTransform();
+  figurTransform();
   const korbWackelt = (flug && flug.erg.drin && zustand !== "zielen" && uhr - flug.t0 > flug.erg.dauer / E.tempo - 0.1 && uhr - flug.t0 < flug.erg.dauer / E.tempo + 0.7);
   if (bahn.distanzmarken) {
     const oben = Math.min(...bahn.fairway.map(p => p[1]));
@@ -1084,12 +1124,7 @@ function schleife(jetzt) {
     zeichneScheibe(flug.erg.pfad[flug.erg.pfad.length - 1]);
   }
   if (sprechblase) zeichneSprechblase();
-
-  // Bahn-Ebene mit Kamera ins Bild, danach Anzeigen ohne Zoom darüber
-  ctx = hauptCtx;
-  bewegeKamera(dt);
-  const kw = SW / kamera.z, kh = SH / kamera.z;
-  ctx.drawImage(weltCv, kamera.x - kw / 2, kamera.y - kh / 2, kw, kh, 0, 0, SW, SH);
+  schirmTransform(); // Anzeigen ohne Kamera darüber
 
   zeichneWind();
   if (zustand !== "ende") {
@@ -1243,11 +1278,10 @@ window.addEventListener("pointercancel", () => loslassen());
 
 // Zielen mit der Maus, Werfen durch Halten auf dem Spielfeld
 function weltPunkt(e) {
-  const r = cv.getBoundingClientRect(), k = kamera || { x: SW / 2, y: SH / 2, z: 1 };
-  // Bildschirm -> Bahn-Ebene (Zoom rückgängig machen)
-  const sx = k.x - SW / k.z / 2 + (e.clientX - r.left) / r.width * SW / k.z;
-  const sy = k.y - SH / k.z / 2 + (e.clientY - r.top) / r.height * SH / k.z;
-  return hochkant ? { x: (W - sy) / S, y: sx / S } : { x: sx / S, y: sy / S };
+  // Bildschirm -> Bildpunkte der Bahn (Kamera-Verschiebung) -> Meter
+  const r = cv.getBoundingClientRect();
+  const sx = kx + (e.clientX - r.left) / r.width * SW, sy = ky + (e.clientY - r.top) / r.height * SH;
+  return hochkant ? { x: (W * S / S0 - sy) / S, y: sx / S } : { x: sx / S, y: sy / S };
 }
 function zieleAuf(e) {
   if (zustand !== "zielen") return;
@@ -1289,8 +1323,12 @@ window.addEventListener("keyup", e => { if (e.key === " ") loslassen(); });
 
 function setzeBahn(b) {
   bahn = b;
-  S = W / bahn.welt.breite;
-  zeichneHintergrund();
+  S0 = S = W / bahn.welt.breite;
+  for (const k in stufenBilder) delete stufenBilder[k];
+  bahnBild(1);
+  // die anderen Zoomstufen im Leerlauf vorbereiten, damit der Wechsel nicht ruckelt
+  const leerlauf = window.requestIdleCallback || (f => setTimeout(f, 200));
+  leerlauf(() => { if (bahn === b) bahnBild(STUFEN[1]); leerlauf(() => { if (bahn === b) bahnBild(STUFEN[2]); }); });
 }
 
 // ---------- Hauptbildschirm ----------
@@ -1324,7 +1362,7 @@ const REGLER = [
   ["wind", "Wind", 0, 3, 0.1],
   ["tempo", "Flugtempo (1 = Echtzeit)", 0.2, 1.5, 0.05],
   ["kick", "Kick am Baum", 0, 3, 0.1],
-  ["zoom", "Max. Zoom (1 = aus)", 1, 4, 0.1],
+  ["zoomStufe", "Max. Zoom (1 = aus, 3 = nah)", 1, 3, 0.1],
   ["rufAbStreuung", "Ruf ab Streuung (Grad)", 1, 15, 0.5],
   ["rufTempo", "Ruf: Tempo", 0.5, 1.8, 0.05],
   ["rufHoehe", "Ruf: Tonhöhe", 0.5, 2, 0.05],
