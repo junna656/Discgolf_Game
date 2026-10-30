@@ -7,7 +7,8 @@
 //    turn   +1..-5  Kurve nach rechts bei hoher Geschwindigkeit (negativ = mehr)
 //    fade   0..5    Haken nach links am Ende des Flugs
 //  typ: "Driver", "Fairway", "Midrange" oder "Putter"
-//  hand: "rechts" oder "links" (Rückhand-Wurf; links spiegelt alle Kurven)
+//  hand: "rechts" oder "links" (links spiegelt alle Kurven)
+//  wurfart (optional): "rueckhand" oder "vorhand" – Startwert, im Spiel umschaltbar
 //  Der erste Putter in der Tasche wird automatisch zum Putten genommen.
 // ============================================================
 

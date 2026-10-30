@@ -33,24 +33,27 @@
   }
 
   // Je mehr Kraft, desto stärker die Streuung von Richtung, Kraft und Winkel
+  // (Vorhand streut etwas mehr)
   function streue(wurf) {
-    const p = wurf.kraft;
+    const p = wurf.kraft, vh = wurf.wurfart === "vorhand" ? 1.2 : 1;
     return Object.assign({}, wurf, {
-      richtung: wurf.richtung + gauss() * (0.8 + 7 * Math.pow(p, 2.5)) * DEG,
+      richtung: wurf.richtung + gauss() * (0.8 + 7 * Math.pow(p, 2.5)) * vh * DEG,
       kraft: clamp(p * (1 + gauss() * (0.02 + 0.05 * p)), 0.05, 1.08),
       winkel: wurf.winkel + gauss() * (1 + 6 * p * p),
     });
   }
 
-  // wurf: {x, y, richtung (rad), kraft 0..1, winkel (Grad, + = Hyzer, - = Anhyzer), scheibe, hand}
+  // wurf: {x, y, richtung (rad), kraft 0..1, winkel (Grad, + = Hyzer, - = Anhyzer), scheibe, hand, wurfart}
   // wind: {x, y} in m/s (Richtung, in die der Wind weht)
   function simuliere(bahn, wurf, wind) {
     const s = wurf.scheibe, kraft = wurf.kraft, winkel = wurf.winkel;
-    const seite = wurf.hand === "links" ? -1 : 1; // Linkshänder: alles gespiegelt
+    // Linkshänder und Vorhand spiegeln die Kurven (beides zusammen hebt sich auf)
+    const seite = (wurf.hand === "links" ? -1 : 1) * (wurf.wurfart === "vorhand" ? -1 : 1);
     const gegen = -(wind.x * Math.cos(wurf.richtung) + wind.y * Math.sin(wurf.richtung)); // Gegenwind > 0
 
     let D = (30 + s.speed * 6.5 + s.glide * 2) * (0.25 + 0.75 * kraft);
     D *= 1 - Math.min(Math.abs(winkel), 40) / 40 * 0.12;
+    if (wurf.wurfart === "vorhand") D *= 0.9;
     D *= clamp(1 - 0.03 * gegen, 0.7, 1.15);
 
     // Gegenwind macht Scheiben instabiler (mehr Turn), Rückenwind stabiler

@@ -53,6 +53,7 @@
   @media (max-width: 860px) {
     .rahmen { flex-direction: column; padding: 8px 16px; }
     .seite { width: 100%; }
+    .hilfe { display: none; }
   }
 </style>
 </head>
@@ -60,15 +61,30 @@
 <div class="rahmen">
   <div class="spielfeld">
     <canvas id="c" width="320" height="180"></canvas>
-    <p class="klein">
+    <p class="klein hilfe">
       <b>Zielen:</b> Maus bewegen oder <kbd>←</kbd><kbd>→</kbd> ·
       <b>Werfen:</b> Maus / <kbd>Leertaste</kbd> gedrückt halten, loslassen = Kraft ·
-      <b>Winkel:</b> <kbd>Q</kbd> Hyzer, <kbd>W</kbd> flach, <kbd>E</kbd> Anhyzer ·
+      <b>Winkel:</b> <kbd>Q</kbd> Hyzer, <kbd>W</kbd> flach, <kbd>E</kbd> Anhyzer · <kbd>F</kbd> Rückhand/Vorhand ·
       <b>Scheibe:</b> <kbd>↑</kbd><kbd>↓</kbd> ·
       <b>Putten</b> (unter 10 m): Klick / <kbd>Leertaste</kbd>, wenn das Fadenkreuz auf den Ketten ist · <kbd>P</kbd> Putt/Wurf · <kbd>S</kbd> Putt-Stil
     </p>
   </div>
   <div class="seite">
+    <div class="box" id="winkelbox">
+      <h2>Wurf</h2>
+      <div class="knoepfe" style="margin-bottom:6px">
+        <button data-wurfart="rueckhand">Rückhand</button>
+        <button data-wurfart="vorhand">Vorhand</button>
+      </div>
+      <h2>Abwurfwinkel</h2>
+      <div class="knoepfe" style="margin-bottom:6px">
+        <button data-winkel="15">Hyzer</button>
+        <button data-winkel="0">Flach</button>
+        <button data-winkel="-15">Anhyzer</button>
+      </div>
+      <input type="range" id="winkel" min="-30" max="30" step="1" value="0" style="direction: rtl">
+      <div class="zeile"><span>Hyzer</span><span id="winkeltext">flach</span><span>Anhyzer</span></div>
+    </div>
     <div class="box">
       <h1>Discgolf Potsdam</h1>
       <div class="klein" id="bahninfo"></div>
@@ -80,16 +96,6 @@
     <div class="box">
       <h2 id="taschentitel">Tasche</h2>
       <div class="liste" id="tasche"></div>
-    </div>
-    <div class="box" id="winkelbox">
-      <h2>Abwurfwinkel</h2>
-      <div class="knoepfe" style="margin-bottom:6px">
-        <button data-winkel="15">Hyzer</button>
-        <button data-winkel="0">Flach</button>
-        <button data-winkel="-15">Anhyzer</button>
-      </div>
-      <input type="range" id="winkel" min="-30" max="30" step="1" value="0" style="direction: rtl">
-      <div class="zeile"><span>Hyzer</span><span id="winkeltext">flach</span><span>Anhyzer</span></div>
     </div>
     <div class="box" id="puttbox" hidden>
       <h2>Putten</h2>
@@ -112,6 +118,7 @@
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
 
 const W = 320, H = 180, S = 3; // Pixel pro Meter
+const FLUGTEMPO = 0.55; // < 1 = Zeitlupe beim Flug
 const cv = document.getElementById("c");
 const ctx = cv.getContext("2d");
 ctx.imageSmoothingEnabled = false;
@@ -239,6 +246,7 @@ let spieler, aktiv, zustand, wind, ziel, winkel, ladeZeit, kraft, flug, banner, 
 function neuesSpiel() {
   spieler = SPIELER.map(s => ({
     name: s.name, farbe: s.farbe, hand: s.hand || "rechts", tasche: s.tasche,
+    wurfart: s.wurfart || "rueckhand",
     lie: { x: bahn.abwurf.x, y: bahn.abwurf.y }, wuerfe: 0, fertig: false,
     scheibe: Math.max(0, s.tasche.findIndex(d => d.typ === "Midrange")),
     gelegt: false,
@@ -291,7 +299,7 @@ function startLaden() {
 function loslassen() {
   if (zustand !== "laden") return;
   const s = ich();
-  const wurf = streue({ x: s.lie.x, y: s.lie.y, richtung: ziel, kraft, winkel, scheibe: scheibe(), hand: s.hand });
+  const wurf = streue({ x: s.lie.x, y: s.lie.y, richtung: ziel, kraft, winkel, scheibe: scheibe(), hand: s.hand, wurfart: s.wurfart });
   const erg = simuliere(bahn, wurf, boe());
   s.wuerfe++;
   flug = { erg, t0: uhr, kraftAngezeigt: kraft };
@@ -442,7 +450,7 @@ function zeichneZiellinie() {
   }
   // Pfeilspitze mit Winkelhinweis: Hyzer zieht nach links, Anhyzer nach rechts
   const ex = x0 + Math.cos(ziel) * 78, ey = y0 + Math.sin(ziel) * 78;
-  const hand = s.hand === "links" ? -1 : 1;
+  const hand = (s.hand === "links" ? -1 : 1) * (s.wurfart === "vorhand" ? -1 : 1);
   const k = -winkel * hand * 0.9;
   ctx.fillStyle = "rgba(255,230,120,.8)";
   for (let d = 0; d < 20; d += 3) {
@@ -480,18 +488,20 @@ function zeichneKraftbalken() {
   text("STREUUNG", x + w + 5, y - 1, "#c86050", "left");
 }
 
-function zeichneScheibe(p, alpha = 1) {
+function zeichneScheibe(p, dreht = false) {
   const x = Math.round(p.x * S), y = Math.round(p.y * S), hz = Math.round(p.z * S * 0.6);
-  ctx.fillStyle = PAL.schatten; ctx.fillRect(x - 1, y, 3, 1);
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = TYPFARBE[scheibe().typ] || PAL.weiss;
-  ctx.fillRect(x - 1, y - hz - 1, 3, 2);
-  ctx.fillStyle = PAL.weiss; ctx.fillRect(x, y - hz - 1, 1, 1);
-  ctx.globalAlpha = 1;
+  ctx.fillStyle = PAL.schatten; ctx.fillRect(x - 2, y, 5, 1);
+  const f = TYPFARBE[scheibe().typ] || PAL.weiss, oy = y - hz - 1;
+  ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 3, oy - 1, 7, 3); ctx.fillRect(x - 2, oy - 2, 5, 5);
+  ctx.fillStyle = f; ctx.fillRect(x - 2, oy - 1, 5, 3); ctx.fillRect(x - 1, oy - 1, 3, 3);
+  // ein heller Punkt läuft im Kreis: die Scheibe dreht sich
+  const glanz = [[-2, -1], [0, -1], [2, -1], [2, 1], [0, 1], [-2, 1]];
+  const [gx, gy] = glanz[dreht ? Math.floor(uhr * 30) % glanz.length : 1];
+  ctx.fillStyle = PAL.weiss; ctx.fillRect(x + gx, oy + gy, 1, 1);
 }
 
 function flugPosition() {
-  const e = flug.erg, t = (uhr - flug.t0) * 1.25;
+  const e = flug.erg, t = (uhr - flug.t0) * FLUGTEMPO;
   if (t >= e.dauer) return { p: e.pfad[e.pfad.length - 1], i: e.pfad.length - 1, fertig: true };
   let i = 1;
   while (i < e.pfad.length && e.pfad[i].t < t) i++;
@@ -588,7 +598,7 @@ function schleife(jetzt) {
   }
 
   ctx.drawImage(hg, 0, 0);
-  const korbWackelt = (flug && flug.erg.drin && zustand !== "zielen" && uhr - flug.t0 > flug.erg.dauer / 1.25 - 0.1 && uhr - flug.t0 < flug.erg.dauer / 1.25 + 0.7);
+  const korbWackelt = (flug && flug.erg.drin && zustand !== "zielen" && uhr - flug.t0 > flug.erg.dauer / FLUGTEMPO - 0.1 && uhr - flug.t0 < flug.erg.dauer / FLUGTEMPO + 0.7);
   zeichneKorbOben(korbWackelt);
 
   if (zustand === "zielen" || zustand === "laden") zeichneZiellinie();
@@ -603,7 +613,7 @@ function schleife(jetzt) {
       ctx.fillStyle = "rgba(255,255,255,.3)";
       ctx.fillRect(Math.round(q.x * S), Math.round((q.y - q.z * 0.6) * S), 1, 1);
     }
-    zeichneScheibe(fp.p);
+    zeichneScheibe(fp.p, !fp.fertig && fp.p.z > 0.05);
     if (fp.fertig && zustand === "flug") flugEnde();
   } else if (zustand === "pause" && flug && !puttModus) {
     zeichneScheibe(flug.erg.pfad[flug.erg.pfad.length - 1]);
@@ -617,7 +627,7 @@ function schleife(jetzt) {
     text("BAHN " + bahn.nummer + " · PAR " + bahn.par, 4, 22, "#c8d0d8");
     if (!puttModus) {
       const w = Math.round(winkel);
-      text(w > 0 ? "HYZER " + w + "°" : w < 0 ? "ANHYZER " + -w + "°" : "FLACH", 4, 152, "#ffe08a");
+      text((s.wurfart === "vorhand" ? "VORHAND · " : "RÜCKHAND · ") + (w > 0 ? "HYZER " + w + "°" : w < 0 ? "ANHYZER " + -w + "°" : "FLACH"), 4, 152, "#ffe08a");
       text(scheibe().name.toUpperCase(), 4, 161, TYPFARBE[scheibe().typ]);
     }
     if (!puttModus || zustand === "flug") zeichneKraftbalken();
@@ -666,6 +676,7 @@ function aktualisierePanel() {
   el("puttbox").hidden = !puttModus;
   document.querySelectorAll("[data-stil]").forEach(b => b.classList.toggle("an", b.dataset.stil === puttStil));
   document.querySelectorAll("[data-winkel]").forEach(b => b.classList.toggle("an", +b.dataset.winkel === w));
+  document.querySelectorAll("[data-wurfart]").forEach(b => b.classList.toggle("an", b.dataset.wurfart === s.wurfart));
   const nah = abstand(s.lie, bahn.korb) <= 10;
   el("modus").hidden = !nah;
   el("modus").textContent = puttModus ? "Normal werfen statt putten" : "Zurück zum Putten";
@@ -676,6 +687,11 @@ function aktualisierePanel() {
 function setzeWinkel(w) {
   if (zustand !== "zielen") return;
   winkel = Math.max(-30, Math.min(30, w));
+  aktualisierePanel();
+}
+function setzeWurfart(a) {
+  if (zustand !== "zielen") return;
+  ich().wurfart = a;
   aktualisierePanel();
 }
 function wechsleModus() {
@@ -697,6 +713,7 @@ el("tasche").addEventListener("click", e => {
   if (b) waehleScheibe(+b.dataset.scheibe);
 });
 document.querySelectorAll("[data-winkel]").forEach(b => b.addEventListener("click", () => setzeWinkel(+b.dataset.winkel)));
+document.querySelectorAll("[data-wurfart]").forEach(b => b.addEventListener("click", () => setzeWurfart(b.dataset.wurfart)));
 document.querySelectorAll("[data-stil]").forEach(b => b.addEventListener("click", () => { puttStil = b.dataset.stil; aktualisierePanel(); }));
 el("winkel").addEventListener("input", e => setzeWinkel(+e.target.value));
 el("modus").addEventListener("click", wechsleModus);
@@ -741,6 +758,7 @@ window.addEventListener("keydown", e => {
   else if (k === "e" || k === "E") setzeWinkel(winkel - 5);
   else if (k === "w" || k === "W") setzeWinkel(0);
   else if (k === "p" || k === "P") wechsleModus();
+  else if (k === "f" || k === "F") { if (zustand === "zielen") setzeWurfart(ich().wurfart === "vorhand" ? "rueckhand" : "vorhand"); }
   else if (k === "s" || k === "S") { if (zustand === "putt") { puttStil = puttStil === "spin" ? "push" : "spin"; aktualisierePanel(); } }
   else if (k === "r" || k === "R") neuesSpiel();
 });
