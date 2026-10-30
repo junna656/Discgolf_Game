@@ -38,11 +38,8 @@ window.SPIELER = [
     farbe: "#3c8ce8",
     hand: "rechts",
     tasche: [
-      { name: "Komet",      typ: "Driver",   speed: 11, glide: 6, turn: -2, fade: 1 },
       { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1, standard: true }, // Latitude 64°
-      { name: "Falke",      typ: "Fairway",  speed: 8,  glide: 4, turn: 0,  fade: 2 },
-      { name: "Feder",      typ: "Midrange", speed: 5,  glide: 5, turn: -1, fade: 0 },
-      { name: "Anker",      typ: "Putter",   speed: 3,  glide: 3, turn: 0,  fade: 2 },
+      { name: "Berg",      typ: "Putter",   speed: 1,  glide: 1, turn: 1,  fade: 1 },
     ],
   },
   {
@@ -52,7 +49,7 @@ window.SPIELER = [
     tasche: [
       { name: "Hammer",     typ: "Driver",   speed: 13, glide: 5, turn: -1, fade: 3 },
       { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1, standard: true }, // Latitude 64°
-      { name: "Möwe",       typ: "Fairway",  speed: 7,  glide: 6, turn: -2, fade: 1 },
+      { name: "Möwe",       typ: "Fairway",  speed: 7,  glide: 6, turn: -1, fade: 2 },
       { name: "Kompass",    typ: "Midrange", speed: 5,  glide: 5, turn: 0,  fade: 1 },
       { name: "Muschel",    typ: "Putter",   speed: 2,  glide: 4, turn: 0,  fade: 0 },
       { name: "Zange",      typ: "Putter",   speed: 3,  glide: 2, turn: 0,  fade: 3 },
@@ -63,8 +60,9 @@ window.SPIELER = [
     farbe: "#9c5ce0",
     hand: "rechts",
     tasche: [
-      { name: "Orkan",      typ: "Driver",   speed: 12, glide: 5, turn: -3, fade: 1 },
+      { name: "Katana",      typ: "Driver",   speed: 13, glide: 5, turn: -3, fade: 3 },
       { name: "Trace", typ: "Driver", speed: 11, glide: 5, turn: -1, fade: 2 }, // Streamline Discs Trace (Neutron)
+      { name: "Heat",      typ: "Driver",   speed: 9, glide: 3, turn: -3, fade: 1 },
       { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1, standard: true }, // Latitude 64°
       { name: "Sense",      typ: "Fairway",  speed: 9,  glide: 4, turn: 0,  fade: 3 },
       { name: "Eule",       typ: "Midrange", speed: 4,  glide: 6, turn: -1, fade: 0 },
