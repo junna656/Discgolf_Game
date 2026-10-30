@@ -10,6 +10,7 @@
 //  hand: "rechts" oder "links" (links spiegelt alle Kurven)
 //  wurfart (optional): "rueckhand" oder "vorhand" – Startwert, im Spiel umschaltbar
 //  Der erste Putter in der Tasche wird automatisch zum Putten genommen.
+//  standard: true – diese Scheibe ist zu Beginn ausgewählt.
 //  ruf (optional): was der Spieler nach jedem Wurf ruft (Sprechblase + Sprachausgabe)
 // ============================================================
 
@@ -21,6 +22,7 @@ window.SPIELER = [
     ruf: "Achtung, zweite Scheibe!",
     tasche: [
       { name: "Donnerkeil", typ: "Driver",   speed: 12, glide: 5, turn: -1, fade: 2 },
+      { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1, standard: true }, // Latitude 64°
       { name: "Pfeil",      typ: "Fairway",  speed: 7,  glide: 5, turn: -1, fade: 1 },
       { name: "Fels",       typ: "Midrange", speed: 5,  glide: 4, turn: 0,  fade: 2 },
       { name: "Kiesel",     typ: "Putter",   speed: 2,  glide: 3, turn: 0,  fade: 1 },
@@ -32,6 +34,7 @@ window.SPIELER = [
     hand: "rechts",
     tasche: [
       { name: "Komet",      typ: "Driver",   speed: 11, glide: 6, turn: -2, fade: 1 },
+      { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1, standard: true }, // Latitude 64°
       { name: "Falke",      typ: "Fairway",  speed: 8,  glide: 4, turn: 0,  fade: 2 },
       { name: "Feder",      typ: "Midrange", speed: 5,  glide: 5, turn: -1, fade: 0 },
       { name: "Anker",      typ: "Putter",   speed: 3,  glide: 3, turn: 0,  fade: 2 },
@@ -43,6 +46,7 @@ window.SPIELER = [
     hand: "rechts",
     tasche: [
       { name: "Hammer",     typ: "Driver",   speed: 13, glide: 5, turn: -1, fade: 3 },
+      { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1, standard: true }, // Latitude 64°
       { name: "Möwe",       typ: "Fairway",  speed: 7,  glide: 6, turn: -2, fade: 1 },
       { name: "Kompass",    typ: "Midrange", speed: 5,  glide: 5, turn: 0,  fade: 1 },
       { name: "Muschel",    typ: "Putter",   speed: 2,  glide: 4, turn: 0,  fade: 0 },
@@ -55,6 +59,7 @@ window.SPIELER = [
     hand: "rechts",
     tasche: [
       { name: "Orkan",      typ: "Driver",   speed: 12, glide: 5, turn: -3, fade: 1 },
+      { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1, standard: true }, // Latitude 64°
       { name: "Sense",      typ: "Fairway",  speed: 9,  glide: 4, turn: 0,  fade: 3 },
       { name: "Eule",       typ: "Midrange", speed: 4,  glide: 6, turn: -1, fade: 0 },
       { name: "Bolzen",     typ: "Putter",   speed: 2,  glide: 3, turn: 0,  fade: 1 },

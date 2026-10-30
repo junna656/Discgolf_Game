@@ -110,7 +110,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#5a7a5a">Version 9</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#5a7a5a">Version 10</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -196,9 +196,9 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=9"></script>
-<script src="bahnen.js?v=9"></script>
-<script src="physik.js?v=9"></script>
+<script src="taschen.js?v=10"></script>
+<script src="bahnen.js?v=10"></script>
+<script src="physik.js?v=10"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -367,6 +367,12 @@ function spaeter(fn, ms) {
   setTimeout(() => { if (nr === spielNr) fn(); }, ms);
 }
 
+// Zu Beginn ausgewählt: Scheibe mit standard: true, sonst die erste Midrange
+function startScheibe(tasche) {
+  const i = tasche.findIndex(d => d.standard);
+  return i >= 0 ? i : Math.max(0, tasche.findIndex(d => d.typ === "Midrange"));
+}
+
 function neuesSpiel() {
   spielNr++;
   marken = [];
@@ -376,7 +382,7 @@ function neuesSpiel() {
     wurfart: s.wurfart || "rueckhand",
     ruf: s.ruf || "",
     lie: { x: bahn.abwurf.x, y: bahn.abwurf.y }, wuerfe: 0, fertig: false,
-    scheibe: Math.max(0, s.tasche.findIndex(d => d.typ === "Midrange")),
+    scheibe: startScheibe(s.tasche),
     bester: 0,
   }));
   const st = 1 + Math.random() * 5, ri = Math.random() * Math.PI * 2;
