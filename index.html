@@ -110,7 +110,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#5a7a5a">Version 8</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#5a7a5a">Version 9</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -196,9 +196,9 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=8"></script>
-<script src="bahnen.js?v=8"></script>
-<script src="physik.js?v=8"></script>
+<script src="taschen.js?v=9"></script>
+<script src="bahnen.js?v=9"></script>
+<script src="physik.js?v=9"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -427,7 +427,6 @@ function startLaden() {
 function loslassen() {
   if (zustand !== "laden") return;
   const s = ich();
-  rufe(s);
   const wurf = streue({ x: s.lie.x, y: s.lie.y, richtung: ziel, kraft, winkel, scheibe: scheibe(), hand: s.hand, wurfart: s.wurfart });
   const erg = simuliere(bahn, wurf, boe());
   s.wuerfe++;
@@ -439,6 +438,7 @@ function loslassen() {
 
 function flugEnde() {
   const s = ich(), e = flug.erg;
+  rufe(s);
   if (modus === "frei") {
     // Weitwurf: Landepunkt markieren, dann wieder vom Abwurf
     const d = abstand(e.lie, bahn.abwurf);
@@ -565,7 +565,6 @@ function putten() {
   } else if (o.y < -KETTEN.by) ergebnis = "hoch";
   else if (o.y > KETTEN.by && ax < 16) ergebnis = "kurz";
   else ergebnis = "seite";
-  rufe(s);
   putt.flug = { t0: uhr, o, ergebnis };
   zustand = "puttflug";
   sfx.wurf();
@@ -574,6 +573,7 @@ function putten() {
 
 function puttEnde() {
   const s = ich(), { o, ergebnis } = putt.flug;
+  rufe(s);
   const r = zumKorb(s.lie), dx = Math.cos(r), dy = Math.sin(r), qx = -dy, qy = dx;
   const k = bahn.korb, z = Math.random;
   if (ergebnis === "drin") {
