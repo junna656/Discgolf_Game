@@ -30,7 +30,7 @@
   h1 { font-size: 16px; margin: 0 0 2px; color: var(--akzent); }
   h2 { font-size: 11px; margin: 0 0 6px; color: var(--leise); font-weight: 400; text-transform: uppercase; }
   .klein { font-size: 10px; color: var(--leise); line-height: 1.5; }
-  .spieler { display: grid; grid-template-columns: 12px 1fr auto auto; gap: 4px 8px; align-items: center; font-size: 12px; }
+  .spieler { display: grid; grid-template-columns: 12px 1fr auto auto auto; gap: 4px 8px; align-items: center; font-size: 12px; }
   .spieler .punkt { width: 10px; height: 10px; }
   .spieler .aktiv { color: var(--akzent); }
   .spieler .wert { text-align: right; }
@@ -106,7 +106,7 @@
     h1 { font-size: 19px; }
     h2 { font-size: 13px; }
     .klein { font-size: 12px; }
-    .spieler { font-size: 16px; gap: 8px 10px; grid-template-columns: 14px 1fr auto auto; }
+    .spieler { font-size: 16px; gap: 8px 10px; grid-template-columns: 14px 1fr auto auto auto; }
     .spieler .punkt { width: 13px; height: 13px; }
     .scheibe { padding: 10px; font-size: 16px; }
     .scheibe small { font-size: 12px; margin-top: 2px; }
@@ -123,11 +123,13 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 24</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 25</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
       <button class="gross" data-modus="vierer">Vierer Flight<small id="vierer-namen"></small></button>
+      <label class="klein" style="display:flex;gap:8px;align-items:center;justify-content:space-between">Flights spielen:
+        <select id="rundenwahl"><option value="0">Ganze Runde (15 Bahnen)</option></select></label>
       <button class="gross" id="zu-einst" style="font-size:12px;padding:10px 16px;margin-top:8px">Einstellungen (Entwicklung)<small>Stärke von Hyzer, Anhyzer, Turn, Fade …</small></button>
     </div>
     <div id="menue-einst" class="liste" style="gap:8px" hidden>
@@ -213,9 +215,9 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=24"></script>
-<script src="bahnen.js?v=24"></script>
-<script src="physik.js?v=24"></script>
+<script src="taschen.js?v=25"></script>
+<script src="bahnen.js?v=25"></script>
+<script src="physik.js?v=25"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -313,27 +315,49 @@ function pixelKreis(c, cx, cy, r, farbe) {
 
 const hg = document.createElement("canvas");
 hg.width = W; hg.height = H;
-// Wege nur als Bild (Polylinie mit Breite in Metern)
-function aufWeg(x, y) {
-  return (bahn.wege || []).some(w => w.punkte.some((a, i) => {
-    const b = w.punkte[i + 1];
-    if (!b) return false;
-    const dx = b[0] - a[0], dy = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy)));
-    return Math.hypot(x - a[0] - t * dx, y - a[1] - t * dy) <= w.breite / 2;
-  }));
+// Flächen einmal auf eine Maske zeichnen, statt jeden Bildpunkt einzeln zu prüfen (schnell auch auf dem Handy)
+function maske(zeichne) {
+  const m = document.createElement("canvas");
+  m.width = W; m.height = H;
+  const c = m.getContext("2d");
+  c.setTransform(S, 0, 0, S, -0.5, -0.5);
+  c.fillStyle = c.strokeStyle = "#fff";
+  c.lineCap = c.lineJoin = "round";
+  zeichne(c);
+  const d = c.getImageData(0, 0, W, H).data;
+  return (px, py) => d[(py * W + px) * 4 + 3] > 127;
 }
+const polygonPfad = (c, pk) => { c.beginPath(); pk.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); };
 
 function zeichneHintergrund() {
   const c = hg.getContext("2d"), rnd = zufall(1);
+  // Wege nur als Bild: Polylinien mit Breite (wege) oder Flächen (wegFlaechen)
+  const aufWeg = maske(m => {
+    for (const f of bahn.wegFlaechen || []) { polygonPfad(m, f); m.fill(); }
+    for (const w of bahn.wege || []) {
+      m.lineWidth = w.breite; m.beginPath();
+      w.punkte.forEach(([x, y], i) => i ? m.lineTo(x, y) : m.moveTo(x, y));
+      m.stroke();
+    }
+  });
+  const aufFairway = maske(m => { if (bahn.fairway && bahn.fairway.length) { polygonPfad(m, bahn.fairway); m.fill(); } });
+  // OB-Flächen als Masken (Polygone können viele Punkte haben); Grenzlinien direkt prüfen
+  const obTests = (bahn.ob || []).map(o => {
+    if (o.punkte || o.insel) {
+      const m = maske(c => { polygonPfad(c, o.punkte || o.insel); c.fill(); });
+      return o.insel ? (px, py, x) => x >= o.ab && !m(px, py) : (px, py) => m(px, py);
+    }
+    return (px, py, x, y) => Physik.obZone({ x, y }, { ob: [o] }) !== null;
+  });
   for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
     const x = (px + 0.5) / S, y = (py + 0.5) / S, r = rnd();
     let f;
-    const zone = Physik.obZone({ x, y }, bahn);
-    if (zone && !zone.art) f = r < 0.2 ? PAL.weg2 : PAL.weg1; // OB-Rechteck ohne Art = Weg
+    const zi = obTests.findIndex(t => t(px, py, x, y)), zone = zi >= 0 ? bahn.ob[zi] : null;
+    if (zone && zone.w !== undefined && !zone.art) f = r < 0.2 ? PAL.weg2 : PAL.weg1; // OB-Rechteck ohne Art = Weg
     else if (aufBowlingbahn({ x, y }, bahn)) f = (px % 4 === 0) ? PAL.bahn2 : PAL.bahn1;
-    else if (aufWeg(x, y)) f = r < 0.2 ? PAL.weg2 : PAL.weg1;
+    else if (aufWeg(px, py)) f = r < 0.2 ? PAL.weg2 : PAL.weg1;
     else if (zone) f = r < 0.15 ? "#1f5523" : r > 0.95 ? "#2c6a30" : "#245f28"; // Aus: dunkleres Gras
-    else if (imPolygon(x, y, bahn.fairway)) f = (Math.floor(px / 8) % 2 ? PAL.fair1 : PAL.fair2);
+    else if (aufFairway(px, py)) f = (Math.floor(px / 8) % 2 ? PAL.fair1 : PAL.fair2);
     else f = r < 0.12 ? PAL.gras2 : r > 0.94 ? PAL.gras3 : PAL.gras1;
     c.fillStyle = f;
     c.fillRect(px, py, 1, 1);
@@ -356,9 +380,10 @@ function zeichneHintergrund() {
   // OB-Grenzen: Zaun (grau mit Pfosten) oder weiße Linie mit roten Pflöcken; Kanten am Spielfeldrand auslassen
   const am = (v, m) => v <= 0.01 || v >= m - 0.01;
   for (const o of bahn.ob) {
-    const pk = o.punkte || [[o.x, o.y], [o.x + o.w, o.y], [o.x + o.w, o.y + o.h], [o.x, o.y + o.h]];
+    const pk = o.linie || o.insel || o.punkte || [[o.x, o.y], [o.x + o.w, o.y], [o.x + o.w, o.y + o.h], [o.x, o.y + o.h]];
     pk.forEach((a, i) => {
       const b = pk[(i + 1) % pk.length];
+      if (o.linie && i === pk.length - 1) return; // Linie ist nicht geschlossen
       if ((am(a[0], bahn.welt.breite) && a[0] === b[0]) || (am(a[1], bahn.welt.hoehe) && a[1] === b[1])) return;
       const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) * S);
       for (let k = 0; k <= n; k++) {
@@ -430,18 +455,32 @@ function startScheibe(tasche) {
   return i >= 0 ? i : Math.max(0, tasche.findIndex(d => d.typ === "Midrange"));
 }
 
+// Runde: Liste der Bahnen; jeder Spieler hat eine Karte mit den Würfen pro Bahn
+let runde = [], rundenIndex = 0;
+
 function neuesSpiel() {
-  spielNr++;
-  marken = [];
-  flug = null;
   spieler = teilnehmer.map(i => SPIELER[i]).map(s => ({
     name: s.name, farbe: s.farbe, hand: s.hand || "rechts", tasche: s.tasche,
     wurfart: s.wurfart || "rueckhand",
     ruf: s.ruf || "",
-    lie: { x: bahn.abwurf.x, y: bahn.abwurf.y }, wuerfe: 0, fertig: false,
-    scheibe: startScheibe(s.tasche),
+    karte: [],
     bester: 0,
   }));
+  rundenIndex = 0;
+  starteBahn();
+}
+
+function starteBahn() {
+  spielNr++;
+  marken = [];
+  flug = null;
+  setzeBahn(runde[rundenIndex]);
+  for (const s of spieler) {
+    s.lie = { x: bahn.abwurf.x, y: bahn.abwurf.y };
+    s.wuerfe = 0;
+    s.fertig = false;
+    s.scheibe = startScheibe(s.tasche);
+  }
   const st = 1 + Math.random() * 5, ri = Math.random() * Math.PI * 2;
   wind = { x: Math.cos(ri) * st, y: Math.sin(ri) * st };
   puttStil = "spin";
@@ -454,7 +493,13 @@ function zumKorb(p) { return Math.atan2(bahn.korb.y - p.y, bahn.korb.x - p.x); }
 
 function naechster() {
   const offen = spieler.filter(s => !s.fertig);
-  if (!offen.length) { zustand = "ende"; aktualisierePanel(); return; }
+  if (!offen.length) {
+    for (const s of spieler) s.karte[rundenIndex] = s.wuerfe;
+    zustand = "ende";
+    banner = null;
+    aktualisierePanel();
+    return;
+  }
   const amAbwurf = offen.find(s => s.wuerfe === 0);
   const s = amAbwurf || offen.reduce((a, b) => abstand(a.lie, bahn.korb) >= abstand(b.lie, bahn.korb) ? a : b);
   aktiv = spieler.indexOf(s);
@@ -915,17 +960,39 @@ function zeichnePuttAnsicht() {
   }
 }
 
+// Gesamtergebnis der Runde bisher (Würfe und Abstand zum Par)
+function gesamt(s) {
+  const w = s.karte.reduce((a, b) => a + (b || 0), 0);
+  const par = runde.slice(0, s.karte.length).reduce((a, b) => a + b.par, 0);
+  return { w, d: w - par };
+}
+const plusMinus = d => d === 0 ? "E" : (d > 0 ? "+" : "") + d;
+const rundeVorbei = () => rundenIndex >= runde.length - 1;
+
 function zeichneEnde() {
-  ctx.fillStyle = "rgba(10,14,20,.85)"; ctx.fillRect(70, 30, 180, 120);
-  text((bahn.kurz || "BAHN " + bahn.nummer) + " GESPIELT", 160, 38, "#9be07a", "center", 8);
-  const sortiert = [...spieler].sort((a, b) => a.wuerfe - b.wuerfe);
+  const ganz = runde.length > 1, letzte = rundeVorbei();
+  ctx.fillStyle = "rgba(10,14,20,.88)"; ctx.fillRect(70, 26, 180, 128);
+  text(letzte && ganz ? "RUNDE BEENDET" : (bahn.kurz || "BAHN " + bahn.nummer) + " GESPIELT", 160, 32, "#9be07a", "center", 8);
+  if (ganz) { text("BAHN", 176, 44, "#d0d8e2", "center"); text("GESAMT", 236, 44, "#d0d8e2", "right"); }
+  const sortiert = [...spieler].sort((a, b) => ganz ? gesamt(a).w - gesamt(b).w : a.wuerfe - b.wuerfe);
   sortiert.forEach((s, i) => {
-    const d = s.wuerfe - bahn.par;
-    text((i + 1) + ". " + s.name.toUpperCase(), 84, 58 + i * 16, s.farbe);
-    text(s.wuerfe + "  (" + (d > 0 ? "+" : d === 0 ? "" : "") + (d === 0 ? "E" : d) + ")", 236, 58 + i * 16, PAL.weiss, "right");
+    const y = 56 + i * 15, g = gesamt(s);
+    text((i + 1) + ". " + s.name.toUpperCase(), 80, y, s.farbe);
+    if (ganz) {
+      text(String(s.wuerfe), 176, y, PAL.weiss, "center");
+      text(g.w + " (" + plusMinus(g.d) + ")", 240, y, PAL.weiss, "right");
+    } else text(s.wuerfe + "  (" + plusMinus(s.wuerfe - bahn.par) + ")", 236, y, PAL.weiss, "right");
   });
-  text(hochkant ? "TIPPEN: NOCHMAL" : "R / KLICK: NOCHMAL", 160, 126, PAL.weiss, "center");
-  text(hochkant ? "MENÜ IM BAG" : "M: HAUPTMENÜ", 160, 137, "#d0d8e2", "center");
+  text(letzte ? (hochkant ? "TIPPEN: NOCHMAL" : "R / KLICK: NOCHMAL") : (hochkant ? "TIPPEN: NÄCHSTE BAHN" : "KLICK: NÄCHSTE BAHN"), 160, 128, PAL.weiss, "center");
+  text(hochkant ? "MENÜ IM BAG" : "M: HAUPTMENÜ", 160, 140, "#d0d8e2", "center");
+}
+
+// Nach dem Ende einer Bahn: nächste Bahn – wer am besten gespielt hat, wirft zuerst
+function weiter() {
+  if (rundeVorbei()) { neuesSpiel(); return; }
+  spieler.sort((a, b) => a.wuerfe - b.wuerfe);
+  rundenIndex++;
+  starteBahn();
 }
 
 let letzte = performance.now();
@@ -1022,15 +1089,17 @@ function schleife(jetzt) {
 const el = id => document.getElementById(id);
 function aktualisierePanel() {
   el("bahninfo").innerHTML =
-    `${bahn.ort || ""}<br>${bahn.kurz ? "" : "Bahn " + bahn.nummer + " "}„${bahn.name}“ · Par ${bahn.par} · ${Math.round(abstand(bahn.abwurf, bahn.korb))} m`;
+    `${bahn.ort || ""}<br>${bahn.kurz ? "" : "Bahn " + bahn.nummer + " "}${bahn.name ? "„" + bahn.name + "“ " : ""}· Par ${bahn.par} · ${Math.round(abstand(bahn.abwurf, bahn.korb))} m`
+    + (runde.length > 1 ? `<br>Runde: Bahn ${rundenIndex + 1} von ${runde.length}` : "");
   el("modusname").textContent = { frei: "Freies Werfen", single: "Single Flight", vierer: "Vierer Flight" }[modus];
   el("spielerliste").innerHTML = spieler.map((s, i) => {
     const d = s.wuerfe - bahn.par;
     const status = modus === "frei" ? (s.bester ? "Best " + Math.round(s.bester) + " m" : "–")
       : s.fertig ? (d === 0 ? "E" : (d > 0 ? "+" : "") + d) : Math.round(abstand(s.lie, bahn.korb)) + " m";
+    const g = gesamt(s), ges = runde.length > 1 ? plusMinus(g.d) : "";
     return `<span class="punkt" style="background:${s.farbe}"></span>
       <span class="${i === aktiv && zustand !== "ende" ? "aktiv" : ""}">${i === aktiv && zustand !== "ende" ? "▶ " : ""}${s.name}</span>
-      <span class="wert">${s.wuerfe}</span><span class="wert klein">${status}</span>`;
+      <span class="wert">${s.wuerfe}</span><span class="wert klein">${status}</span><span class="wert klein">${ges}</span>`;
   }).join("");
   if (zustand === "ende") {
     el("werfen").disabled = el("werfen2").disabled = true;
@@ -1138,7 +1207,7 @@ function zieleAuf(e) {
 cv.addEventListener("pointermove", zieleAuf);
 cv.addEventListener("pointerdown", e => {
   e.preventDefault();
-  if (zustand === "ende") { neuesSpiel(); return; }
+  if (zustand === "ende") { weiter(); return; }
   if (zustand === "putt") { putten(); return; }
   zieleAuf(e);
   startLaden();
@@ -1151,7 +1220,7 @@ window.addEventListener("keydown", e => {
   if (k === " ") {
     e.preventDefault();
     if (e.repeat) return;
-    if (zustand === "putt") putten(); else if (zustand === "ende") neuesSpiel(); else startLaden();
+    if (zustand === "putt") putten(); else if (zustand === "ende") weiter(); else startLaden();
   } else if (k === "ArrowLeft" || k === "ArrowRight") {
     e.preventDefault();
     if (zustand === "zielen") ziel += (k === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 0.2 : 1) * DEG;
@@ -1180,7 +1249,8 @@ function starteModus(m, person) {
   teilnehmer = m === "vierer" ? SPIELER.map((_, i) => i) : [person];
   const feld = BAHNEN.find(b => b.distanzmarken);
   if (m === "frei" && !feld) { alert("Das freie Feld wurde nicht geladen. Bitte die Seite neu laden."); return; }
-  setzeBahn(m === "frei" ? feld : BAHNEN[0]);
+  const plaetze = BAHNEN.filter(b => !b.distanzmarken), wahl = +el("rundenwahl").value;
+  runde = m === "frei" ? [feld] : wahl ? [plaetze[wahl - 1]] : plaetze;
   el("menue").hidden = true;
   zeigeAnsicht("feld");
   neuesSpiel();
@@ -1279,6 +1349,7 @@ el("einst-standard").addEventListener("click", () => {
   zeichneVorschau();
 });
 let gewaehlterModus = null;
+BAHNEN.filter(b => !b.distanzmarken).forEach((b, i) => el("rundenwahl").insertAdjacentHTML("beforeend", `<option value="${i + 1}">Nur Bahn ${b.nummer}</option>`));
 el("vierer-namen").textContent = SPIELER.map(s => s.name).join(", ").replace(/, ([^,]*)$/, " & $1") + " spielen zusammen";
 el("personen").innerHTML = SPIELER.map((s, i) => `
   <button class="gross person" data-person="${i}"><span class="punkt" style="background:${s.farbe}"></span>

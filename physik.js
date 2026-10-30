@@ -40,9 +40,29 @@
     return drin;
   }
 
-  // OB-Zonen: Rechteck {x, y, w, h} oder Polygon {punkte: [[x, y], ...]}
+  // Seite einer Linie: Vorzeichen bezogen auf das nächstgelegene Linienstück
+  function seiteVonLinie(p, linie) {
+    let best = Infinity, seite = 0;
+    for (let i = 0; i < linie.length - 1; i++) {
+      const [ax, ay] = linie[i], [bx, by] = linie[i + 1], dx = bx - ax, dy = by - ay;
+      const t = clamp(((p.x - ax) * dx + (p.y - ay) * dy) / (dx * dx + dy * dy || 1), 0, 1);
+      const d = Math.hypot(p.x - ax - t * dx, p.y - ay - t * dy);
+      // jenseits der Linienenden gilt die Linie nicht (kein endloses Verlängern)
+      const amEnde = (i === 0 && t === 0) || (i === linie.length - 2 && t === 1);
+      if (d < best) { best = d; seite = amEnde ? null : Math.sign(dx * (p.y - ay) - dy * (p.x - ax)); }
+    }
+    return seite;
+  }
+
+  // OB-Zonen: Rechteck {x, y, w, h}, Polygon {punkte: [[x, y], ...]} oder Grenzlinie {linie, innen}
   function obZone(p, bahn) {
-    return (bahn.ob || []).find(o => o.punkte ? imPolygon(p, o.punkte) : imRechteck(p, o)) || null;
+    return (bahn.ob || []).find(o => {
+      if (o.insel) return p.x >= o.ab && !imPolygon(p, o.insel);
+      if (!o.linie) return o.punkte ? imPolygon(p, o.punkte) : imRechteck(p, o);
+      const sp = seiteVonLinie(p, o.linie);
+      o._innen ??= seiteVonLinie({ x: o.innen[0], y: o.innen[1] }, o.linie);
+      return sp !== null && o._innen !== null && sp !== o._innen;
+    }) || null;
   }
 
   function istOB(p, bahn) {
