@@ -22,7 +22,7 @@ window.SPIELER = [
     farbe: "#e8483c",
     hand: "rechts",
     ruf: "Achtung, zweite Scheibe!",
-    // rufDatei: "rufe/thomas.m4a",   // <- Aufnahme in den Ordner "rufe" legen und diese Zeile aktivieren
+    rufDatei: "rufe/thomas.mp3",   // KI-Stimme; eigene Aufnahme einfach unter gleichem Namen ersetzen
     tasche: [
       { name: "Donnerkeil", typ: "Driver",   speed: 12, glide: 5, turn: -1, fade: 2 },
       { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1, standard: true }, // Latitude 64°

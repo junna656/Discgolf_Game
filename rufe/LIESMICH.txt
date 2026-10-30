@@ -1,1 +1,5 @@
-Hier eigene Ruf-Aufnahmen ablegen (z. B. thomas.m4a) und in taschen.js als rufDatei eintragen.
+Ruf-Aufnahmen der Spieler (in taschen.js als rufDatei eingetragen).
+
+thomas.mp3 – "Achtung! Zweite Scheibe!", erzeugt mit der KI-Sprachsoftware Piper
+und der Stimme "Thorsten" (Thorsten-Voice, Lizenz CC0). Eine echte Aufnahme von
+Thomas kann die Datei einfach unter gleichem Namen ersetzen.
