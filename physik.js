@@ -47,6 +47,11 @@
     });
   }
 
+  // Ungefähre Weite bei voller Kraft, flach und ohne Wind (gleiche Formel wie in simuliere)
+  function reichweite(s) {
+    return (30 + s.speed * 6.5 + s.glide * 2) * E.weite;
+  }
+
   // wurf: {x, y, richtung (rad), kraft 0..1, winkel (Grad, + = Hyzer, - = Anhyzer), scheibe, hand, wurfart}
   // wind: {x, y} in m/s (Richtung, in die der Wind weht)
   function simuliere(bahn, wurf, wind) {
@@ -56,7 +61,7 @@
     const seite = (wurf.hand === "links" ? -1 : 1) * (wurf.wurfart === "vorhand" ? -1 : 1);
     const gegen = -(wind.x * Math.cos(wurf.richtung) + wind.y * Math.sin(wurf.richtung)); // Gegenwind > 0
 
-    let D = (30 + s.speed * 6.5 + s.glide * 2) * (0.25 + 0.75 * kraft);
+    let D = reichweite(s) / E.weite * (0.25 + 0.75 * kraft);
     D *= 1 - Math.min(Math.abs(winkel), 40) / 40 * 0.12;
     if (wurf.wurfart === "vorhand") D *= 0.9;
     D *= E.weite;
@@ -182,5 +187,5 @@
     return { pfad, lie, drin, ob, obIndex, typ, dauer: t, distanz: abstand(lie, wurf) };
   }
 
-  g.Physik = { simuliere, streue, gauss, abstand, istOB, aufBowlingbahn, DEG, einstellungen: E, STANDARD };
+  g.Physik = { simuliere, streue, gauss, abstand, istOB, aufBowlingbahn, DEG, einstellungen: E, STANDARD, reichweite };
 })(typeof window !== "undefined" ? window : globalThis);
