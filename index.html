@@ -57,6 +57,7 @@
     background: var(--panel); border-top: 3px solid var(--rand);
     padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
   }
+  #bahnwahl button { flex: 1; font-size: 13px; padding: 10px 6px; }
   .tabs button { flex: 1; font-size: 13px; padding: 12px 6px; }
   .tabs #werfen2 { flex: 1.6; background: #35502f; border-color: var(--akzent); user-select: none; -webkit-user-select: none; touch-action: none; }
   .tabs #werfen2:disabled { opacity: .4; }
@@ -112,9 +113,12 @@
       <div class="zeile"><span>Hyzer</span><span id="winkeltext">flach</span><span>Anhyzer</span></div>
     </div>
     <div class="box nur-bag">
+      <h2>Bahn wählen</h2>
+      <div class="knoepfe" id="bahnwahl"></div>
+    </div>
+    <div class="box nur-bag">
       <h1>Discgolf Potsdam</h1>
       <div class="klein" id="bahninfo"></div>
-      <div class="knoepfe" id="bahnwahl" style="margin-top:6px"></div>
     </div>
     <div class="box nur-bag">
       <h2>Karte</h2>
@@ -138,7 +142,7 @@
   </div>
 </div>
 <nav class="tabs">
-  <button data-ansicht="feld">Feld</button>
+  <button data-ansicht="feld">Spiel</button>
   <button id="werfen2">Werfen</button>
   <button data-ansicht="bag">Bag</button>
 </nav>
