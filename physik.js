@@ -91,11 +91,14 @@
       const wT = u < 0.75 ? Math.sin(Math.PI * u / 0.75) : 0;
       const wF = u > 0.45 ? Math.pow((u - 0.45) / 0.55, 1.5) : 0;
       th += seite * (turnK * wT - fadeK * wF + winkK * (1 - 0.5 * u)) / N;
+      // höchstens 80° von der Abwurfrichtung weg: die Scheibe fliegt nie rückwärts
+      th = wurf.richtung + clamp(th - wurf.richtung, -80 * DEG, 80 * DEG);
       const qx = -Math.sin(th), qy = Math.cos(th);
       const quer = wind.x * qx + wind.y * qy;
+      // Fade-Haken quer zur Abwurfrichtung (nie nach hinten); wF wächst, je langsamer die Scheibe wird
       const hs = seite * haken * wF / (0.22 * N); // Summe aller wF ≈ 0,22·N
-      px += Math.cos(th) * ds + qx * (quer * 0.2 * T / N - hs);
-      py += Math.sin(th) * ds + qy * (quer * 0.2 * T / N - hs);
+      px += Math.cos(th) * ds + qx * quer * 0.2 * T / N + Math.sin(wurf.richtung) * hs;
+      py += Math.sin(th) * ds + qy * quer * 0.2 * T / N - Math.cos(wurf.richtung) * hs;
       z = 1.3 * (1 - u) + H * Math.sin(Math.PI * u);
       pfad.push({ x: px, y: py, z, t: u * T });
 
