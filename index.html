@@ -123,7 +123,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 25</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 26</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -215,9 +215,9 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=25"></script>
-<script src="bahnen.js?v=25"></script>
-<script src="physik.js?v=25"></script>
+<script src="taschen.js?v=26"></script>
+<script src="bahnen.js?v=26"></script>
+<script src="physik.js?v=26"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -226,9 +226,14 @@ const W = 320, H = 180;
 let S = 3; // Pixel pro Meter, hängt von der Bahngröße ab
 const E = Physik.einstellungen; // E.tempo < 1 = Zeitlupe beim Flug
 const cv = document.getElementById("c");
-const ctx = cv.getContext("2d");
-ctx.imageSmoothingEnabled = false;
+const hauptCtx = cv.getContext("2d");
+hauptCtx.imageSmoothingEnabled = false;
+// Die Bahn wird erst auf eine eigene Ebene gezeichnet und dann mit der Kamera (Zoom) ins Bild kopiert
+const weltCv = document.createElement("canvas");
+const weltCtx = weltCv.getContext("2d");
+let ctx = hauptCtx; // zeigt auf die Ebene, auf die gerade gezeichnet wird
 
+let kamera = null; // {x, y, z}: Mittelpunkt (Bildpunkte der Bahn-Ebene) und Zoom
 // Handy hochkant: Bahn um 90° drehen (Abwurf unten, Korb oben). SW/SH = Bildschirmgröße in Pixeln
 let hochkant = false, SW = W, SH = H;
 const hochMQ = matchMedia("(max-width: 860px) and (orientation: portrait)");
@@ -236,7 +241,7 @@ function pruefeAusrichtung() {
   hochkant = hochMQ.matches;
   SW = hochkant ? H : W;
   SH = hochkant ? W : H;
-  if (cv.width !== SW) { cv.width = SW; cv.height = SH; ctx.imageSmoothingEnabled = false; }
+  if (cv.width !== SW) { cv.width = weltCv.width = SW; cv.height = weltCv.height = SH; hauptCtx.imageSmoothingEnabled = false; kamera = null; }
   cv.classList.toggle("hoch", hochkant);
 }
 hochMQ.addEventListener("change", pruefeAusrichtung);
@@ -472,6 +477,7 @@ function neuesSpiel() {
 
 function starteBahn() {
   spielNr++;
+  kamera = null;
   marken = [];
   flug = null;
   setzeBahn(runde[rundenIndex]);
@@ -563,7 +569,7 @@ function loslassen() {
   const verzogen = Math.abs(wurf.richtung - ziel) / DEG > E.rufAbStreuung
     || Math.abs(wurf.kraft - kraft) / Math.max(kraft, 0.1) > E.rufAbStreuung / 60
     || Math.abs(wurf.winkel - winkel) > E.rufAbStreuung * 1.6;
-  flug = { erg, t0: uhr, kraftAngezeigt: kraft, verzogen };
+  flug = { erg, t0: uhr, kraftAngezeigt: kraft, verzogen, start: { x: s.lie.x, y: s.lie.y } };
   zustand = "flug";
   sfx.wurf();
   aktualisierePanel();
@@ -995,6 +1001,41 @@ function weiter() {
   starteBahn();
 }
 
+// ---------- Kamera: zoomt auf das, was gerade wichtig ist ----------
+function kameraZiel() {
+  if (zustand === "ende" || E.zoom <= 1) return { x: SW / 2, y: SH / 2, z: 1 };
+  const s = ich(), dKorb = abstand(s.lie, bahn.korb);
+  let punkte;
+  if (zustand === "flug" || (zustand === "pause" && flug && flug.aktiv)) {
+    punkte = [flug.start, flugPosition().p]; // Abwurf und Scheibe im Bild halten
+  } else if (zustand === "pause" && flug) {
+    const l = flug.erg.lie;
+    punkte = abstand(l, bahn.korb) < 35 ? [l, bahn.korb] : [l];
+  } else if (puttModus) {
+    punkte = [s.lie, bahn.korb];
+  } else {
+    // beim Zielen: Spieler und den Punkt, den die Scheibe etwa erreicht
+    const vor = Math.min(dKorb, Physik.reichweite(scheibe()) * 0.9);
+    punkte = [s.lie, { x: s.lie.x + Math.cos(ziel) * vor, y: s.lie.y + Math.sin(ziel) * vor }];
+    if (dKorb < vor * 1.3) punkte.push(bahn.korb);
+  }
+  const q = punkte.map(zuSchirm), rand = 30;
+  const x0 = Math.min(...q.map(p => p.x)) - rand, x1 = Math.max(...q.map(p => p.x)) + rand;
+  const y0 = Math.min(...q.map(p => p.y)) - rand, y1 = Math.max(...q.map(p => p.y)) + rand;
+  const z = Math.max(1, Math.min(E.zoom, SW / (x1 - x0), SH / (y1 - y0)));
+  return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, z };
+}
+function bewegeKamera(dt) {
+  const ziel = kameraZiel();
+  if (!kamera) kamera = { ...ziel };
+  const k = Math.min(1, dt * 2.5);
+  for (const a of ["x", "y", "z"]) kamera[a] += (ziel[a] - kamera[a]) * k;
+  // nicht über den Rand der Bahn hinaus
+  const w = SW / kamera.z / 2, h = SH / kamera.z / 2;
+  kamera.x = Math.max(w, Math.min(SW - w, kamera.x));
+  kamera.y = Math.max(h, Math.min(SH - h, kamera.y));
+}
+
 let letzte = performance.now();
 function schleife(jetzt) {
   const dt = Math.min(0.05, (jetzt - letzte) / 1000);
@@ -1007,6 +1048,7 @@ function schleife(jetzt) {
     kraft = ph < 1 ? ph : 2 - ph;
   }
 
+  ctx = weltCtx;
   weltTransform();
   ctx.drawImage(hg, 0, 0);
   if (zustand === "zielen" || zustand === "laden") zeichneZiellinie();
@@ -1041,6 +1083,13 @@ function schleife(jetzt) {
   } else if (zustand === "pause" && flug && !puttModus) {
     zeichneScheibe(flug.erg.pfad[flug.erg.pfad.length - 1]);
   }
+  if (sprechblase) zeichneSprechblase();
+
+  // Bahn-Ebene mit Kamera ins Bild, danach Anzeigen ohne Zoom darüber
+  ctx = hauptCtx;
+  bewegeKamera(dt);
+  const kw = SW / kamera.z, kh = SH / kamera.z;
+  ctx.drawImage(weltCv, kamera.x - kw / 2, kamera.y - kh / 2, kw, kh, 0, 0, SW, SH);
 
   zeichneWind();
   if (zustand !== "ende") {
@@ -1067,7 +1116,6 @@ function schleife(jetzt) {
     schirmTransform();
   }
 
-  if (sprechblase) zeichneSprechblase();
   if (banner) {
     const t = uhr - banner.t0;
     if (t > banner.dauer) banner = null;
@@ -1195,8 +1243,10 @@ window.addEventListener("pointercancel", () => loslassen());
 
 // Zielen mit der Maus, Werfen durch Halten auf dem Spielfeld
 function weltPunkt(e) {
-  const r = cv.getBoundingClientRect();
-  const sx = (e.clientX - r.left) / r.width * SW, sy = (e.clientY - r.top) / r.height * SH;
+  const r = cv.getBoundingClientRect(), k = kamera || { x: SW / 2, y: SH / 2, z: 1 };
+  // Bildschirm -> Bahn-Ebene (Zoom rückgängig machen)
+  const sx = k.x - SW / k.z / 2 + (e.clientX - r.left) / r.width * SW / k.z;
+  const sy = k.y - SH / k.z / 2 + (e.clientY - r.top) / r.height * SH / k.z;
   return hochkant ? { x: (W - sy) / S, y: sx / S } : { x: sx / S, y: sy / S };
 }
 function zieleAuf(e) {
@@ -1274,6 +1324,7 @@ const REGLER = [
   ["wind", "Wind", 0, 3, 0.1],
   ["tempo", "Flugtempo (1 = Echtzeit)", 0.2, 1.5, 0.05],
   ["kick", "Kick am Baum", 0, 3, 0.1],
+  ["zoom", "Max. Zoom (1 = aus)", 1, 4, 0.1],
   ["rufAbStreuung", "Ruf ab Streuung (Grad)", 1, 15, 0.5],
   ["rufTempo", "Ruf: Tempo", 0.5, 1.8, 0.05],
   ["rufHoehe", "Ruf: Tonhöhe", 0.5, 2, 0.05],
