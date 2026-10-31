@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Boogie Garanten</title>
+<meta name="theme-color" content="#1b3a22">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Boogie G.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap">
 <style>
   :root {
@@ -162,7 +170,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 49</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 50</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <div class="kurswahl">
@@ -247,6 +255,13 @@
 
       <h3>Thomas</h3>
       <p>Wenn ein Wurf schiefgeht (Baum, OB, stark verzogen) oder ein Putt danebengeht, ruft Thomas: „Achtung, zweite Scheibe!“</p>
+
+      <h3>Als App installieren</h3>
+      <ul>
+        <li><b>iPhone:</b> in Safari „Teilen“ → „Zum Home-Bildschirm“.</li>
+        <li><b>Android:</b> in Chrome Menü ⋮ → „App installieren“ bzw. „Zum Startbildschirm hinzufügen“.</li>
+        <li>Das Spiel startet dann im Vollbild ohne Browserleiste und funktioniert auch offline.</li>
+      </ul>
 
       <h3>Anpassen</h3>
       <ul>
@@ -351,10 +366,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=49"></script>
-<script src="bahnen.js?v=49"></script>
-<script src="physik.js?v=49"></script>
-<script src="portraets.js?v=49"></script>
+<script src="taschen.js?v=50"></script>
+<script src="bahnen.js?v=50"></script>
+<script src="physik.js?v=50"></script>
+<script src="portraets.js?v=50"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -1831,6 +1846,9 @@ el("zummenue").addEventListener("click", zeigeMenue);
 
 zeigeMenue();
 requestAnimationFrame(schleife);
+
+// Als App installierbar / offline startbar
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => { /* egal */ });
 </script>
 </body>
 </html>
