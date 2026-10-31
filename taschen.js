@@ -94,8 +94,8 @@ window.SPIELER = [
       { name: "Heat",      typ: "Driver",   speed: 9, glide: 3, turn: -3, fade: 1, standard: true }, // Lieblingsscheibe
       { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1 }, // Latitude 64°
       { name: "Valkyrie", typ: "Driver", speed: 9, glide: 4, turn: -2, fade: 2 }, // Innova
-      { name: "Method", typ: "Midrange", speed: 5, glide: 5, turn: 0, fade: 2 },  // Flugzahlen bitte prüfen
-      { name: "Loft", typ: "Putter", speed: 2, glide: 3, turn: 0, fade: 1 },      // Flugzahlen bitte prüfen
+      { name: "Method", typ: "Midrange", speed: 5, glide: 5, turn: 0, fade: 3 },  // Discmania Method
+      { name: "Hydrogen", typ: "Putter", speed: 1, glide: 2, turn: 0, fade: 0 },  // Loft Discs Hydrogen
     ],
   },
 ];
