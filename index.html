@@ -668,6 +668,27 @@ function zeichneHintergrund(z) {
     c.fillStyle = "#e8c030"; c.fillRect(dx - tw / 2, dy - th / 2, tw, th);
     c.fillStyle = "#8c8c88"; c.fillRect(dx - tw / 2 + zr, dy - th / 2 + zr, tw - 2 * zr, th - 2 * zr);
   }
+  // Mauern (Ziegel): Schatten, Krone, Fugen
+  for (const m of bahn.mauern || []) {
+    const dicke = Math.max(2, Math.round(0.8 * S));
+    c.lineCap = "butt"; c.lineJoin = "miter";
+    const linie = (farbe, breite, ox = 0, oy = 0) => {
+      c.strokeStyle = farbe; c.lineWidth = breite; c.beginPath();
+      m.punkte.forEach(([x, y], i) => i ? c.lineTo(x * S + ox, y * S + oy) : c.moveTo(x * S + ox, y * S + oy)); c.stroke();
+    };
+    linie(PAL.schatten, dicke, Math.max(1, z * 1.5), Math.max(1, z * 1.5));
+    linie("#8f8470", dicke + 2);
+    linie("#cbbf9f", dicke);
+    // Fugen quer alle ~0,6 m, versetzt
+    c.fillStyle = "#9d9178";
+    for (let i = 0; i < m.punkte.length - 1; i++) {
+      const [ax, ay] = m.punkte[i], [bx, by] = m.punkte[i + 1], l = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / l, uy = (by - ay) / l;
+      for (let d = 0.3; d < l; d += 0.6) {
+        const k = Math.round(d / 0.6) % 2 ? 0.2 : -0.2;
+        c.fillRect(Math.round((ax + ux * d - uy * k) * S), Math.round((ay + uy * d + ux * k) * S), Math.max(1, Math.round(z * 0.7)), Math.max(1, Math.round(z * 0.7)));
+      }
+    }
+  }
   // Holzbalken
   c.strokeStyle = PAL.brett; c.lineWidth = Math.max(2, 0.6 * S); c.lineCap = "butt";
   for (const bl of bahn.balken || []) { c.beginPath(); bl.forEach(([x, y], i) => i ? c.lineTo(x * S, y * S) : c.moveTo(x * S, y * S)); c.stroke(); }
@@ -884,7 +905,7 @@ function loslassen() {
 
 function flugEnde() {
   const s = ich(), e = flug.erg;
-  if (!e.drin && (e.typ === "baum" || e.ob || e.mando === "verpasst" || flug.verzogen)) rufe(s);
+  if (!e.drin && (e.typ === "baum" || e.typ === "mauer" || e.ob || e.mando === "verpasst" || flug.verzogen)) rufe(s);
   // durch die Lücke, oder nach verpasster Mando von der Dropzone aus: Mando erledigt
   if (e.mando === "ok" || (e.mando === "verpasst" && bahn.mando.dropzone)) s.mandoOk = true;
   if (modus === "frei") {
@@ -897,6 +918,7 @@ function flugEnde() {
     if (e.ob) { if (!flug.obGezeigt) zeigeOB(false); }
     else if (e.drin) { sfx.ketten(); zeigeBanner("TREFFER!", "#ffd84a", 1.4); }
     else if (e.typ === "baum") { sfx.baum(); zeigeBanner("BAUM!", "#9be07a"); }
+    else if (e.typ === "mauer") { sfx.baum(); zeigeBanner("MAUER!", "#d8c8a8"); }
     else { sfx.landung(); zeigeBanner(Math.round(d) + " M" + (d >= s.bester ? " BEST!" : ""), d >= s.bester ? "#ffd84a" : PAL.weiss, 1.2); }
     s.lie = e.lie;
     zustand = "pause";
@@ -915,9 +937,9 @@ function flugEnde() {
   } else if (e.ob) {
     s.wuerfe++;
     if (!flug.obGezeigt) zeigeOB(true);
-  } else if (e.typ === "baum") {
+  } else if (e.typ === "baum" || e.typ === "mauer") {
     sfx.baum();
-    zeigeBanner("BAUM!", "#9be07a");
+    zeigeBanner(e.typ === "mauer" ? "MAUER!" : "BAUM!", e.typ === "mauer" ? "#d8c8a8" : "#9be07a");
   } else {
     sfx.landung();
     zeigeBanner(Math.round(e.distanz) + " m", PAL.weiss, 0.9);
@@ -1795,7 +1817,7 @@ function kiPlane(s, k) {
     wurf.mandoOk = s.mandoOk;
     const e = simuliere(bahn, wurf, wind), rest = abstand(e.lie, bahn.korb);
     // geschätzte Würfe bis ins Loch: im Putt-Bereich ~1, sonst 2 + Entfernung; OB kostet einen Strafwurf
-    return e.drin ? 0 : (rest <= 10 ? 1 + rest * 0.04 : 2 + rest / 80) + (e.ob || e.mando === "verpasst" ? 1.2 : 0) + (e.typ === "baum" ? 0.3 : 0);
+    return e.drin ? 0 : (rest <= 10 ? 1 + rest * 0.04 : 2 + rest / 80) + (e.ob || e.mando === "verpasst" ? 1.2 : 0) + (e.typ === "baum" || e.typ === "mauer" ? 0.3 : 0);
   };
   const kandidaten = [];
   for (const si of scheiben) for (const r of k.richtungen) for (const w of (nah ? [0] : k.winkel)) for (const kr of kraefteFuer(si)) {
