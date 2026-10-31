@@ -137,10 +137,11 @@
       pfad.push({ x: px, y: py, z, t: u * T });
 
       const p = { x: px, y: py };
-      if (abstand(p, wurf) > 5) { // Bäume in den ersten 5 m ab Abwurfpunkt zählen nicht
+      if (abstand(p, wurf) > 5) { // in den ersten 5 m ab Abwurfpunkt zählen Bäume nicht
         for (let b = 0; b < bahn.baeume.length; b++) {
           const baum = bahn.baeume[b];
           if (gepruefteBaeume.has(b)) continue;
+          if (abstand(baum, wurf) < 5) continue; // Baum steht direkt am Abwurfpunkt: ganz ignorieren
           if (abstand(p, baum) < baum.r && z < (baum.h || 9)) {
             gepruefteBaeume.add(b);
             if (Math.random() < 0.65) { ereignis = { typ: "baum", baum }; break flug; }
