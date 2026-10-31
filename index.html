@@ -138,7 +138,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 29</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 30</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -185,7 +185,7 @@
         <li><b>Bäume:</b> Trifft die Scheibe eine Krone (65 % – sonst fliegt sie durch eine Lücke), prallt sie mit einem leichten Kick ab. In den ersten 5 m ab Abwurfpunkt zählen Bäume nicht.</li>
         <li><b>OB</b> (weiße Linie mit roten Pflöcken, Zaun, dunkleres Gras): Strafwurf, weiter geht es dort, wo die Scheibe ins Aus geflogen ist. Der Rand des Spielfelds ist immer OB.</li>
         <li><b>Bahn 1 „Bowling“:</b> Auf dem Holzdeck rutscht die Scheibe weit – und kann direkt in den Korb rutschen (STRIKE!).</li>
-        <li><b>Bahn 9:</b> Inselgrün – wer hinter der roten Linie landet, ist im Aus.</li>
+        <li><b>Bahn 9:</b> Strafzone um den Korb – wer außerhalb der Linie landet, ist im Aus und wirft von der Dropzone (gelb umrandete Box auf dem Fairway) weiter.</li>
       </ul>
 
       <h3>Putten (unter 10 m)</h3>
@@ -306,9 +306,9 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=29"></script>
-<script src="bahnen.js?v=29"></script>
-<script src="physik.js?v=29"></script>
+<script src="taschen.js?v=30"></script>
+<script src="bahnen.js?v=30"></script>
+<script src="physik.js?v=30"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -544,6 +544,15 @@ function zeichneHintergrund(z) {
   c.fillStyle = "#5a5a5a"; c.fillRect(ax - tw / 2, ay - th / 2, tw, th);
   c.fillStyle = "#8c8c88"; c.fillRect(ax - tw / 2 + 1, ay - th / 2 + 1, tw - 2, th - 2);
   c.fillStyle = "#a8a8a2"; c.fillRect(ax - tw / 2 + 1, ay - th / 2 + 1, tw - 2, zr);
+  // Dropzone: Box mit gelbem Rand (nach OB geht es hier weiter)
+  if (bahn.dropzone) {
+    const dx = Math.round(bahn.dropzone.x * S), dy = Math.round(bahn.dropzone.y * S);
+    c.fillStyle = "#e8c030"; c.fillRect(dx - tw / 2, dy - th / 2, tw, th);
+    c.fillStyle = "#8c8c88"; c.fillRect(dx - tw / 2 + zr, dy - th / 2 + zr, tw - 2 * zr, th - 2 * zr);
+  }
+  // Holzbalken
+  c.strokeStyle = PAL.brett; c.lineWidth = Math.max(1, 0.4 * S); c.lineCap = "butt";
+  for (const bl of bahn.balken || []) { c.beginPath(); bl.forEach(([x, y], i) => i ? c.lineTo(x * S, y * S) : c.moveTo(x * S, y * S)); c.stroke(); }
   // Bäume: Schatten, dann Kronen
   for (const b of bahn.baeume) pixelKreis(c, b.x * S + 2 * z, b.y * S + 2 * z, b.r * S, PAL.schatten);
   for (const b of bahn.baeume) {

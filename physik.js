@@ -236,6 +236,8 @@
         if (!istOB(pfad[k], bahn)) { lie = { x: pfad[k].x, y: pfad[k].y }; break; }
       }
       if (istOB(lie, bahn)) lie = { x: wurf.x, y: wurf.y };
+      // manche Bahnen haben eine Dropzone: nach OB geht es dort weiter
+      if (bahn.dropzone) lie = { x: bahn.dropzone.x, y: bahn.dropzone.y };
     }
     if (drin) lie = { x: bahn.korb.x, y: bahn.korb.y };
 
