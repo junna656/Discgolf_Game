@@ -178,7 +178,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 57</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 58</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <div class="kurswahl">
@@ -234,7 +234,7 @@
         <li><b>Bäume:</b> Fliegt die Scheibe durch eine Krone, gibt es drei Möglichkeiten: Sie <b>prallt ab</b> (45 %, mit leichtem Kick), wird von den Ästen <b>abgebremst</b> und fliegt deutlich kürzer weiter (30 %), oder sie fliegt <b>durch eine Lücke</b> (25 %). In den ersten 5 m ab Abwurfpunkt zählen Bäume nicht.</li>
         <li><b>OB</b> (weiße Linie mit roten Pflöcken, Zaun, dunkleres Gras): Strafwurf, weiter geht es dort, wo die Scheibe ins Aus geflogen ist. Der Rand des Spielfelds ist immer OB.</li>
         <li><b>Bahn 1 „Bowling“:</b> Auf dem Holzdeck rutscht die Scheibe weit – und kann direkt in den Korb rutschen (STRIKE!).</li>
-        <li><b>Bahn 9:</b> Der Korb steht in einer Box, die kurz hinter dem Weg beginnt – vorne und links Baumstämme, rechts Sträucher. Wer ab der vorderen Stammreihe außerhalb der Box landet, ist OB und wirft von der Dropzone (gelb umrandete Box auf dem Fairway) weiter.</li>
+        <li><b>Bahn 9 (Insel):</b> Der Korb steht in einer Box kurz hinter dem Weg – vorne und links Baumstämme, rechts Sträucher. Alles außerhalb der Box ist OB. Nach OB geht es vom zweiten Abwurf weiter (gelb umrandeter Kasten auf dem Fairway).</li>
       </ul>
 
       <h3>Putten (unter 10 m)</h3>
@@ -387,10 +387,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=57"></script>
-<script src="bahnen.js?v=57"></script>
-<script src="physik.js?v=57"></script>
-<script src="portraets.js?v=57"></script>
+<script src="taschen.js?v=58"></script>
+<script src="bahnen.js?v=58"></script>
+<script src="physik.js?v=58"></script>
+<script src="portraets.js?v=58"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -552,7 +552,7 @@ function zeichneHintergrund(z) {
     return o.insel ? (px, py, x) => x >= o.ab && !m(px, py) : (px, py) => m(px, py);
   });
   const P = { weg1: rgb(PAL.weg1), weg2: rgb(PAL.weg2), bahn1: rgb(PAL.bahn1), bahn2: rgb(PAL.bahn2), fair1: rgb(PAL.fair1), fair2: rgb(PAL.fair2),
-    gras1: rgb(PAL.gras1), gras2: rgb(PAL.gras2), gras3: rgb(PAL.gras3), aus1: rgb("#245f28"), aus2: rgb("#1f5523"), aus3: rgb("#2c6a30") };
+    gras1: rgb(PAL.gras1), gras2: rgb(PAL.gras2), gras3: rgb(PAL.gras3), aus1: rgb("#245f28"), aus2: rgb("#1f5523"), aus3: rgb("#2c6a30"), fairAus1: rgb("#3e8434"), fairAus2: rgb("#387b30") };
   const bild = c.createImageData(BW, BH), d = bild.data, streifen = Math.round(8 * z), brett = Math.round(4 * z);
   for (let py = 0; py < BH; py++) for (let px = 0; px < BW; px++) {
     const x = (px + 0.5) / S, y = (py + 0.5) / S, r = rnd();
@@ -561,6 +561,7 @@ function zeichneHintergrund(z) {
     if (zone && zone.w !== undefined && !zone.art) f = r < 0.2 ? P.weg2 : P.weg1; // OB-Rechteck ohne Art = Weg
     else if (aufBowlingbahn({ x, y }, bahn)) f = (px % brett === 0) ? P.bahn2 : P.bahn1;
     else if (aufWeg(px, py)) f = r < 0.2 ? P.weg2 : P.weg1;
+    else if (zone && aufFairway(px, py)) f = (Math.floor(px / streifen) % 2 ? P.fairAus1 : P.fairAus2); // gemähte Bahn im Aus
     else if (zone) f = r < 0.15 ? P.aus2 : r > 0.95 ? P.aus3 : P.aus1; // Aus: dunkleres Gras
     else if (aufFairway(px, py)) f = (Math.floor(px / streifen) % 2 ? P.fair1 : P.fair2);
     else f = r < 0.12 ? P.gras2 : r > 0.94 ? P.gras3 : P.gras1;
@@ -898,6 +899,7 @@ function zeigeBanner(text, farbe, dauer = 1.2, gr = 16, blinkt = false) { banner
 function zeigeOB(strafe) {
   sfx.ob();
   zeigeBanner(strafe ? "OB +1" : "OB", "#ff3b2f", 2.2, 32, true);
+  if (bahn.dropzone) spaeter(() => zeigeBanner("WEITER VOM 2. ABWURF", "#ffd84a", 1.8, 8), 2200);
 }
 
 // Ruf nach dem Wurf: Sprechblase über dem Spieler und, wenn möglich, Sprachausgabe

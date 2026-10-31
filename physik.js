@@ -238,10 +238,11 @@
     let obIndex = -1;
     if (!drin && istOB(lie, bahn)) {
       ob = true;
-      obIndex = pfad.findIndex(p => istOB(p, bahn)); // hier fliegt die Scheibe ins Aus
+      // hier fliegt die Scheibe (zuletzt) ins Aus; bei Insel-Bahnen startet der Wurf schon im Aus
+      obIndex = pfad.length - 1; // nie im Spiel gewesen: OB erst bei der Landung
       // dort weiterspielen, wo die Scheibe zuletzt im Spiel war
       for (let k = pfad.length - 1; k >= 0; k--) {
-        if (!istOB(pfad[k], bahn)) { lie = { x: pfad[k].x, y: pfad[k].y }; break; }
+        if (!istOB(pfad[k], bahn)) { lie = { x: pfad[k].x, y: pfad[k].y }; obIndex = k + 1; break; }
       }
       if (istOB(lie, bahn)) lie = { x: wurf.x, y: wurf.y };
       // manche Bahnen haben eine Dropzone: nach OB geht es dort weiter
