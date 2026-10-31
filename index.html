@@ -139,7 +139,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 34</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 35</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -201,7 +201,7 @@
 
       <h3>Zoom und Umsehen</h3>
       <ul>
-        <li>Die Kamera wählt automatisch eine von drei Stufen (Übersicht, mittel, nah). Beim Drive (Abwurf oder Driver gewählt) immer Übersicht. Im Flug bleibt die Stufe fest.</li>
+        <li>Die Kamera wählt automatisch eine von drei Stufen (Übersicht, mittel, nah). Am Abwurf immer Übersicht. Im Flug bleibt die Stufe fest.</li>
         <li><b>+</b> / <b>−</b> am Spielfeldrand (Rechner auch Mausrad oder <kbd>+</kbd> <kbd>−</kbd>) stellen den Zoom selbst ein, <b>Auto</b> (<kbd>0</kbd>) schaltet zurück.</li>
         <li><b>Umsehen</b> (<kbd>U</kbd>): Die Bahn durch Ziehen verschieben. Werfen ist dann aus – nochmal tippen oder „Auto“ beendet das Umsehen.</li>
       </ul>
@@ -311,9 +311,9 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=34"></script>
-<script src="bahnen.js?v=34"></script>
-<script src="physik.js?v=34"></script>
+<script src="taschen.js?v=35"></script>
+<script src="bahnen.js?v=35"></script>
+<script src="physik.js?v=35"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -1176,8 +1176,8 @@ function weiter() {
 function passendeStufe() {
   if (zustand === "ende") return 1;
   const s = ich(), dKorb = abstand(s.lie, bahn.korb);
-  // Drive (Abwurf oder Driver in der Hand): immer die ganze Bahn zeigen
-  if (!puttModus && (s.wuerfe === 0 || scheibe().typ === "Driver")) return 1;
+  // Abwurf: immer die ganze Bahn zeigen
+  if (!puttModus && s.wuerfe === 0) return 1;
   let punkte;
   if (puttModus) punkte = [s.lie, bahn.korb];
   else {
