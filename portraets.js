@@ -71,10 +71,13 @@
 
     // Brille
     if (a.brille) {
+      // schmale Fassung mit runden Ecken (Ecken frei), Steg und Bügel
       const b = a.brille;
-      px(b, 11, 13, 4, 1); px(b, 11, 15, 4, 1); px(b, 11, 13, 1, 3); px(b, 14, 13, 1, 3);
-      px(b, 16, 13, 4, 1); px(b, 16, 15, 4, 1); px(b, 16, 13, 1, 3); px(b, 19, 13, 1, 3);
-      px(b, 15, 14); px(b, 10, 13); px(b, 21, 13);
+      for (const x0 of [11, 16]) {
+        px(b, x0 + 1, 13, 2, 1); px(b, x0 + 1, 15, 2, 1); // oben, unten
+        px(b, x0, 14); px(b, x0 + 3, 14);                  // Seiten
+      }
+      px(b, 15, 14); px(b, 10, 14); px(b, 21, 14);
     }
 
     // Haare und Kopfbedeckung

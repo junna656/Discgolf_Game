@@ -25,7 +25,7 @@ window.SPIELER = [
   {
     name: "Thomas",
     aussehen: { haut: "#f2c4a4", haare: "#4a3020", frisur: "geheimratsecken", bart: "kurz", bartfarbe: "#4a3020",
-      brille: "#dfe6e8", jacke: "#2b7bd8", jacke2: "#1f5c66", riemen: "#151515", augen: "#5a7a6a" },
+      brille: "#141414", jacke: "#2b7bd8", jacke2: "#1f5c66", riemen: "#151515", augen: "#5a7a6a" },
     karte: { spitzname: "", infos: [] },   // Infos folgen
     farbe: "#e8483c",
     hand: "rechts",
