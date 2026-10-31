@@ -79,6 +79,11 @@
   .gross:hover, .gross:focus-visible { border-color: var(--akzent); }
   .person { display: flex; align-items: center; gap: 12px; }
   .person .punkt { width: 18px; height: 18px; flex-shrink: 0; }
+  .vzeile { display: grid; grid-template-columns: 44px 1fr; gap: 6px 10px; align-items: center; border: 2px solid var(--rand); border-left: 6px solid var(--farbe); background: #1a2029; padding: 8px; }
+  .vzeile canvas.mini { width: 44px; height: 44px; border: 2px solid var(--rand); aspect-ratio: auto; cursor: default; grid-row: span 2; }
+  .vzeile .vname { font-size: 15px; color: var(--farbe); }
+  .vzeile .vwahl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+  .vzeile .vwahl button { font-size: 10px; padding: 7px 2px; }
   .bahngitter { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
   .bahngitter button { padding: 8px 0; font-size: 13px; }
   .bahngitter button.gespielt:not(.an) { color: var(--leise); border-style: dashed; }
@@ -173,7 +178,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 55</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 56</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <div class="kurswahl">
@@ -196,7 +201,7 @@
       <ul>
         <li><b>Freies Werfen:</b> Sportplatz mit Fußballfeld und Entfernungsmarken alle 25 m, Korb in 130 m. Jeder Wurf startet am Abwurf, es wird nicht gezählt. Kreuze zeigen, wo deine Scheiben gelandet sind; der weiteste Wurf ist gold.</li>
         <li><b>Single Flight:</b> eine Person spielt die Runde.</li>
-        <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat.</li>
+        <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Für jede Person wählst du, ob ein Mensch spielt oder der Computer – <b>Locker</b>, <b>Solide</b> oder <b>Profi</b>. Mindestens eine Person muss ein Mensch sein. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat.</li>
         <li><b>Kurs:</b> Im Hauptmenü wählst du den Kurs für die Flights. Bisher gibt es den Hyzernauts Discgolfparcours im Volkspark Potsdam – weitere Kurse folgen.</li>
         <li>Unter „Flights spielen“ wählst du die ganze Runde oder eine einzelne Bahn des Kurses.</li>
         <li><b>Bahn wählen:</b> Im Spiel (Handy: im Bag, Rechner: rechts) kannst du jederzeit direkt auf jede Bahn des Kurses springen. Die laufende Bahn wird dabei abgebrochen und zählt nicht.</li>
@@ -282,6 +287,13 @@
       <div class="knoepfe"><button id="bag-speichern" class="an" style="flex:1;padding:10px">Speichern</button><button id="bag-abbrechen" style="flex:1;padding:10px">Abbrechen</button></div>
       <button id="bag-reset">Bag auf Original zurücksetzen</button>
       <p class="klein" style="margin:0">Speed 1–15, Glide 1–7, Turn −5 bis +2, Fade 0–5. Änderungen werden in diesem Browser gespeichert.</p>
+    </div>
+    <div id="menue-vierer" class="liste" style="gap:8px" hidden>
+      <h2 style="text-align:center;font-size:13px">Vierer Flight – wer spielt?</h2>
+      <div id="vierer-liste" class="liste" style="gap:8px"></div>
+      <p class="klein" style="margin:0">Computer: <b>Locker</b> zielt grob und puttet wacklig · <b>Solide</b> wägt Scheibe, Richtung und Kraft ab · <b>Profi</b> rechnet viele Würfe durch und puttet fast immer sauber. Mindestens eine Person muss ein Mensch sein.</p>
+      <button class="gross" id="vierer-los" style="text-align:center">Los geht's</button>
+      <button id="vierer-zurueck">← Zurück</button>
     </div>
     <div id="menue-karte" class="liste" style="gap:10px" hidden>
       <div class="spielerkarte" id="spielerkarte"></div>
@@ -375,10 +387,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=55"></script>
-<script src="bahnen.js?v=55"></script>
-<script src="physik.js?v=55"></script>
-<script src="portraets.js?v=55"></script>
+<script src="taschen.js?v=56"></script>
+<script src="bahnen.js?v=56"></script>
+<script src="physik.js?v=56"></script>
+<script src="portraets.js?v=56"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -689,6 +701,7 @@ function neuesSpiel() {
     staerken: s.staerken || {},
     lieblingsscheibe: (s.karte || {}).lieblingsscheibe || "",
     aussehen: s.aussehen,
+    steuerung: modus === "vierer" ? (steuerungen[s.name] || "mensch") : "mensch",
     karte: [],
     bester: 0,
   }));
@@ -762,6 +775,7 @@ function starteZug() {
   zustand = puttModus ? "putt" : "zielen";
   putt = puttModus ? { t0: uhr, flug: null } : null;
   aktualisierePanel();
+  if (kiAmZug()) spaeter(kiZug, 700);
 }
 
 const ich = () => spieler[aktiv];
@@ -1396,7 +1410,7 @@ function schleife(jetzt) {
   if (umsehen) text(hochkant ? "ZIEHEN: UMSEHEN" : "UMSEHEN: ZIEHEN ZUM VERSCHIEBEN", SW / 2, 34, "#ffe08a", "center");
   if (zustand !== "ende") {
     const s = ich(), d = abstand(s.lie, bahn.korb);
-    text(s.name.toUpperCase(), 4, 4, s.farbe);
+    text(s.name.toUpperCase() + (KI[s.steuerung] ? " · CPU " + KI[s.steuerung].name.toUpperCase() : ""), 4, 4, s.farbe);
     if (modus === "frei") {
       text("WURF " + (s.wuerfe + 1) + (s.bester ? " · BEST " + Math.round(s.bester) + " M" : ""), 4, 13, PAL.weiss);
       text("FREIES WERFEN", 4, 22, "#c8d0d8");
@@ -1452,7 +1466,7 @@ function aktualisierePanel() {
       : s.fertig ? (d === 0 ? "E" : (d > 0 ? "+" : "") + d) : Math.round(abstand(s.lie, bahn.korb)) + " m";
     const g = gesamt(s), ges = ganzeRunde() ? plusMinus(g.d) : "";
     return `<span class="punkt" style="background:${s.farbe}"></span>
-      <span class="${i === aktiv && zustand !== "ende" ? "aktiv" : ""}">${i === aktiv && zustand !== "ende" ? "▶ " : ""}${s.name}</span>
+      <span class="${i === aktiv && zustand !== "ende" ? "aktiv" : ""}">${i === aktiv && zustand !== "ende" ? "▶ " : ""}${s.name}${KI[s.steuerung] ? " (CPU)" : ""}</span>
       <span class="wert">${s.wuerfe}</span><span class="wert klein">${status}</span><span class="wert klein">${ges}</span>`;
   }).join("");
   if (zustand === "ende") {
@@ -1488,28 +1502,29 @@ function aktualisierePanel() {
   el("modus").textContent = puttModus ? "Normal werfen statt putten" : "Zurück zum Putten";
   el("werfen").textContent = puttModus ? "Putten (klick)" : "Werfen (halten)";
   el("werfen2").textContent = puttModus ? "Putten" : "Werfen";
-  el("werfen").disabled = el("werfen2").disabled = !(zustand === "zielen" || zustand === "laden" || zustand === "putt");
+  el("werfen").disabled = el("werfen2").disabled = kiAmZug() || !(zustand === "zielen" || zustand === "laden" || zustand === "putt");
+  if (kiAmZug()) el("werfen").textContent = el("werfen2").textContent = "CPU …";
 }
 
 function setzeWinkel(w) {
-  if (zustand !== "zielen" && zustand !== "laden") return;
+  if (kiAmZug() || (zustand !== "zielen" && zustand !== "laden")) return;
   winkel = Math.max(-30, Math.min(30, w));
   aktualisierePanel();
 }
 function setzeWurfart(a) {
-  if (zustand !== "zielen") return;
+  if (kiAmZug() || zustand !== "zielen") return;
   ich().wurfart = a;
   aktualisierePanel();
 }
 function wechsleModus() {
-  if (zustand !== "zielen" && zustand !== "putt") return;
+  if (kiAmZug() || (zustand !== "zielen" && zustand !== "putt")) return;
   if (abstand(ich().lie, bahn.korb) > 10) return;
   puttModus = !puttModus;
   if (!puttModus) ich().scheibe = Math.max(0, ich().tasche.indexOf(putter(ich())));
   starteZug();
 }
 function waehleScheibe(i) {
-  if (zustand !== "zielen") return;
+  if (kiAmZug() || zustand !== "zielen") return;
   const n = ich().tasche.length;
   ich().scheibe = (i + n) % n;
   aktualisierePanel();
@@ -1543,17 +1558,18 @@ for (const k of [el("werfen"), el("werfen2")]) k.addEventListener("pointerdown",
   e.preventDefault();
   if (umsehen) setzeUmsehen(false); // Werfen beendet das Umsehen
   if (document.body.dataset.ansicht !== "feld") { zeigeAnsicht("feld"); return; }
+  if (kiAmZug()) return;
   if (zustand === "putt") putten(); else startLaden(e);
 });
-window.addEventListener("pointerup", () => { zieh = null; loslassen(); });
-window.addEventListener("pointercancel", () => loslassen());
+window.addEventListener("pointerup", () => { zieh = null; if (!kiAmZug()) loslassen(); });
+window.addEventListener("pointercancel", () => { if (!kiAmZug()) loslassen(); });
 
 // Richtungsknöpfe (Handy): tippen dreht 1°, gedrückt halten dreht weiter
 let dreh = 0, drehStart = 0;
 document.querySelectorAll("[data-dreh]").forEach(b => {
   b.addEventListener("pointerdown", e => {
     e.preventDefault();
-    if (zustand !== "zielen") return;
+    if (kiAmZug() || zustand !== "zielen") return;
     dreh = +b.dataset.dreh; drehStart = uhr;
     ziel += dreh * DEG;
   });
@@ -1591,7 +1607,7 @@ function weltPunkt(e) {
   return hochkant ? { x: (W * S / S0 - sy) / S, y: sx / S } : { x: sx / S, y: sy / S };
 }
 function zieleAuf(e) {
-  if (zustand !== "zielen") return;
+  if (kiAmZug() || zustand !== "zielen") return;
   const p = weltPunkt(e), s = ich();
   if (abstand(p, s.lie) > 1) ziel = Math.atan2(p.y - s.lie.y, p.x - s.lie.x);
 }
@@ -1613,6 +1629,7 @@ cv.addEventListener("pointerdown", e => {
     return;
   }
   if (zustand === "ende") { weiter(); return; }
+  if (kiAmZug()) return;
   if (zustand === "putt") { putten(); return; }
   zieleAuf(e);
   startLaden(e);
@@ -1626,6 +1643,7 @@ window.addEventListener("keydown", e => {
   if (k === "-") { zoomSchritt(-1); return; }
   if (k === "0") { setzeZoom(null); setzeUmsehen(false); return; }
   if (k === "u" || k === "U") { setzeUmsehen(!umsehen); return; }
+  if (kiAmZug() && k !== "r" && k !== "R") return;
   if (k === " ") {
     e.preventDefault();
     if (e.repeat) return;
@@ -1654,6 +1672,108 @@ function setzeBahn(b) {
   // die anderen Zoomstufen im Leerlauf vorbereiten, damit der Wechsel nicht ruckelt
   const leerlauf = window.requestIdleCallback || (f => setTimeout(f, 200));
   leerlauf(() => { if (bahn === b) bahnBild(STUFEN[1]); leerlauf(() => { if (bahn === b) bahnBild(STUFEN[2]); }); });
+}
+
+// ---------- Vierer Flight: Mensch oder Computer (drei Stärken) ----------
+const KI = {
+  locker: { name: "Locker", richtungen: [-6, 0, 6], winkel: [0], kraefte: [0.6, 0.75, 0.9], alleScheiben: false, proben: 1, zielfehler: 6, kraftfehler: 0.08, puttProben: 1 },
+  solide: { name: "Solide", richtungen: [-10, -5, 0, 5, 10], winkel: [-15, 0, 15], kraefte: [0.55, 0.65, 0.75, 0.85, 0.95], alleScheiben: true, proben: 1, zielfehler: 2.5, kraftfehler: 0.04, puttProben: 5 },
+  profi: { name: "Profi", richtungen: [-16, -12, -8, -4, 0, 4, 8, 12, 16], winkel: [-20, -10, 0, 10, 20], kraefte: [0.45, 0.55, 0.65, 0.72, 0.8, 0.88], alleScheiben: true, proben: 2, zielfehler: 0.6, kraftfehler: 0.015, puttProben: 25 },
+};
+let steuerungen = {};
+try { steuerungen = JSON.parse(localStorage.getItem("discgolf-vierer") || "{}"); } catch (e) { /* egal */ }
+function zeigeViererAufstellung() {
+  const wahl = [["mensch", "Mensch"], ["locker", "Locker"], ["solide", "Solide"], ["profi", "Profi"]];
+  el("vierer-liste").innerHTML = SPIELER.map((sp, i) => `
+    <div class="vzeile" style="--farbe:${sp.farbe}"><canvas class="mini" width="32" height="32"></canvas>
+      <span class="vname">${sp.name}</span>
+      <div class="vwahl">${wahl.map(([k, t]) => `<button data-sp="${i}" data-st="${k}" class="${(steuerungen[sp.name] || "mensch") === k ? "an" : ""}">${t}</button>`).join("")}</div>
+    </div>`).join("");
+  document.querySelectorAll("#vierer-liste canvas.mini").forEach((c, i) => zeichnePortrait(c.getContext("2d"), SPIELER[i]));
+  pruefeAufstellung();
+  el("menue-start").hidden = true;
+  el("menue-vierer").hidden = false;
+  el("menue").scrollTop = 0;
+}
+function pruefeAufstellung() {
+  const ok = SPIELER.some(sp => (steuerungen[sp.name] || "mensch") === "mensch");
+  el("vierer-los").disabled = !ok;
+  el("vierer-los").textContent = ok ? "Los geht's" : "Mindestens ein Mensch nötig";
+}
+el("vierer-liste").addEventListener("click", e => {
+  const b = e.target.closest("[data-st]");
+  if (!b) return;
+  steuerungen[SPIELER[+b.dataset.sp].name] = b.dataset.st;
+  try { localStorage.setItem("discgolf-vierer", JSON.stringify(steuerungen)); } catch (err) { /* egal */ }
+  b.parentElement.querySelectorAll("button").forEach(x => x.classList.toggle("an", x === b));
+  pruefeAufstellung();
+});
+el("vierer-los").addEventListener("click", () => starteModus("vierer"));
+el("vierer-zurueck").addEventListener("click", () => { el("menue-vierer").hidden = true; el("menue-start").hidden = false; });
+
+const kiAmZug = () => !!(spieler && spieler[aktiv] && zustand !== "ende" && (spieler[aktiv].steuerung || "mensch") !== "mensch");
+
+// Computer plant einen Wurf: probiert Scheiben, Richtungen, Abwurfwinkel und Kräfte im Flugmodell durch.
+// Erst jeder Kandidat einmal grob, dann die besten mehrfach (so sieht der Profi auch das Risiko).
+function kiPlane(s, k) {
+  const d = abstand(s.lie, bahn.korb), basis = zumKorb(s.lie), alterWinkel = winkel, alteScheibe = s.scheibe;
+  let scheiben = [s.scheibe];
+  if (k.alleScheiben) scheiben = s.tasche.map((_, i) => i).filter(i => { const r = Physik.reichweite(s.tasche[i]); return r > d * 0.5 && r < d * 2.2; });
+  if (!scheiben.length) scheiben = [s.scheibe];
+  const bewerte = c => {
+    s.scheibe = c.si; winkel = c.w;
+    const st = staerke(s);
+    const wurf = streue({ x: s.lie.x, y: s.lie.y, richtung: c.richtung, kraft: c.kr, winkel: c.w, scheibe: s.tasche[c.si], hand: s.hand, wurfart: s.wurfart, streuFaktor: st.streuung, weiteFaktor: st.weite });
+    const e = simuliere(bahn, wurf, wind), rest = abstand(e.lie, bahn.korb);
+    // geschätzte Würfe bis ins Loch: im Putt-Bereich ~1, sonst 2 + Entfernung; OB kostet einen Strafwurf
+    return e.drin ? 0 : (rest <= 10 ? 1 + rest * 0.04 : 2 + rest / 80) + (e.ob ? 1.2 : 0) + (e.typ === "baum" ? 0.3 : 0);
+  };
+  const kandidaten = [];
+  for (const si of scheiben) for (const r of k.richtungen) for (const w of k.winkel) for (const kr of k.kraefte) {
+    const c = { si, richtung: basis + r * DEG, w, kr };
+    c.note = bewerte(c); c.n = 1;
+    kandidaten.push(c);
+  }
+  kandidaten.sort((a, b) => a.note - b.note);
+  for (const c of kandidaten.slice(0, k.proben > 1 ? 8 : 0)) {
+    let summe = c.note;
+    for (let n = 1; n < k.proben + 2; n++) summe += bewerte(c);
+    c.note = summe / (k.proben + 2);
+  }
+  kandidaten.sort((a, b) => a.note - b.note);
+  winkel = alterWinkel; s.scheibe = alteScheibe;
+  return kandidaten[0];
+}
+
+function kiZug() {
+  if (!kiAmZug()) return;
+  const s = ich(), k = KI[s.steuerung];
+  if (zustand === "putt") {
+    // Putt: wartet auf einen guten Moment des Fadenkreuzes (Profi wartet geduldiger)
+    puttStil = Math.hypot(wind.x, wind.y) < 3 ? "push" : "spin";
+    aktualisierePanel();
+    let bestT = 1, bestW = Infinity;
+    for (let n = 0; n < k.puttProben; n++) {
+      const t = 0.8 + Math.random() * 2.5, o = puttWackel(uhr - putt.t0 + t);
+      const w = Math.hypot(o.x / KETTEN.bx, o.y / KETTEN.by);
+      if (w < bestW) { bestW = w; bestT = t; }
+    }
+    spaeter(() => { if (kiAmZug() && zustand === "putt") putten(); }, bestT * 1000);
+    return;
+  }
+  if (zustand !== "zielen") return;
+  const plan = kiPlane(s, k);
+  s.scheibe = plan.si;
+  winkel = plan.w;
+  ziel = plan.richtung + Physik.gauss() * k.zielfehler * DEG;
+  aktualisierePanel();
+  // kurz zielen lassen, dann laden und mit der geplanten Kraft loslassen
+  const kraftZiel = Math.max(0.3, Math.min(1, plan.kr + Physik.gauss() * k.kraftfehler));
+  spaeter(() => {
+    if (!kiAmZug() || zustand !== "zielen") return;
+    startLaden();
+    spaeter(() => { if (zustand === "laden") { kraft = kraftZiel; loslassen(); } }, kraftZiel * 1100);
+  }, 900);
 }
 
 // Direkt auf eine Bahn springen (die laufende Bahn wird abgebrochen)
@@ -1691,6 +1811,7 @@ function zeigeMenue() {
   el("menue-bag").hidden = true;
   el("menue-doku").hidden = true;
   el("menue-karte").hidden = true;
+  el("menue-vierer").hidden = true;
   el("menue").hidden = false;
 }
 
@@ -1859,7 +1980,7 @@ el("zu-bags").addEventListener("click", () => {
 document.querySelectorAll("[data-modus]").forEach(b => b.addEventListener("click", () => {
   const m = b.dataset.modus;
   weckeSprache();
-  if (m === "vierer") { starteModus(m); return; }
+  if (m === "vierer") { zeigeViererAufstellung(); return; }
   gewaehlterModus = m;
   el("wahl-titel").textContent = m === "frei" ? "Mit wessen Bag wirfst du?" : "Wer spielt?";
   el("menue-start").hidden = true;
