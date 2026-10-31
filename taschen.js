@@ -22,6 +22,7 @@
 //  staerken (optional): was der Spieler besonders gut kann (1 = normal, kleiner = besser)
 //    putten: Wackeln des Putt-Fadenkreuzes
 //    rueckhand / vorhand / hyzer / anhyzer: { streuung, weite } für Würfe dieser Art
+//    sline: Rückhand-S-Line/Flex – mit Anhyzer oder flach mit einer unterstabilen Scheibe (Turn ≤ -2)
 // ============================================================
 
 window.SPIELER = [
@@ -81,15 +82,15 @@ window.SPIELER = [
     name: "Gunnar",
     aussehen: { haut: "#f0c0a0", haare: "#5a3a24", bart: "schnurrbart", bartfarbe: "#7a4a2a", kopf: { typ: "cap", farbe: "#151515", abzeichen: "#f0f0f0" },
       jacke: "#1c1c1e", jacke2: "#3a3a40", reissverschluss: "#8a8a96", fleece: true, augen: "#4a7ab8" },
-    karte: { lieblingsscheibe: "", infos: ["S-Line-Spezialist – mit Anhyzer sehr präzise"] },
-    staerken: { anhyzer: { streuung: 0.45 } },   // mit Anhyzer weniger als halbe Streuung
+    karte: { lieblingsscheibe: "Heat", infos: ["S-Line- und Flex-Shots mit der Rückhand – sehr präzise", "Rückhandspieler"] },
+    staerken: { sline: { streuung: 0.45 } },   // Rückhand-S-Line/Flex: weniger als halbe Streuung
     farbe: "#9c5ce0",
     hand: "rechts",
     tasche: [
       { name: "Katana",      typ: "Driver",   speed: 13, glide: 5, turn: -3, fade: 3 },
       { name: "Trace", typ: "Driver", speed: 11, glide: 5, turn: -1, fade: 2 }, // Streamline Discs Trace (Neutron)
-      { name: "Heat",      typ: "Driver",   speed: 9, glide: 3, turn: -3, fade: 1 },
-      { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1, standard: true }, // Latitude 64°
+      { name: "Heat",      typ: "Driver",   speed: 9, glide: 3, turn: -3, fade: 1, standard: true }, // Lieblingsscheibe
+      { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1 }, // Latitude 64°
       { name: "Sense",      typ: "Fairway",  speed: 9,  glide: 4, turn: 0,  fade: 3 },
       { name: "Eule",       typ: "Midrange", speed: 4,  glide: 6, turn: -1, fade: 0 },
       { name: "Bolzen",     typ: "Putter",   speed: 2,  glide: 3, turn: 0,  fade: 1 },

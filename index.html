@@ -152,7 +152,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 40</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 41</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -224,7 +224,7 @@
         <li><b>Daniel</b> putten sehr ruhig – auch weite Putts wackeln kaum, Wind stört wenig.</li>
         <li><b>Thomas</b> wirft Rückhand weiter und präziser (kleinerer gelb-roter Bereich).</li>
         <li><b>André</b> wirft Vorhand weiter und präziser.</li>
-        <li><b>Gunnar</b> ist mit Anhyzer (S-Line) sehr präzise.</li>
+        <li><b>Gunnar</b> ist bei Rückhand-S-Line- und Flex-Shots sehr präzise: mit Anhyzer oder flach mit einer unterstabilen Scheibe (Turn −2 oder weniger, z. B. seine Heat).</li>
         <li>Ein ★ hinter dem Wurf zeigt an, dass die Stärke gerade greift.</li>
       </ul>
 
@@ -338,10 +338,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=40"></script>
-<script src="bahnen.js?v=40"></script>
-<script src="physik.js?v=40"></script>
-<script src="portraets.js?v=40"></script>
+<script src="taschen.js?v=41"></script>
+<script src="bahnen.js?v=41"></script>
+<script src="physik.js?v=41"></script>
+<script src="portraets.js?v=41"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -740,6 +740,9 @@ function staerke(s) {
   anwenden(s.wurfart === "vorhand" ? st.vorhand : st.rueckhand);
   if (winkel < -2) anwenden(st.anhyzer);
   if (winkel > 2) anwenden(st.hyzer);
+  // S-Line/Flex (nur Rückhand): Anhyzer, oder flach mit unterstabiler Scheibe
+  const sch = s.tasche[s.scheibe];
+  if (s.wurfart !== "vorhand" && (winkel < -2 || (Math.abs(winkel) <= 2 && sch && sch.turn <= -2))) anwenden(st.sline);
   return f;
 }
 
