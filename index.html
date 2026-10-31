@@ -178,7 +178,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 56</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 57</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <div class="kurswahl">
@@ -387,10 +387,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=56"></script>
-<script src="bahnen.js?v=56"></script>
-<script src="physik.js?v=56"></script>
-<script src="portraets.js?v=56"></script>
+<script src="taschen.js?v=57"></script>
+<script src="bahnen.js?v=57"></script>
+<script src="physik.js?v=57"></script>
+<script src="portraets.js?v=57"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -919,17 +919,20 @@ function stimme() {
   return v.find(x => x.name === E.rufStimme) || v[0] || null;
 }
 
-// Beim ersten Tippen Sprachausgabe und Aufnahmen "aufwecken", sonst blockiert das Handy sie später
+// Beim ersten Tippen Ton freischalten: die Aufnahmen werden nur geladen (nicht abgespielt!) und
+// später über Web Audio gespielt – so ist beim Start nichts zu hören, und das Handy blockiert den Ruf nicht
 const aufnahmen = {};
 let tonWach = false;
 function weckeSprache() {
   if (tonWach) return;
   tonWach = true;
-  try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } catch (e) { /* egal */ }
-  for (const sp of SPIELER) if (sp.rufDatei) {
-    const a = aufnahmen[sp.name] = new Audio(sp.rufDatei);
-    a.muted = true;
-    a.play().then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; });
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    actx.resume();
+  } catch (e) { /* kein Web Audio */ }
+  for (const sp of SPIELER) if (sp.rufDatei && actx) {
+    fetch(sp.rufDatei).then(r => r.arrayBuffer()).then(b => actx.decodeAudioData(b))
+      .then(puffer => { aufnahmen[sp.name] = puffer; }).catch(() => { /* dann Computerstimme */ });
   }
 }
 
@@ -949,10 +952,15 @@ function sprich(text) {
 function rufe(s) {
   if (!s.ruf) return;
   sprechblase = { text: s.ruf, pos: { x: s.lie.x, y: s.lie.y }, t0: uhr, dauer: 2.4 };
-  const a = aufnahmen[s.name];
-  if (a && !a.error) {
-    a.currentTime = 0;
-    a.play().catch(() => sprich(s.ruf));
+  const puffer = aufnahmen[s.name];
+  if (puffer && actx) {
+    try {
+      actx.resume();
+      const quelle = actx.createBufferSource();
+      quelle.buffer = puffer;
+      quelle.connect(actx.destination);
+      quelle.start();
+    } catch (e) { sprich(s.ruf); }
   } else sprich(s.ruf);
 }
 
