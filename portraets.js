@@ -55,6 +55,11 @@
         if (imGesicht && !(y === 16 && x > 12 && x < 19)) px(bf, x, y);
       }
       px(bf, 10, 15); px(bf, 21, 15);
+    } else if (a.bart === "kurz") {
+      // kurz getrimmt: dünner Rand am Kiefer, Kinn und schmaler Oberlippenbart
+      for (const [gy, x0, x1] of gesicht) if (gy >= 15) { px(bf, x0, gy); px(bf, x1, gy); }
+      zeile(bf, 21, 13, 18); zeile(bf, 20, 12, 13); zeile(bf, 20, 18, 19);
+      zeile(bf, 18, 13, 18);
     } else if (a.bart === "schnurrbart") {
       zeile(bf, 18, 12, 19); px(bf, 11, 19); px(bf, 20, 19);
     } else if (a.bart === "stoppeln") {
