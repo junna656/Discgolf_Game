@@ -12,7 +12,9 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   // Stellschrauben für die Entwicklung (im Spiel unter "Einstellungen" änderbar)
-  const STANDARD = { winkel: 1.6, turn: 1.5, fade: 1.5, weite: 1, streuung: 1, wind: 1, tempo: 0.55, kick: 1, zoomStufe: 3 };
+  const STANDARD = { winkel: 1.6, turn: 1.5, fade: 1.5, weite: 1, streuung: 1, wind: 1, tempo: 0.55, kick: 1, zoomStufe: 3,
+    // Baum in der Krone: so oft prallt die Scheibe ab bzw. wird abgebremst – der Rest fliegt durch eine Lücke
+    baumAbprallen: 0.45, baumBremsen: 0.3 };
   const E = Object.assign({}, STANDARD);
   const abstand = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -118,11 +120,13 @@
     let px = wurf.x, py = wurf.y, th = wurf.richtung, z = 1.3, u = 0;
     let ereignis = null;
     const gepruefteBaeume = new Set();
+    let brems = 1;               // < 1, nachdem Äste die Scheibe abgebremst haben
+    const bremsPunkte = [];      // Pfad-Stellen, an denen gebremst wurde (für Geräusch/Anzeige)
 
     flug: for (let i = 1; i <= N; i++) {
       const u0 = (i - 1) / N;
       u = i / N;
-      const ds = D * (f(u) - f(u0));
+      const ds = D * (f(u) - f(u0)) * brems;
       const wT = u < 0.75 ? Math.sin(Math.PI * u / 0.75) : 0;
       const wF = u > 0.45 ? Math.pow((u - 0.45) / 0.55, 1.5) : 0;
       th += seite * (turnK * wT - fadeK * wF + winkK * (1 - 0.5 * u)) / N;
@@ -145,7 +149,10 @@
           if (abstand(baum, wurf) < 5) continue; // Baum steht direkt am Abwurfpunkt: ganz ignorieren
           if (abstand(p, baum) < baum.r && z < (baum.h || 9)) {
             gepruefteBaeume.add(b);
-            if (Math.random() < 0.65) { ereignis = { typ: "baum", baum }; break flug; }
+            // drei Möglichkeiten: abprallen, abbremsen (fliegt langsamer weiter) oder durch eine Lücke
+            const w = Math.random();
+            if (w < E.baumAbprallen) { ereignis = { typ: "baum", baum }; break flug; }
+            if (w < E.baumAbprallen + E.baumBremsen) { brems *= 0.35 + Math.random() * 0.25; bremsPunkte.push(pfad.length - 1); }
           }
         }
       }
@@ -199,7 +206,7 @@
       ende.z = 0;
       let dx = Math.cos(th), dy = Math.sin(th);
       const bowling = aufBowlingbahn(ende, bahn);
-      let L = (0.5 + D * 0.025) * (0.5 + Math.random()) * (1 - clamp(winkel, -30, 30) / 60);
+      let L = (0.5 + D * 0.025) * (0.5 + Math.random()) * (1 - clamp(winkel, -30, 30) / 60) * brems;
       if (bowling) {
         const l = bahn.bowlingbahn;
         let ax = l.x2 - l.x1, ay = l.y2 - l.y1;
@@ -242,7 +249,7 @@
     }
     if (drin) lie = { x: bahn.korb.x, y: bahn.korb.y };
 
-    return { pfad, lie, drin, ob, obIndex, typ, dauer: t, distanz: abstand(lie, wurf) };
+    return { pfad, lie, drin, ob, obIndex, typ, bremsPunkte, dauer: t, distanz: abstand(lie, wurf) };
   }
 
   g.Physik = { simuliere, streue, gauss, abstand, istOB, obZone, imPolygon, seiteVonLinie, aufBowlingbahn, DEG, einstellungen: E, STANDARD, reichweite };

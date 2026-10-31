@@ -170,7 +170,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 50</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 51</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <div class="kurswahl">
@@ -222,7 +222,7 @@
       <h3>Wind, Bäume und OB</h3>
       <ul>
         <li><b>Wind</b> (oben rechts): Gegenwind macht Scheiben kürzer und kurviger, Seitenwind trägt sie weg.</li>
-        <li><b>Bäume:</b> Trifft die Scheibe eine Krone (65 % – sonst fliegt sie durch eine Lücke), prallt sie mit einem leichten Kick ab. In den ersten 5 m ab Abwurfpunkt zählen Bäume nicht.</li>
+        <li><b>Bäume:</b> Fliegt die Scheibe durch eine Krone, gibt es drei Möglichkeiten: Sie <b>prallt ab</b> (45 %, mit leichtem Kick), wird von den Ästen <b>abgebremst</b> und fliegt deutlich kürzer weiter (30 %), oder sie fliegt <b>durch eine Lücke</b> (25 %). In den ersten 5 m ab Abwurfpunkt zählen Bäume nicht.</li>
         <li><b>OB</b> (weiße Linie mit roten Pflöcken, Zaun, dunkleres Gras): Strafwurf, weiter geht es dort, wo die Scheibe ins Aus geflogen ist. Der Rand des Spielfelds ist immer OB.</li>
         <li><b>Bahn 1 „Bowling“:</b> Auf dem Holzdeck rutscht die Scheibe weit – und kann direkt in den Korb rutschen (STRIKE!).</li>
         <li><b>Bahn 9:</b> Strafzone um den Korb – wer außerhalb der Linie landet, ist im Aus und wirft von der Dropzone (gelb umrandete Box auf dem Fairway) weiter.</li>
@@ -366,10 +366,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=50"></script>
-<script src="bahnen.js?v=50"></script>
-<script src="physik.js?v=50"></script>
-<script src="portraets.js?v=50"></script>
+<script src="taschen.js?v=51"></script>
+<script src="bahnen.js?v=51"></script>
+<script src="physik.js?v=51"></script>
+<script src="portraets.js?v=51"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -447,6 +447,7 @@ function ton(freq, dauer, typ = "square", vol = 0.04, ziel = null, verz = 0) {
 const sfx = {
   wurf: () => ton(300, 0.25, "triangle", 0.05, 900),
   baum: () => { ton(140, 0.08, "square", 0.06); ton(90, 0.1, "square", 0.05, null, 0.06); },
+  ast: () => { for (let i = 0; i < 4; i++) ton(500 + Math.random() * 600, 0.04, "square", 0.025, null, i * 0.035); },
   landung: () => ton(110, 0.08, "triangle", 0.06, 60),
   ketten: () => { for (let i = 0; i < 9; i++) ton(1400 + Math.random() * 1600, 0.12, "triangle", 0.025, null, i * 0.035); },
   ob: () => {
@@ -1354,6 +1355,13 @@ function schleife(jetzt) {
     const fp = flugPosition();
     flug.aktiv = !fp.fertig;
     const e = flug.erg;
+    // durch Äste abgebremst: Rascheln und kurze Anzeige an der Stelle
+    flug.gebremst = flug.gebremst || 0;
+    if ((e.bremsPunkte || []).length > flug.gebremst && fp.i >= e.bremsPunkte[flug.gebremst]) {
+      flug.gebremst++;
+      sfx.ast();
+      zeigeBanner("ABGEBREMST", "#9be07a", 0.9, 8);
+    }
     if (e.ob && !flug.obGezeigt && fp.i >= e.obIndex) {
       flug.obGezeigt = true;
       zeigeOB(modus !== "frei");
