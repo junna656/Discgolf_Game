@@ -138,9 +138,9 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 30</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 31</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
-      <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
+      <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
       <button class="gross" data-modus="vierer">Vierer Flight<small id="vierer-namen"></small></button>
       <label class="klein" style="display:flex;gap:8px;align-items:center;justify-content:space-between">Flights spielen:
@@ -154,7 +154,7 @@
 
       <h3>Spielmodi</h3>
       <ul>
-        <li><b>Freies Werfen:</b> 200 m Wiese mit Entfernungsmarken alle 25 m. Jeder Wurf startet am Abwurf, es wird nicht gezählt. Kreuze zeigen, wo deine Scheiben gelandet sind; der weiteste Wurf ist gold.</li>
+        <li><b>Freies Werfen:</b> Sportplatz mit Fußballfeld und Entfernungsmarken alle 25 m, Korb in 130 m. Jeder Wurf startet am Abwurf, es wird nicht gezählt. Kreuze zeigen, wo deine Scheiben gelandet sind; der weiteste Wurf ist gold.</li>
         <li><b>Single Flight:</b> eine Person spielt die Runde.</li>
         <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat.</li>
         <li>Unter „Flights spielen“ wählst du die ganze Runde (15 Bahnen) oder eine einzelne Bahn.</li>
@@ -306,9 +306,9 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=30"></script>
-<script src="bahnen.js?v=30"></script>
-<script src="physik.js?v=30"></script>
+<script src="taschen.js?v=31"></script>
+<script src="bahnen.js?v=31"></script>
+<script src="physik.js?v=31"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -488,10 +488,28 @@ function zeichneHintergrund(z) {
   // Entfernungsmarken: gepunktete Linien quer über die Bahn
   if (bahn.distanzmarken) {
     c.fillStyle = "rgba(255,255,255,.55)";
+    const fy = bahn.fairway.map(p => p[1]), oben = Math.min(...fy) * S, unten = Math.max(...fy) * S;
     for (let dm = bahn.distanzmarken; bahn.abwurf.x + dm < bahn.korb.x - 5; dm += bahn.distanzmarken) {
       const px = Math.round((bahn.abwurf.x + dm) * S);
-      for (let py = 0; py < BH; py += 3) if (aufFairway(px, py)) c.fillRect(px, py, 1, 1);
+      for (let py = Math.round(oben); py < unten; py += 3) c.fillRect(px, py, 1, 1);
     }
+  }
+  // Spielfeldlinien (weiß) und Tore (grau) – nur Bild
+  const punkt = (x, y, f) => { c.fillStyle = f; c.fillRect(Math.round(x * S), Math.round(y * S), zr, zr); };
+  const strecke = (a, b, f) => { const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) * S); for (let k = 0; k <= n; k++) punkt(a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n, f); };
+  const kreisbogen = (cx, cy, r, von, bis, f) => { const n = Math.ceil(r * S * (bis - von)); for (let k = 0; k <= n; k++) { const a = von + (bis - von) * k / n; punkt(cx + Math.cos(a) * r, cy + Math.sin(a) * r, f); } };
+  for (const l of bahn.linien || []) {
+    const f = "rgba(240,240,232,.85)";
+    if (l.kreis) kreisbogen(l.kreis[0], l.kreis[1], l.kreis[2], 0, Math.PI * 2, f);
+    else if (l.bogen) { const [bx, by, r, s] = l.bogen, w = 0.93; kreisbogen(bx, by, r, s > 0 ? -w : Math.PI - w, s > 0 ? w : Math.PI + w, f); }
+    else l.punkte.forEach((a, i) => { const b = l.punkte[i + 1] || (l.zu ? l.punkte[0] : null); if (b) strecke(a, b, f); });
+  }
+  for (const [a, b] of bahn.tore || []) {
+    c.fillStyle = "rgba(230,230,225,.9)";
+    const x0 = Math.round(Math.min(a[0], b[0]) * S), y0 = Math.round(Math.min(a[1], b[1]) * S), x1 = Math.round(Math.max(a[0], b[0]) * S), y1 = Math.round(Math.max(a[1], b[1]) * S);
+    c.fillRect(x0, y0, x1 - x0 + zr, zr); c.fillRect(x0, y1, x1 - x0 + zr, zr); c.fillRect(x0, y0, zr, y1 - y0); c.fillRect(x1, y0, zr, y1 - y0 + zr);
+    c.fillStyle = "rgba(230,230,225,.35)";
+    for (let y = y0 + 2 * zr; y < y1; y += 2 * zr) c.fillRect(x0, y, x1 - x0, 1);
   }
   // Rand der Spielfläche ist OB: gestrichelte weiße Linie mit Pflöcken
   c.fillStyle = PAL.weiss;

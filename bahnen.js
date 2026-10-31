@@ -7,6 +7,7 @@
 //  Inselgrün {insel, ab}: ab x = "ab" ist alles außerhalb der Insel OB.
 //  dropzone {x, y} (optional): nach OB geht es dort weiter statt an der Ausflugstelle.
 //  balken (optional): Holzbalken nur als Bild.
+//  linien, tore (optional): Spielfeldlinien und Tore nur als Bild (Freies Feld).
 //  Die Spielfläche ist welt.breite × welt.hoehe Meter groß und wird
 //  auf den Bildschirm skaliert – hoehe muss breite × 9/16 sein.
 //
@@ -194,18 +195,23 @@ window.BAHNEN = [
     ob: [{"name":"Weg links","art":"linie","linie":[[12.8,20.4],[113.0,12.5],[133.5,11.4]],"innen":[113,31.6]},{"name":"Weg rechts","art":"linie","linie":[[19.1,35.4],[78.3,74.0],[97.2,74.0],[130.4,66.1]],"innen":[113,31.6]}],
   },
   {
-    // Offene Wiese zum Weitwurf-Üben: 200 m bis zum Korb, keine Bäume
+    // Freies Werfen auf dem Sportplatz (nach Luftbild): Fußballfeld 98 × 66 m, Abwurf auf der Wiese
+    // vor dem unteren Tor, Korb 130 m entfernt hinter dem oberen Tor
     nummer: 0,
     kurz: "FELD",
     name: "Freies Feld",
-    ort: "Übungswiese",
+    ort: "Sportplatz",
     par: 4,
-    welt: { breite: 240, hoehe: 135 },
-    abwurf: { x: 24, y: 67.5 },
-    korb: { x: 224, y: 67.5 },
-    fairway: [[0, 37.5], [240, 37.5], [240, 97.5], [0, 97.5]],
-    baeume: [],
+    welt: {"breite":165,"hoehe":92.8125},
+    abwurf: {"x":18,"y":46.4},
+    korb: {"x":148,"y":46.4},
+    fairway: [[28.2,13.4],[126.2,13.4],[126.2,79.4],[28.2,79.4]],
+    baeume: [{"x":3.3,"y":3.4,"r":4.0},{"x":9.3,"y":4.5,"r":3.5},{"x":16.2,"y":4.4,"r":3.1},{"x":24.7,"y":3.1,"r":3.1},{"x":31.7,"y":5.4,"r":3.2},{"x":37.9,"y":4.8,"r":4.4},{"x":46.3,"y":4.1,"r":4.5},{"x":51.2,"y":5.5,"r":3.4},{"x":58.6,"y":3.3,"r":3.5},{"x":68.3,"y":3.4,"r":3.9},{"x":74.6,"y":4.0,"r":3.8},{"x":79.3,"y":3.1,"r":3.3},{"x":88.7,"y":4.2,"r":3.5},{"x":95.3,"y":4.3,"r":3.4},{"x":103.2,"y":5.0,"r":3.4},{"x":109.3,"y":4.5,"r":4.3},{"x":116.9,"y":3.8,"r":4.5},{"x":121.5,"y":4.2,"r":4.1},{"x":128.6,"y":4.4,"r":3.1},{"x":137.7,"y":5.2,"r":3.9},{"x":145.5,"y":3.8,"r":4.0},{"x":151.4,"y":4.6,"r":3.7},{"x":159.4,"y":5.7,"r":3.7},{"x":12.7,"y":88.1,"r":4.1},{"x":21.6,"y":90.4,"r":4.2},{"x":29.1,"y":88.9,"r":4.0},{"x":37.1,"y":89.1,"r":3.3},{"x":46.5,"y":88.1,"r":4.2},{"x":55.5,"y":88.5,"r":3.6},{"x":67.5,"y":88.1,"r":3.7},{"x":75.2,"y":90.1,"r":4.2},{"x":85.5,"y":88.6,"r":3.6},{"x":92.4,"y":90.1,"r":4.4},{"x":100.6,"y":88.3,"r":3.3},{"x":109.9,"y":89.1,"r":3.9},{"x":119.1,"y":87.9,"r":3.6},{"x":128.5,"y":89.3,"r":4.4},{"x":-1.4,"y":47.9,"r":5},{"x":-0.4,"y":60.5,"r":5.5},{"x":2.5,"y":72.1,"r":4},{"x":2.5,"y":26.5,"r":3.5},{"x":-1.4,"y":34.3,"r":4}],
+    wege: [{"punkte":[[151.5,2.2],[156.8,16.8],[163.6,34.3]],"breite":4}],
+    wegFlaechen: [[[132.6,65.3],[132.6,73.1],[158.8,73.1],[158.8,65.3]]],
+    linien: [{"punkte":[[28.2,13.4],[126.2,13.4],[126.2,79.4],[28.2,79.4]],"zu":true},{"punkte":[[77.2,13.4],[77.2,79.4]]},{"kreis":[77.2,46.4,9.15]},{"punkte":[[28.2,26.3],[44.7,26.3],[44.7,66.6],[28.2,66.6]]},{"punkte":[[28.2,37.3],[33.7,37.3],[33.7,55.6],[28.2,55.6]]},{"bogen":[39.2,46.4,9.15,1]},{"punkte":[[126.2,26.3],[109.7,26.3],[109.7,66.6],[126.2,66.6]]},{"punkte":[[126.2,37.3],[120.7,37.3],[120.7,55.6],[126.2,55.6]]},{"bogen":[115.2,46.4,9.15,-1]}],
+    tore: [[[27.0,42.7],[28.2,50.1]],[[126.2,42.7],[127.4,50.1]],[[92,82.9],[98,84.9]],[[100,83.9],[106,85.9]]],
     ob: [],
-    distanzmarken: 25, // alle 25 m eine Markierung
+    distanzmarken: 25,
   },
 ];
