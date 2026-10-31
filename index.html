@@ -12,7 +12,20 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap">
+<link rel="stylesheet" href="fonts/schrift.css">
+<meta name="description" content="Boogie Garanten – Discgolf in 8 Bit. Alle 15 Bahnen des Hyzernauts Discgolfparcours im Volkspark Potsdam, mit Wind, Hyzer und Anhyzer, eigenen Bags und Putt-Modus. Kostenlos im Browser.">
+<link rel="canonical" href="https://www.discgolf-game.de/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Boogie Garanten">
+<meta property="og:locale" content="de_DE">
+<meta property="og:url" content="https://www.discgolf-game.de/">
+<meta property="og:title" content="Boogie Garanten – Discgolf in 8 Bit">
+<meta property="og:description" content="Alle 15 Bahnen im Volkspark Potsdam, mit Wind, Hyzer, Anhyzer und eigenem Bag. Direkt im Browser spielen.">
+<meta property="og:image" content="https://www.discgolf-game.de/icons/vorschau.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Boogie Garanten: Pixel-Discgolfbahn mit Korb">
+<meta name="twitter:card" content="summary_large_image">
 <style>
   :root {
     --bg: #0e1116;
@@ -178,7 +191,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.1.0</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.2.0</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <div class="kurswahl">
@@ -192,6 +205,7 @@
         <select id="rundenwahl"></select></label>
       <button class="gross" id="zu-doku" style="font-size:12px;padding:10px 16px;margin-top:8px">Anleitung<small>Steuerung, Regeln und Tipps</small></button>
       <button class="gross" id="zu-bags" style="font-size:12px;padding:10px 16px">Spieler & Bags<small>Spielerkarten ansehen, Scheiben im Bag bearbeiten</small></button>
+      <p class="klein" style="text-align:center;margin:10px 0 0"><a href="impressum.html" style="color:var(--leise)">Impressum</a> · <a href="datenschutz.html" style="color:var(--leise)">Datenschutz</a></p>
     </div>
     <div id="menue-doku" class="doku" hidden>
       <button class="doku-zurueck">← Zurück</button>
@@ -388,10 +402,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=0.1.0"></script>
-<script src="bahnen.js?v=0.1.0"></script>
-<script src="physik.js?v=0.1.0"></script>
-<script src="portraets.js?v=0.1.0"></script>
+<script src="taschen.js?v=0.2.0"></script>
+<script src="bahnen.js?v=0.2.0"></script>
+<script src="physik.js?v=0.2.0"></script>
+<script src="portraets.js?v=0.2.0"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -1763,8 +1777,17 @@ const kiAmZug = () => !!(spieler && spieler[aktiv] && zustand !== "ende" && (spi
 function kiPlane(s, k) {
   const d = abstand(s.lie, bahn.korb), basis = zumKorb(s.lie), alterWinkel = winkel, alteScheibe = s.scheibe;
   let scheiben = [s.scheibe];
-  if (k.alleScheiben) scheiben = s.tasche.map((_, i) => i).filter(i => { const r = Physik.reichweite(s.tasche[i]); return r > d * 0.5 && r < d * 2.2; });
-  if (!scheiben.length) scheiben = [s.scheibe];
+  const nah = d < 40; // Annäherung an Circle 1: Putter oder Midrange, Kraft passend zur Entfernung
+  if (k.alleScheiben) scheiben = s.tasche.map((_, i) => i).filter(i => {
+    const sc = s.tasche[i], r = Physik.reichweite(sc);
+    return nah ? sc.speed <= 6 : r > d * 0.5 && r < d * 2.2;
+  });
+  if (!scheiben.length) scheiben = [nah ? Math.max(0, s.tasche.indexOf(putter(s))) : s.scheibe];
+  // Kräfte: die feste Auswahl der Stufe plus die passenden Kräfte für knapp vor, auf und knapp hinter den Korb
+  const kraefteFuer = si => {
+    const passend = [0.85, 0.95, 1.05].map(f => Physik.kraftFuer(s.tasche[si], d * f));
+    return nah ? passend : [...k.kraefte, ...passend];
+  };
   const bewerte = c => {
     s.scheibe = c.si; winkel = c.w;
     const st = staerke(s);
@@ -1775,7 +1798,7 @@ function kiPlane(s, k) {
     return e.drin ? 0 : (rest <= 10 ? 1 + rest * 0.04 : 2 + rest / 80) + (e.ob || e.mando === "verpasst" ? 1.2 : 0) + (e.typ === "baum" ? 0.3 : 0);
   };
   const kandidaten = [];
-  for (const si of scheiben) for (const r of k.richtungen) for (const w of k.winkel) for (const kr of k.kraefte) {
+  for (const si of scheiben) for (const r of k.richtungen) for (const w of (nah ? [0] : k.winkel)) for (const kr of kraefteFuer(si)) {
     const c = { si, richtung: basis + r * DEG, w, kr };
     c.note = bewerte(c); c.n = 1;
     kandidaten.push(c);
@@ -1814,7 +1837,8 @@ function kiZug() {
   ziel = plan.richtung + Physik.gauss() * k.zielfehler * DEG;
   aktualisierePanel();
   // kurz zielen lassen, dann laden und mit der geplanten Kraft loslassen
-  const kraftZiel = Math.max(0.3, Math.min(1, plan.kr + Physik.gauss() * k.kraftfehler));
+  // Kraftfehler relativ zur Kraft, damit kurze Annäherungen nicht übers Ziel schießen
+  const kraftZiel = Math.max(0.02, Math.min(1, plan.kr * (1 + Physik.gauss() * k.kraftfehler * 1.5)));
   spaeter(() => {
     if (!kiAmZug() || zustand !== "zielen") return;
     startLaden();
