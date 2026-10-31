@@ -152,7 +152,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 42</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 43</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -225,7 +225,8 @@
         <li><b>Thomas</b> wirft Rückhand weiter und präziser (kleinerer gelb-roter Bereich).</li>
         <li><b>André</b> wirft Vorhand weiter und präziser.</li>
         <li><b>Gunnar</b> ist bei Rückhand-S-Line- und Flex-Shots sehr präzise: mit Anhyzer oder flach mit einer unterstabilen Scheibe (Turn −2 oder weniger, z. B. seine Heat).</li>
-        <li>Ein ★ hinter dem Wurf zeigt an, dass die Stärke gerade greift.</li>
+        <li><b>Lieblingsscheibe:</b> Wer mit seiner Lieblingsscheibe wirft, streut weniger und wirft etwas weiter.</li>
+        <li>Ein ★ hinter dem Wurf zeigt an, dass eine Stärke greift. <b>★★ = Doppelstärke:</b> Lieblingsscheibe und Superskill zusammen, z. B. Gunnar mit der Heat als Rückhand-S-Line.</li>
       </ul>
 
       <h3>Thomas</h3>
@@ -338,10 +339,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=42"></script>
-<script src="bahnen.js?v=42"></script>
-<script src="physik.js?v=42"></script>
-<script src="portraets.js?v=42"></script>
+<script src="taschen.js?v=43"></script>
+<script src="bahnen.js?v=43"></script>
+<script src="physik.js?v=43"></script>
+<script src="portraets.js?v=43"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -647,6 +648,7 @@ function neuesSpiel() {
     wurfart: s.wurfart || "rueckhand",
     ruf: s.ruf || "",
     staerken: s.staerken || {},
+    lieblingsscheibe: (s.karte || {}).lieblingsscheibe || "",
     aussehen: s.aussehen,
     karte: [],
     bester: 0,
@@ -734,10 +736,14 @@ function boe() {
 }
 
 // ---------- Normaler Wurf ----------
-// Stärken des Spielers für den aktuellen Wurf (Wurfart, Hyzer/Anhyzer)
+// Stärken des Spielers für den aktuellen Wurf: Superskill (Wurfart, Hyzer/Anhyzer, S-Line)
+// und Lieblingsscheibe – greifen beide, ist das eine Doppelstärke (★★)
+const LIEBLING_STANDARD = { streuung: 0.8, weite: 1.05 };
 function staerke(s) {
-  const st = s.staerken || {}, f = { streuung: 1, weite: 1, aktiv: false };
-  const anwenden = o => { if (o) { f.streuung *= o.streuung ?? 1; f.weite *= o.weite ?? 1; f.aktiv = true; } };
+  const st = s.staerken || {}, f = { streuung: 1, weite: 1, aktiv: false, sterne: 0 };
+  const anwenden = o => { if (o) { f.streuung *= o.streuung ?? 1; f.weite *= o.weite ?? 1; f.aktiv = true; f.sterne++; } };
+  const inHand = s.tasche[s.scheibe];
+  if (inHand && inHand.name === s.lieblingsscheibe) anwenden(st.lieblingsscheibe || LIEBLING_STANDARD);
   anwenden(s.wurfart === "vorhand" ? st.vorhand : st.rueckhand);
   if (winkel < -2) anwenden(st.anhyzer);
   if (winkel > 2) anwenden(st.hyzer);
@@ -1353,7 +1359,7 @@ function schleife(jetzt) {
     if (!puttModus) {
       const w = Math.round(winkel);
       const unten = hochkant ? SH - 46 : SH - 28;
-      text((s.wurfart === "vorhand" ? "VORHAND · " : "RÜCKHAND · ") + (w > 0 ? "HYZER " + w + "°" : w < 0 ? "ANHYZER " + -w + "°" : "FLACH") + (staerke(s).aktiv ? " ★" : ""), 4, unten, "#ffe08a");
+      text((s.wurfart === "vorhand" ? "VORHAND · " : "RÜCKHAND · ") + (w > 0 ? "HYZER " + w + "°" : w < 0 ? "ANHYZER " + -w + "°" : "FLACH") + (staerke(s).sterne ? " " + "★".repeat(staerke(s).sterne) : ""), 4, unten, "#ffe08a");
       text(scheibe().name.toUpperCase(), 4, unten + 9, TYPFARBE[scheibe().typ]);
     }
     if (!puttModus || zustand === "flug") zeichneKraftbalken();
@@ -1728,7 +1734,7 @@ function zeigeKarte(i) {
     <canvas class="portrait" width="32" height="32"></canvas>
     ${k.spitzname ? `<div class="kspitz">„${k.spitzname}“</div>` : ""}
     <div class="kwerte">
-      <span>Lieblingsscheibe</span><span>${lieb.name}</span>
+      <span>Lieblingsscheibe</span><span>${lieb.name} ★</span>
       <span>Weiteste Scheibe</span><span>${weiteste.name} · ca. ${Math.round(Physik.reichweite(weiteste))} m</span>
       <span>Bag</span><span>${s.tasche.length} Scheiben</span>
       ${s.ruf ? `<span>Ruf</span><span>„${s.ruf}“</span>` : ""}

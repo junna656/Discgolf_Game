@@ -23,6 +23,8 @@
 //    putten: Wackeln des Putt-Fadenkreuzes
 //    rueckhand / vorhand / hyzer / anhyzer: { streuung, weite } für Würfe dieser Art
 //    sline: Rückhand-S-Line/Flex – mit Anhyzer oder flach mit einer unterstabilen Scheibe (Turn ≤ -2)
+//    lieblingsscheibe: Bonus beim Wurf mit der Lieblingsscheibe (Standard: { streuung: 0.8, weite: 1.05 });
+//      greift zusammen mit einem Superskill = Doppelstärke ★★
 // ============================================================
 
 window.SPIELER = [
