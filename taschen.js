@@ -56,7 +56,7 @@ window.SPIELER = [
     hand: "rechts",
     tasche: [
       { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1, standard: true }, // Latitude 64°
-      { name: "Berg",      typ: "Putter",   speed: 1,  glide: 1, turn: 1,  fade: 1 },
+      { name: "Berg",      typ: "Putter",   speed: 1,  glide: 1, turn: 1,  fade: 1 }, // Daniels Putter
     ],
   },
   {

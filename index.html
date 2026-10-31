@@ -152,7 +152,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 41</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 42</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -338,10 +338,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=41"></script>
-<script src="bahnen.js?v=41"></script>
-<script src="physik.js?v=41"></script>
-<script src="portraets.js?v=41"></script>
+<script src="taschen.js?v=42"></script>
+<script src="bahnen.js?v=42"></script>
+<script src="physik.js?v=42"></script>
+<script src="portraets.js?v=42"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -692,6 +692,7 @@ function naechster() {
   ziel = zumKorb(s.lie);
   winkel = 0;
   puttModus = abstand(s.lie, bahn.korb) <= 10;
+  if (puttModus) s.scheibe = Math.max(0, s.tasche.indexOf(putter(s))); // zum Putten den Putter in die Hand
   if (!puttModus && modus !== "frei") passeScheibeAn(s);
   starteZug();
 }
@@ -1155,6 +1156,7 @@ function zeichnePuttAnsicht() {
 
   text("PUTT " + d.toFixed(1) + " M", bx + 4, by + 3, PAL.weiss);
   text(puttStil === "push" ? "PUSH" : "SPIN", bx + bw - 4, by + 3, "#ffe08a", "right");
+  text(putter(s).name.toUpperCase(), bx + 4, by + 12, TYPFARBE.Putter);
 
   if (!putt.flug) {
     const o = puttWackel(uhr - putt.t0);
