@@ -73,7 +73,7 @@
   // Je mehr Kraft, desto stärker die Streuung von Richtung, Kraft und Winkel
   // (Vorhand streut etwas mehr)
   function streue(wurf) {
-    const p = wurf.kraft, vh = wurf.wurfart === "vorhand" ? 1.2 : 1, st = E.streuung;
+    const p = wurf.kraft, vh = wurf.wurfart === "vorhand" ? 1.2 : 1, st = E.streuung * (wurf.streuFaktor || 1);
     return Object.assign({}, wurf, {
       richtung: wurf.richtung + gauss() * (0.8 + 7 * Math.pow(p, 2.5)) * vh * st * DEG,
       kraft: clamp(p * (1 + gauss() * (0.02 + 0.05 * p) * st), 0.05, 1.08),
@@ -98,6 +98,7 @@
     let D = reichweite(s) / E.weite * (0.25 + 0.75 * kraft);
     D *= 1 - Math.min(Math.abs(winkel), 40) / 40 * 0.12;
     if (wurf.wurfart === "vorhand") D *= 0.9;
+    D *= wurf.weiteFaktor || 1; // Stärke des Spielers
     D *= E.weite;
     D *= clamp(1 - 0.03 * gegen, 0.7, 1.15);
 

@@ -152,7 +152,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 39</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 40</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -217,6 +217,15 @@
         <li>Die Kamera wählt automatisch eine von drei Stufen (Übersicht, mittel, nah). Am Abwurf immer Übersicht. Im Flug bleibt die Stufe fest.</li>
         <li><b>+</b> / <b>−</b> am Spielfeldrand (Rechner auch Mausrad oder <kbd>+</kbd> <kbd>−</kbd>) stellen den Zoom selbst ein, <b>Auto</b> (<kbd>0</kbd>) schaltet zurück.</li>
         <li><b>Umsehen</b> (<kbd>U</kbd>): Die Bahn durch Ziehen verschieben. Werfen ist dann aus – nochmal tippen oder „Auto“ beendet das Umsehen.</li>
+      </ul>
+
+      <h3>Stärken der Spieler</h3>
+      <ul>
+        <li><b>Daniel</b> putten sehr ruhig – auch weite Putts wackeln kaum, Wind stört wenig.</li>
+        <li><b>Thomas</b> wirft Rückhand weiter und präziser (kleinerer gelb-roter Bereich).</li>
+        <li><b>André</b> wirft Vorhand weiter und präziser.</li>
+        <li><b>Gunnar</b> ist mit Anhyzer (S-Line) sehr präzise.</li>
+        <li>Ein ★ hinter dem Wurf zeigt an, dass die Stärke gerade greift.</li>
       </ul>
 
       <h3>Thomas</h3>
@@ -329,10 +338,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=39"></script>
-<script src="bahnen.js?v=39"></script>
-<script src="physik.js?v=39"></script>
-<script src="portraets.js?v=39"></script>
+<script src="taschen.js?v=40"></script>
+<script src="bahnen.js?v=40"></script>
+<script src="physik.js?v=40"></script>
+<script src="portraets.js?v=40"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -637,6 +646,8 @@ function neuesSpiel() {
     name: s.name, farbe: s.farbe, hand: s.hand || "rechts", tasche: s.tasche,
     wurfart: s.wurfart || "rueckhand",
     ruf: s.ruf || "",
+    staerken: s.staerken || {},
+    aussehen: s.aussehen,
     karte: [],
     bester: 0,
   }));
@@ -722,6 +733,16 @@ function boe() {
 }
 
 // ---------- Normaler Wurf ----------
+// Stärken des Spielers für den aktuellen Wurf (Wurfart, Hyzer/Anhyzer)
+function staerke(s) {
+  const st = s.staerken || {}, f = { streuung: 1, weite: 1, aktiv: false };
+  const anwenden = o => { if (o) { f.streuung *= o.streuung ?? 1; f.weite *= o.weite ?? 1; f.aktiv = true; } };
+  anwenden(s.wurfart === "vorhand" ? st.vorhand : st.rueckhand);
+  if (winkel < -2) anwenden(st.anhyzer);
+  if (winkel > 2) anwenden(st.hyzer);
+  return f;
+}
+
 // ladeZeiger: wo der Finger/die Maus beim Start des Ladens war (zum Richtung-Ziehen)
 let ladeZeiger = null;
 function startLaden(e) {
@@ -748,7 +769,8 @@ window.addEventListener("pointermove", e => {
 function loslassen() {
   if (zustand !== "laden") return;
   const s = ich();
-  const wurf = streue({ x: s.lie.x, y: s.lie.y, richtung: ziel, kraft, winkel, scheibe: scheibe(), hand: s.hand, wurfart: s.wurfart });
+  const st = staerke(s);
+  const wurf = streue({ x: s.lie.x, y: s.lie.y, richtung: ziel, kraft, winkel, scheibe: scheibe(), hand: s.hand, wurfart: s.wurfart, streuFaktor: st.streuung, weiteFaktor: st.weite });
   const erg = simuliere(bahn, wurf, boe());
   s.wuerfe++;
   // Wie stark hat die Streuung den Wurf verzogen? (für den Ruf)
@@ -900,12 +922,12 @@ function zeichneSprechblase() {
 const KETTEN = { x: 160, y: 75, bx: 12, by: 9 };
 function puttWackel(t) {
   const s = ich(), d = abstand(s.lie, bahn.korb);
-  const stil = puttStil === "push" ? 0.65 : 1;
-  const A = (1.5 + d * 2.1) * stil * (0.7 + 0.3 * Math.sin(t * 0.9));
+  const stil = puttStil === "push" ? 0.65 : 1, gut = (s.staerken || {}).putten ?? 1; // Putt-Stärke (Daniel)
+  const A = (1.5 + d * 2.1 * gut) * stil * (0.7 + 0.3 * Math.sin(t * 0.9));
   const w = 1 + d * 0.1;
   const r = zumKorb(s.lie);
   const quer = wind.x * -Math.sin(r) + wind.y * Math.cos(r);
-  const drift = quer * 1.6 * (puttStil === "push" ? 1.7 : 0.8) * (0.6 + 0.4 * Math.sin(t * 0.7));
+  const drift = quer * 1.6 * gut * (puttStil === "push" ? 1.7 : 0.8) * (0.6 + 0.4 * Math.sin(t * 0.7));
   return {
     x: A * Math.sin(t * 2.3 * w) + A * 0.5 * Math.sin(t * 3.9 * w + 1) + drift,
     y: A * 0.75 * Math.sin(t * 2.9 * w + 2) + A * 0.3 * Math.sin(t * 5.1 * w),
@@ -1056,9 +1078,12 @@ function zeichneWind() {
 function zeichneKraftbalken() {
   const x = hochkant ? 8 : 110, y = SH - 14, w = hochkant ? SW - 16 : 100;
   ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 2, y - 2, w + 4, 10);
-  ctx.fillStyle = "#3a7a30"; ctx.fillRect(x, y, w * 0.7, 6);
-  ctx.fillStyle = "#c8a830"; ctx.fillRect(x + w * 0.7, y, w * 0.2, 6);
-  ctx.fillStyle = "#c84030"; ctx.fillRect(x + w * 0.9, y, w * 0.1, 6);
+  // gelber/roter Bereich wird kleiner, wenn der Spieler bei diesem Wurf wenig streut
+  const sf = staerke(ich()).streuung * (ich().wurfart === "vorhand" ? 1.2 : 1) * E.streuung;
+  const gelb = Math.max(0.5, Math.min(0.93, 1 - 0.3 * sf)), rot = Math.max(0.75, Math.min(0.97, 1 - 0.1 * sf));
+  ctx.fillStyle = "#3a7a30"; ctx.fillRect(x, y, Math.round(w * gelb), 6);
+  ctx.fillStyle = "#c8a830"; ctx.fillRect(x + Math.round(w * gelb), y, Math.round(w * (rot - gelb)), 6);
+  ctx.fillStyle = "#c84030"; ctx.fillRect(x + Math.round(w * rot), y, w - Math.round(w * rot), 6);
   if (zustand === "laden" || zustand === "flug") {
     const k = zustand === "laden" ? kraft : flug.kraftAngezeigt;
     ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.fillRect(x, y, Math.round(w * k), 6);
@@ -1323,7 +1348,7 @@ function schleife(jetzt) {
     if (!puttModus) {
       const w = Math.round(winkel);
       const unten = hochkant ? SH - 46 : SH - 28;
-      text((s.wurfart === "vorhand" ? "VORHAND · " : "RÜCKHAND · ") + (w > 0 ? "HYZER " + w + "°" : w < 0 ? "ANHYZER " + -w + "°" : "FLACH"), 4, unten, "#ffe08a");
+      text((s.wurfart === "vorhand" ? "VORHAND · " : "RÜCKHAND · ") + (w > 0 ? "HYZER " + w + "°" : w < 0 ? "ANHYZER " + -w + "°" : "FLACH") + (staerke(s).aktiv ? " ★" : ""), 4, unten, "#ffe08a");
       text(scheibe().name.toUpperCase(), 4, unten + 9, TYPFARBE[scheibe().typ]);
     }
     if (!puttModus || zustand === "flug") zeichneKraftbalken();
@@ -1689,7 +1714,7 @@ document.querySelectorAll("#personen canvas.mini").forEach((c, i) => zeichnePort
 // Spielerkarte: erscheint bei der Auswahl einer Person
 let gewaehltePerson = 0;
 function zeigeKarte(i) {
-  const s = SPIELER[i], k = s.karte || {}, lieb = s.tasche.find(d => d.standard) || s.tasche[0];
+  const s = SPIELER[i], k = s.karte || {}, lieb = s.tasche.find(d => d.name === k.lieblingsscheibe) || s.tasche.find(d => d.standard) || s.tasche[0];
   const weiteste = s.tasche.reduce((a, d) => Physik.reichweite(d) > Physik.reichweite(a) ? d : a);
   gewaehltePerson = i;
   el("spielerkarte").style.setProperty("--farbe", s.farbe);
