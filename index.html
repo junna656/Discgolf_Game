@@ -88,7 +88,6 @@
   .spielerkarte .kinfo { font-family: system-ui, sans-serif; font-size: 14px; line-height: 1.4; margin: 0 0 8px; padding-left: 18px; }
   .spielerkarte .kbag { display: flex; flex-wrap: wrap; gap: 4px; }
   .spielerkarte .kbag span { font-size: 9px; padding: 3px 5px; border-left: 4px solid; background: #263040; }
-  #vorschau { aspect-ratio: 320 / 150; cursor: default; }
   .doku { font-family: system-ui, -apple-system, sans-serif; font-size: 15px; line-height: 1.5; color: var(--text); }
   .doku h2 { font-family: "Silkscreen", monospace; font-size: 18px; color: var(--akzent); text-align: center; margin: 10px 0; }
   .doku h3 { font-family: "Silkscreen", monospace; font-size: 13px; color: #ffe08a; margin: 18px 0 6px; font-weight: 400; }
@@ -97,7 +96,14 @@
   .doku p { margin: 0; }
   .doku code { background: #263040; padding: 0 4px; }
   .doku-zurueck { width: 100%; margin: 6px 0; font-size: 13px; padding: 10px; }
-  select { font-family: inherit; font-size: 12px; background: #2b3542; color: var(--text); border: 2px solid var(--rand); padding: 6px; }
+  select, input { font-family: inherit; font-size: 12px; background: #263040; color: var(--text); border: 2px solid var(--rand); padding: 6px; }
+  .bagzeile { border: 2px solid var(--rand); border-left: 6px solid var(--typ); background: #1a2029; padding: 8px; display: grid; gap: 6px; }
+  .bagzeile .bz-name { font-size: 14px; width: 100%; }
+  .bagzeile .bz-zahlen { display: grid; grid-template-columns: 2.1fr repeat(4, 1fr); gap: 4px; }
+  .bagzeile .bz-zahlen label { display: flex; flex-direction: column; font-size: 9px; color: var(--leise); gap: 2px; }
+  .bagzeile .bz-zahlen input, .bagzeile .bz-zahlen select { width: 100%; min-width: 0; padding: 6px 4px; font-size: 13px; }
+  .bagzeile .bz-fuss { display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+  .bagzeile .bz-fuss label { display: flex; gap: 6px; align-items: center; }
   .regler label { display: flex; justify-content: space-between; font-size: 11px; }
   .regler output { color: var(--akzent); }
   #scheibenchip { border-left-width: 6px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -156,7 +162,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 44</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 45</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <div class="kurswahl">
@@ -169,7 +175,7 @@
       <label class="klein" style="display:flex;gap:8px;align-items:center;justify-content:space-between">Flights spielen:
         <select id="rundenwahl"></select></label>
       <button class="gross" id="zu-doku" style="font-size:12px;padding:10px 16px;margin-top:8px">Anleitung<small>Steuerung, Regeln und Tipps</small></button>
-      <button class="gross" id="zu-einst" style="font-size:12px;padding:10px 16px">Einstellungen (Entwicklung)<small>Stärke von Hyzer, Anhyzer, Turn, Fade …</small></button>
+      <button class="gross" id="zu-bags" style="font-size:12px;padding:10px 16px">Spieler & Bags<small>Spielerkarten ansehen, Scheiben im Bag bearbeiten</small></button>
     </div>
     <div id="menue-doku" class="doku" hidden>
       <button class="doku-zurueck">← Zurück</button>
@@ -246,26 +252,22 @@
       <ul>
         <li><b>taschen.js:</b> Spieler, Farben, Wurfhand und die Scheiben jedes Bags mit Flugzahlen. <code>standard: true</code> = Startscheibe, <code>ruf</code> / <code>rufDatei</code> = Ruf als Text bzw. Aufnahme.</li>
         <li><b>bahnen.js:</b> alle Kurse (KURSE) mit ihren Bahnen und das freie Feld. Ein neuer Kurs ist ein weiterer Eintrag in KURSE und erscheint automatisch in der Kursauswahl.</li>
-        <li><b>Einstellungen (Entwicklung):</b> Stärke von Hyzer/Anhyzer, Turn, Fade, Weite, Streuung, Wind, Flugtempo, Kick, Zoom und Stimme. Wird nur in diesem Browser gespeichert.</li>
+        <li><b>Spieler & Bags</b> (Hauptmenü) bzw. „Bag bearbeiten“ auf der Spielerkarte: Scheiben hinzufügen, umbenennen, Typ und Flugzahlen ändern, entfernen und die Lieblingsscheibe festlegen. Wird in diesem Browser gespeichert und lässt sich auf das Original zurücksetzen.</li>
       </ul>
       <button class="doku-zurueck">← Zurück</button>
     </div>
-    <div id="menue-einst" class="liste" style="gap:8px" hidden>
-      <h2 style="text-align:center;font-size:13px">Einstellungen (Entwicklung)</h2>
-      <canvas id="vorschau" width="320" height="150"></canvas>
-      <div class="zeile"><span style="color:#ffd84a">Hyzer 20°</span><span style="color:#f4f4f0">Flach</span><span style="color:#7cc8ff">Anhyzer 20°</span></div>
-      <select id="vorschau-scheibe"></select>
-      <div id="regler" class="liste" style="gap:6px"></div>
-      <h2 style="margin:6px 0 0">Stimme für Rufe</h2>
-      <select id="stimmen"></select>
-      <button id="probe">Probe hören: „Achtung, zweite Scheibe!“</button>
-      <p class="klein" style="margin:0">Tipp iPhone: Einstellungen → Bedienungshilfen → Gesprochene Inhalte → Stimmen → Deutsch, dort eine „Erweitert“- oder „Premium“-Stimme laden. Echter klingt nur eine eigene Aufnahme (siehe taschen.js).</p>
-      <div class="knoepfe"><button id="einst-standard" style="flex:1">Standard</button><button id="einst-zurueck" style="flex:1">← Zurück</button></div>
-      <p class="klein" style="margin:0">Wird in diesem Browser gespeichert. Vorschau: volle Kraft, kein Wind, keine Streuung.</p>
+    <div id="menue-bag" class="liste" style="gap:8px" hidden>
+      <h2 id="bag-titel" style="text-align:center;font-size:13px">Bag bearbeiten</h2>
+      <div id="bag-liste" class="liste" style="gap:8px"></div>
+      <button id="bag-neu">+ Scheibe hinzufügen</button>
+      <div class="knoepfe"><button id="bag-speichern" class="an" style="flex:1;padding:10px">Speichern</button><button id="bag-abbrechen" style="flex:1;padding:10px">Abbrechen</button></div>
+      <button id="bag-reset">Bag auf Original zurücksetzen</button>
+      <p class="klein" style="margin:0">Speed 1–15, Glide 1–7, Turn −5 bis +2, Fade 0–5. Änderungen werden in diesem Browser gespeichert.</p>
     </div>
     <div id="menue-karte" class="liste" style="gap:10px" hidden>
       <div class="spielerkarte" id="spielerkarte"></div>
       <button class="gross" id="karte-los" style="text-align:center">Los geht's</button>
+      <button id="karte-bag">Bag bearbeiten</button>
       <button id="karte-zurueck">← Andere Person</button>
     </div>
     <div id="menue-wahl" class="liste" style="gap:10px" hidden>
@@ -349,10 +351,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=44"></script>
-<script src="bahnen.js?v=44"></script>
-<script src="physik.js?v=44"></script>
-<script src="portraets.js?v=44"></script>
+<script src="taschen.js?v=45"></script>
+<script src="bahnen.js?v=45"></script>
+<script src="physik.js?v=45"></script>
+<script src="portraets.js?v=45"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -1631,99 +1633,14 @@ function zeigeMenue() {
   try { speechSynthesis.cancel(); } catch (e) { /* egal */ }
   el("menue-start").hidden = false;
   el("menue-wahl").hidden = true;
-  el("menue-einst").hidden = true;
+  el("menue-bag").hidden = true;
   el("menue-doku").hidden = true;
   el("menue-karte").hidden = true;
   el("menue").hidden = false;
 }
 
-// ---------- Einstellungen (Entwicklung) ----------
-const REGLER = [
-  ["winkel", "Hyzer / Anhyzer", 0, 4, 0.1],
-  ["turn", "Turn", 0, 4, 0.1],
-  ["fade", "Fade", 0, 4, 0.1],
-  ["weite", "Weite", 0.5, 1.5, 0.05],
-  ["streuung", "Streuung", 0, 3, 0.1],
-  ["wind", "Wind", 0, 3, 0.1],
-  ["tempo", "Flugtempo (1 = Echtzeit)", 0.2, 1.5, 0.05],
-  ["kick", "Kick am Baum", 0, 3, 0.1],
-  ["zoomStufe", "Max. Zoom (1 = aus, 3 = nah)", 1, 3, 0.1],
-  ["rufAbStreuung", "Ruf ab Streuung (Grad)", 1, 15, 0.5],
-  ["rufTempo", "Ruf: Tempo", 0.5, 1.8, 0.05],
-  ["rufHoehe", "Ruf: Tonhöhe", 0.5, 2, 0.05],
-];
-const SPEICHER = "discgolf-einstellungen";
-try { Object.assign(E, JSON.parse(localStorage.getItem(SPEICHER) || "{}")); } catch (e) { /* egal */ }
-function speichereEinstellungen() {
-  try { localStorage.setItem(SPEICHER, JSON.stringify(E)); } catch (e) { /* egal */ }
-}
-const alleScheiben = SPIELER.flatMap(sp => sp.tasche.map(d => ({ d, sp })));
-el("vorschau-scheibe").innerHTML = alleScheiben.map((x, i) =>
-  `<option value="${i}">${x.d.name} (${x.sp.name}) · ${x.d.speed} | ${x.d.glide} | ${x.d.turn} | ${x.d.fade}</option>`).join("");
-function zeigeRegler() {
-  el("regler").innerHTML = REGLER.map(([k, name, min, max, step]) => `
-    <div class="regler"><label>${name}<output id="w-${k}">${E[k].toFixed(2)}</output></label>
-    <input type="range" data-einst="${k}" min="${min}" max="${max}" step="${step}" value="${E[k]}"></div>`).join("");
-}
-el("regler").addEventListener("input", e => {
-  const k = e.target.dataset.einst;
-  if (!k) return;
-  E[k] = +e.target.value;
-  el("w-" + k).textContent = E[k].toFixed(2);
-  speichereEinstellungen();
-  zeichneVorschau();
-});
-// Draufsicht von drei Würfen der gewählten Scheibe: Hyzer, flach, Anhyzer
-function zeichneVorschau() {
-  const c = el("vorschau").getContext("2d"), x = alleScheiben[+el("vorschau-scheibe").value || 0];
-  const leer = { welt: { breite: 1e4, hoehe: 1e4 }, baeume: [], ob: [], korb: { x: -1e3, y: -1e3 } };
-  const VS = 2.2, y0 = 75;
-  c.fillStyle = PAL.gras1; c.fillRect(0, 0, 320, 150);
-  c.fillStyle = "rgba(255,255,255,.25)";
-  for (let m = 25; m * VS < 320; m += 25) for (let py = 0; py < 150; py += 3) c.fillRect(Math.round(8 + m * VS), py, 1, 1);
-  c.fillStyle = "rgba(255,255,255,.7)"; c.font = "8px Silkscreen"; c.textBaseline = "top";
-  for (let m = 50; m * VS < 310; m += 50) c.fillText(m + "", 10 + m * VS, 2);
-  [[20, "#ffd84a"], [0, "#f4f4f0"], [-20, "#7cc8ff"]].forEach(([w, f]) => {
-    const e = simuliere(leer, { x: 0, y: 5000, richtung: 0, kraft: 1, winkel: w, scheibe: x.d, hand: x.sp.hand || "rechts", wurfart: "rueckhand" }, { x: 0, y: 0 });
-    c.fillStyle = f;
-    e.pfad.forEach((p, i) => { if (i % 2 === 0) c.fillRect(Math.round(8 + p.x * VS), Math.round(y0 + (p.y - 5000) * VS), 1, 1); });
-    const l = e.pfad[e.pfad.length - 1];
-    c.fillRect(Math.round(8 + l.x * VS) - 1, Math.round(y0 + (l.y - 5000) * VS) - 1, 3, 3);
-  });
-  c.fillStyle = "#8c8c88"; c.fillRect(4, y0 - 3, 6, 6);
-}
-el("vorschau-scheibe").addEventListener("change", zeichneVorschau);
-function zeigeStimmen() {
-  const v = deutscheStimmen(), akt = stimme();
-  el("stimmen").innerHTML = v.length
-    ? v.map(x => `<option ${x === akt ? "selected" : ""}>${x.name}</option>`).join("")
-    : "<option>Keine deutsche Stimme gefunden</option>";
-}
-try { speechSynthesis.addEventListener("voiceschanged", zeigeStimmen); } catch (e) { /* egal */ }
-el("stimmen").addEventListener("change", e => { E.rufStimme = e.target.value; speichereEinstellungen(); sprich("Achtung, zweite Scheibe!"); });
-el("probe").addEventListener("click", () => {
-  weckeSprache();
-  const t = SPIELER.find(sp => sp.ruf);
-  if (t && t.rufDatei) rufe({ name: t.name, ruf: t.ruf, lie: { x: 0, y: 0 } });
-  else sprich((t && t.ruf) || "Achtung, zweite Scheibe!");
-});
-el("zu-einst").addEventListener("click", () => {
-  zeigeRegler();
-  zeigeStimmen();
-  el("menue-start").hidden = true;
-  el("menue-einst").hidden = false;
-  zeichneVorschau();
-});
-el("einst-zurueck").addEventListener("click", () => { el("menue-start").hidden = false; el("menue-einst").hidden = true; });
 el("zu-doku").addEventListener("click", () => { el("menue-start").hidden = true; el("menue-doku").hidden = false; el("menue").scrollTop = 0; });
 document.querySelectorAll(".doku-zurueck").forEach(b => b.addEventListener("click", () => { el("menue-doku").hidden = true; el("menue-start").hidden = false; el("menue").scrollTop = 0; }));
-el("einst-standard").addEventListener("click", () => {
-  Object.assign(E, Physik.STANDARD, TON_STANDARD);
-  zeigeStimmen();
-  speichereEinstellungen();
-  zeigeRegler();
-  zeichneVorschau();
-});
 let gewaehlterModus = null;
 // ---------- Kursauswahl (weitere Kurse kommen in bahnen.js unter KURSE dazu) ----------
 let kurs = KURSE[0];
@@ -1747,10 +1664,23 @@ el("kurse").addEventListener("click", e => {
 });
 zeigeKurse();
 el("vierer-namen").textContent = SPIELER.map(s => s.name).join(", ").replace(/, ([^,]*)$/, " & $1") + " spielen zusammen";
+function baueSpielerliste() {
 el("personen").innerHTML = SPIELER.map((s, i) => `
   <button class="gross person" data-person="${i}" style="border-left-color:${s.farbe}"><canvas class="mini" width="32" height="32"></canvas>
     <span>${s.name}<small>${s.tasche.length} Scheiben · ${s.hand === "links" ? "Linkshand" : "Rechtshand"}</small></span></button>`).join("");
 document.querySelectorAll("#personen canvas.mini").forEach((c, i) => zeichnePortrait(c.getContext("2d"), SPIELER[i]));
+}
+// Original-Bags aus taschen.js merken, dann gespeicherte Änderungen aus dem Browser übernehmen
+const ORIGINAL_BAGS = Object.fromEntries(SPIELER.map(sp => [sp.name, { tasche: sp.tasche.map(d => ({ ...d })), lieblingsscheibe: (sp.karte || {}).lieblingsscheibe || "" }]));
+try {
+  const gespeichert = JSON.parse(localStorage.getItem("discgolf-bags") || "{}");
+  for (const sp of SPIELER) if (gespeichert[sp.name]) {
+    sp.tasche = gespeichert[sp.name].tasche;
+    sp.karte = { ...(sp.karte || {}), lieblingsscheibe: gespeichert[sp.name].lieblingsscheibe };
+    sp._bagGeaendert = true;
+  }
+} catch (e) { /* egal */ }
+baueSpielerliste();
 
 // Spielerkarte: erscheint bei der Auswahl einer Person
 let gewaehltePerson = 0;
@@ -1772,12 +1702,105 @@ function zeigeKarte(i) {
     ${(k.infos || []).length ? `<ul class="kinfo">${k.infos.map(t => `<li>${t}</li>`).join("")}</ul>` : `<p class="klein" style="margin:0 0 8px">Mehr Infos folgen.</p>`}
     <div class="kbag">${s.tasche.map(d => `<span style="border-color:${TYPFARBE[d.typ] || "#888"}">${d.name}</span>`).join("")}</div>`;
   zeichnePortrait(el("spielerkarte").querySelector("canvas").getContext("2d"), s);
+  el("karte-los").hidden = gewaehlterModus === "bags";
   el("menue-wahl").hidden = true;
   el("menue-karte").hidden = false;
   el("menue").scrollTop = 0;
 }
 el("karte-los").addEventListener("click", () => starteModus(gewaehlterModus, gewaehltePerson));
 el("karte-zurueck").addEventListener("click", () => { el("menue-karte").hidden = true; el("menue-wahl").hidden = false; });
+
+// ---------- Bag bearbeiten (gespeichert im Browser, Original bleibt in taschen.js) ----------
+let entwurf = null;
+function zeigeBagEditor(i) {
+  const sp = SPIELER[i];
+  entwurf = { i, tasche: sp.tasche.map(d => ({ ...d })), lieb: (sp.karte || {}).lieblingsscheibe || (sp.tasche.find(d => d.standard) || {}).name };
+  el("bag-titel").textContent = "Bag von " + sp.name;
+  zeichneBagListe();
+  el("menue-karte").hidden = true;
+  el("menue-bag").hidden = false;
+  el("menue").scrollTop = 0;
+}
+function zeichneBagListe() {
+  const typen = ["Driver", "Fairway", "Midrange", "Putter"];
+  el("bag-liste").innerHTML = entwurf.tasche.map((d, k) => `
+    <div class="bagzeile" data-k="${k}" style="--typ:${TYPFARBE[d.typ] || "#888"}">
+      <input class="bz-name" data-feld="name" value="${d.name.replace(/"/g, "&quot;")}" maxlength="20" aria-label="Name">
+      <div class="bz-zahlen">
+        <label>Typ<select data-feld="typ">${typen.map(t => `<option ${t === d.typ ? "selected" : ""}>${t}</option>`).join("")}</select></label>
+        <label>Speed<input type="number" data-feld="speed" min="1" max="15" step="1" value="${d.speed}"></label>
+        <label>Glide<input type="number" data-feld="glide" min="1" max="7" step="1" value="${d.glide}"></label>
+        <label>Turn<input type="number" data-feld="turn" min="-5" max="2" step="0.5" value="${d.turn}"></label>
+        <label>Fade<input type="number" data-feld="fade" min="0" max="5" step="0.5" value="${d.fade}"></label>
+      </div>
+      <div class="bz-fuss">
+        <label><input type="radio" name="lieb" data-feld="lieb" ${d.name === entwurf.lieb ? "checked" : ""}> Lieblingsscheibe ★</label>
+        <button data-weg="${k}">Entfernen</button>
+      </div>
+    </div>`).join("");
+}
+el("bag-liste").addEventListener("input", e => {
+  const z = e.target.closest("[data-k]"), f = e.target.dataset.feld;
+  if (!z || !f) return;
+  const d = entwurf.tasche[+z.dataset.k];
+  if (f === "lieb") { entwurf.lieb = d.name; return; }
+  if (f === "name") { if (entwurf.lieb === d.name) entwurf.lieb = e.target.value; d.name = e.target.value; return; }
+  if (f === "typ") { d.typ = e.target.value; z.style.setProperty("--typ", TYPFARBE[d.typ]); return; }
+  d[f] = +e.target.value;
+});
+el("bag-liste").addEventListener("click", e => {
+  const b = e.target.closest("[data-weg]");
+  if (!b) return;
+  if (entwurf.tasche.length <= 1) { alert("Im Bag muss mindestens eine Scheibe bleiben."); return; }
+  entwurf.tasche.splice(+b.dataset.weg, 1);
+  zeichneBagListe();
+});
+el("bag-neu").addEventListener("click", () => {
+  entwurf.tasche.push({ name: "Neue Scheibe", typ: "Midrange", speed: 5, glide: 5, turn: 0, fade: 1 });
+  zeichneBagListe();
+  el("bag-liste").lastElementChild.scrollIntoView({ block: "center" });
+});
+// Werte in gültige Bereiche bringen
+const zahl = (v, min, max, std) => Number.isFinite(+v) ? Math.max(min, Math.min(max, +v)) : std;
+function speichereBags() {
+  const daten = {};
+  for (const sp of SPIELER) if (sp._bagGeaendert) daten[sp.name] = { tasche: sp.tasche, lieblingsscheibe: (sp.karte || {}).lieblingsscheibe };
+  try { localStorage.setItem("discgolf-bags", JSON.stringify(daten)); } catch (e) { /* egal */ }
+}
+el("bag-speichern").addEventListener("click", () => {
+  const sp = SPIELER[entwurf.i];
+  sp.tasche = entwurf.tasche.map(d => ({
+    name: (d.name || "").trim() || "Scheibe", typ: ["Driver", "Fairway", "Midrange", "Putter"].includes(d.typ) ? d.typ : "Midrange",
+    speed: zahl(d.speed, 1, 15, 5), glide: zahl(d.glide, 1, 7, 5), turn: zahl(d.turn, -5, 2, 0), fade: zahl(d.fade, 0, 5, 1),
+  }));
+  const lieb = sp.tasche.find(d => d.name === (entwurf.lieb || "").trim()) || null;
+  if (lieb) lieb.standard = true;
+  sp.karte = { ...(sp.karte || {}), lieblingsscheibe: lieb ? lieb.name : "" };
+  sp._bagGeaendert = true;
+  speichereBags();
+  baueSpielerliste();
+  el("menue-bag").hidden = true;
+  zeigeKarte(entwurf.i);
+});
+el("bag-abbrechen").addEventListener("click", () => { el("menue-bag").hidden = true; zeigeKarte(entwurf.i); });
+el("bag-reset").addEventListener("click", () => {
+  const sp = SPIELER[entwurf.i], orig = ORIGINAL_BAGS[sp.name];
+  if (!confirm("Bag von " + sp.name + " auf den Stand aus taschen.js zurücksetzen?")) return;
+  sp.tasche = orig.tasche.map(d => ({ ...d }));
+  sp.karte = { ...(sp.karte || {}), lieblingsscheibe: orig.lieblingsscheibe };
+  sp._bagGeaendert = false;
+  speichereBags();
+  baueSpielerliste();
+  el("menue-bag").hidden = true;
+  zeigeKarte(entwurf.i);
+});
+el("karte-bag").addEventListener("click", () => zeigeBagEditor(gewaehltePerson));
+el("zu-bags").addEventListener("click", () => {
+  gewaehlterModus = "bags";
+  el("wahl-titel").textContent = "Spieler & Bags";
+  el("menue-start").hidden = true;
+  el("menue-wahl").hidden = false;
+});
 document.querySelectorAll("[data-modus]").forEach(b => b.addEventListener("click", () => {
   const m = b.dataset.modus;
   weckeSprache();
