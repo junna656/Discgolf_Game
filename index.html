@@ -79,6 +79,9 @@
   .gross:hover, .gross:focus-visible { border-color: var(--akzent); }
   .person { display: flex; align-items: center; gap: 12px; }
   .person .punkt { width: 18px; height: 18px; flex-shrink: 0; }
+  .bahngitter { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .bahngitter button { padding: 8px 0; font-size: 13px; }
+  .bahngitter button.gespielt:not(.an) { color: var(--leise); border-style: dashed; }
   .kurswahl { border: 3px solid var(--rand); background: rgba(14, 17, 22, .55); padding: 10px; margin: 4px 0; }
   .kurswahl h2 { text-align: center; font-size: 13px; color: #ffe08a; }
   .kurs { text-align: left; font-size: 14px; padding: 10px 12px; background: #22302a; border-width: 3px; }
@@ -170,7 +173,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 54</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 55</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <div class="kurswahl">
@@ -196,6 +199,7 @@
         <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat.</li>
         <li><b>Kurs:</b> Im Hauptmenü wählst du den Kurs für die Flights. Bisher gibt es den Hyzernauts Discgolfparcours im Volkspark Potsdam – weitere Kurse folgen.</li>
         <li>Unter „Flights spielen“ wählst du die ganze Runde oder eine einzelne Bahn des Kurses.</li>
+        <li><b>Bahn wählen:</b> Im Spiel (Handy: im Bag, Rechner: rechts) kannst du jederzeit direkt auf jede Bahn des Kurses springen. Die laufende Bahn wird dabei abgebrochen und zählt nicht.</li>
       </ul>
 
       <h3>Werfen</h3>
@@ -333,6 +337,11 @@
       <h2 id="modusname">Modus</h2>
       <div class="knoepfe"><button id="zummenue" style="flex:1;font-size:13px;padding:10px 6px">Hauptmenü</button></div>
     </div>
+    <div class="box nur-bag" id="bahnsprungbox">
+      <h2>Bahn wählen</h2>
+      <div class="bahngitter" id="bahnsprung"></div>
+      <p class="klein" style="margin:6px 0 0">Antippen springt direkt auf die Bahn.</p>
+    </div>
     <div class="box nur-bag">
       <h1>Boogie Garanten</h1>
       <div class="klein" id="bahninfo"></div>
@@ -366,10 +375,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=54"></script>
-<script src="bahnen.js?v=54"></script>
-<script src="physik.js?v=54"></script>
-<script src="portraets.js?v=54"></script>
+<script src="taschen.js?v=55"></script>
+<script src="bahnen.js?v=55"></script>
+<script src="physik.js?v=55"></script>
+<script src="portraets.js?v=55"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -669,7 +678,8 @@ function startScheibe(tasche) {
 }
 
 // Runde: Liste der Bahnen; jeder Spieler hat eine Karte mit den Würfen pro Bahn
-let runde = [], rundenIndex = 0;
+// startIndex: hier beginnt die Runde; nurEine: nur eine einzelne Bahn spielen
+let runde = [], rundenIndex = 0, startIndex = 0, nurEine = false;
 
 function neuesSpiel() {
   spieler = teilnehmer.map(i => SPIELER[i]).map(s => ({
@@ -682,7 +692,7 @@ function neuesSpiel() {
     karte: [],
     bester: 0,
   }));
-  rundenIndex = 0;
+  rundenIndex = startIndex;
   starteBahn();
 }
 
@@ -1226,15 +1236,17 @@ function zeichnePuttAnsicht() {
 
 // Gesamtergebnis der Runde bisher (Würfe und Abstand zum Par)
 function gesamt(s) {
-  const w = s.karte.reduce((a, b) => a + (b || 0), 0);
-  const par = runde.slice(0, s.karte.length).reduce((a, b) => a + b.par, 0);
+  // nur gespielte Bahnen zählen (beim Springen können welche fehlen)
+  let w = 0, par = 0;
+  s.karte.forEach((x, i) => { if (x !== undefined) { w += x; par += runde[i].par; } });
   return { w, d: w - par };
 }
 const plusMinus = d => d === 0 ? "E" : (d > 0 ? "+" : "") + d;
-const rundeVorbei = () => rundenIndex >= runde.length - 1;
+const rundeVorbei = () => nurEine || rundenIndex >= runde.length - 1;
+const ganzeRunde = () => runde.length > 1 && !nurEine;
 
 function zeichneEnde() {
-  const ganz = runde.length > 1, letzte = rundeVorbei();
+  const ganz = ganzeRunde(), letzte = rundeVorbei();
   ctx.fillStyle = "rgba(10,14,20,.88)"; ctx.fillRect(70, 26, 180, 128);
   text(letzte && ganz ? "RUNDE BEENDET" : (bahn.kurz || "BAHN " + bahn.nummer) + " GESPIELT", 160, 32, "#9be07a", "center", 8);
   if (ganz) { text("BAHN", 176, 44, "#d0d8e2", "center"); text("GESAMT", 236, 44, "#d0d8e2", "right"); }
@@ -1428,13 +1440,17 @@ const el = id => document.getElementById(id);
 function aktualisierePanel() {
   el("bahninfo").innerHTML =
     `${bahn.distanzmarken ? bahn.ort || "" : kurs.name + " · " + kurs.ort}<br>${bahn.kurz ? "" : "Bahn " + bahn.nummer + " "}${bahn.name ? "„" + bahn.name + "“ " : ""}· Par ${bahn.par} · ${Math.round(abstand(bahn.abwurf, bahn.korb))} m`
-    + (runde.length > 1 ? `<br>Runde: Bahn ${rundenIndex + 1} von ${runde.length}` : "");
+    + (ganzeRunde() ? `<br>Runde: Bahn ${rundenIndex + 1} von ${runde.length}` : "");
+  // Bahn wählen: alle Bahnen des Kurses, die aktuelle markiert
+  el("bahnsprungbox").hidden = modus === "frei";
+  if (modus !== "frei") el("bahnsprung").innerHTML = runde.map((b, i) =>
+    `<button data-sprung="${i}" class="${i === rundenIndex ? "an" : ""} ${spieler.some(sp => sp.karte[i] !== undefined) ? "gespielt" : ""}">${b.nummer}</button>`).join("");
   el("modusname").textContent = { frei: "Freies Werfen", single: "Single Flight", vierer: "Vierer Flight" }[modus];
   el("spielerliste").innerHTML = spieler.map((s, i) => {
     const d = s.wuerfe - bahn.par;
     const status = modus === "frei" ? (s.bester ? "Best " + Math.round(s.bester) + " m" : "–")
       : s.fertig ? (d === 0 ? "E" : (d > 0 ? "+" : "") + d) : Math.round(abstand(s.lie, bahn.korb)) + " m";
-    const g = gesamt(s), ges = runde.length > 1 ? plusMinus(g.d) : "";
+    const g = gesamt(s), ges = ganzeRunde() ? plusMinus(g.d) : "";
     return `<span class="punkt" style="background:${s.farbe}"></span>
       <span class="${i === aktiv && zustand !== "ende" ? "aktiv" : ""}">${i === aktiv && zustand !== "ende" ? "▶ " : ""}${s.name}</span>
       <span class="wert">${s.wuerfe}</span><span class="wert klein">${status}</span><span class="wert klein">${ges}</span>`;
@@ -1640,6 +1656,19 @@ function setzeBahn(b) {
   leerlauf(() => { if (bahn === b) bahnBild(STUFEN[1]); leerlauf(() => { if (bahn === b) bahnBild(STUFEN[2]); }); });
 }
 
+// Direkt auf eine Bahn springen (die laufende Bahn wird abgebrochen)
+function springeZu(i) {
+  if (modus === "frei" || !spieler) return;
+  if (nurEine) startIndex = i; // bei "Nur eine Bahn" wird dann diese Bahn gespielt
+  rundenIndex = i;
+  starteBahn();
+  zeigeAnsicht("feld");
+}
+el("bahnsprung").addEventListener("click", e => {
+  const b = e.target.closest("[data-sprung]");
+  if (b) springeZu(+b.dataset.sprung);
+});
+
 // ---------- Hauptbildschirm ----------
 function starteModus(m, person) {
   modus = m;
@@ -1647,7 +1676,9 @@ function starteModus(m, person) {
   const feld = FREIES_FELD;
   if (m === "frei" && !feld) { alert("Das freie Feld wurde nicht geladen. Bitte die Seite neu laden."); return; }
   const plaetze = kurs.bahnen, wahl = +el("rundenwahl").value;
-  runde = m === "frei" ? [feld] : wahl ? [plaetze[wahl - 1]] : plaetze;
+  runde = m === "frei" ? [feld] : plaetze;
+  startIndex = m === "frei" || !wahl ? 0 : wahl - 1;
+  nurEine = m !== "frei" && !!wahl;
   el("menue").hidden = true;
   zeigeAnsicht("feld");
   neuesSpiel();
