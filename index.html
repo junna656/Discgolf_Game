@@ -139,7 +139,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 32</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 33</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -165,7 +165,7 @@
       <ul>
         <li><b>Zielen:</b> Handy – dorthin tippen, wohin der Wurf gehen soll. Rechner – Maus bewegen oder <kbd>←</kbd> <kbd>→</kbd>.</li>
         <li><b>Kraft:</b> gedrückt halten (Spielfeld, „Werfen“ oder <kbd>Leertaste</kbd>), der Kraftbalken pendelt, beim Loslassen wird geworfen.</li>
-        <li><b>Winkel beim Halten:</b> Solange du gedrückt hältst, kannst du seitlich ziehen – zur Seite, in die die Scheibe kurven soll (Rückhand: links = Hyzer, rechts = Anhyzer). Der Pfeil an der Ziellinie zeigt die Kurve.</li>
+        <li><b>Richtung beim Halten:</b> Solange du gedrückt hältst, kannst du noch ziehen und so die Richtung bis zum Loslassen ändern – auf dem Spielfeld folgt die Ziellinie dem Finger, beim Werfen-Knopf dreht seitliches Ziehen die Richtung.</li>
         <li><b>Richtung am Handy:</b> die Knöpfe <b>&lt;</b> und <b>&gt;</b> neben „Werfen“ drehen die Wurfrichtung, gedrückt halten dreht schneller.</li>
         <li><b>Streuung:</b> Je mehr Kraft, desto stärker weichen Richtung, Weite und Winkel ab. Im roten Bereich wird es wild.</li>
         <li><b>Scheibe:</b> Das Spiel wählt passend zur Entfernung (Driver weit weg, Putter nah). Du kannst im Bag jederzeit selbst wechseln.</li>
@@ -311,9 +311,9 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=32"></script>
-<script src="bahnen.js?v=32"></script>
-<script src="physik.js?v=32"></script>
+<script src="taschen.js?v=33"></script>
+<script src="bahnen.js?v=33"></script>
+<script src="physik.js?v=33"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -703,24 +703,28 @@ function boe() {
 }
 
 // ---------- Normaler Wurf ----------
-// ladeZeiger: wo der Finger/die Maus beim Start des Ladens war (zum Winkel-Ziehen)
+// ladeZeiger: wo der Finger/die Maus beim Start des Ladens war (zum Richtung-Ziehen)
 let ladeZeiger = null;
 function startLaden(e) {
   if (zustand !== "zielen") return;
   zustand = "laden";
   ladeZeit = uhr;
   kraft = 0;
-  ladeZeiger = e && e.clientX !== undefined ? { x: e.clientX, y: e.clientY, w: winkel } : null;
+  ladeZeiger = e && e.clientX !== undefined ? { x: e.clientX, y: e.clientY, ziel, aufFeld: e.currentTarget === cv } : null;
 }
-// Seitlich ziehen, solange gedrückt: zur Seite, in die die Scheibe kurven soll
-// (Rückhand rechts: nach links ziehen = Hyzer, nach rechts = Anhyzer)
+// Solange gedrückt, ändert Ziehen die Richtung bis zum Loslassen:
+// auf dem Spielfeld zielt die Scheibe auf den Finger, beim Werfen-Knopf dreht seitliches Ziehen die Richtung
 window.addEventListener("pointermove", e => {
   if (zustand !== "laden" || !ladeZeiger || umsehen) return;
+  if (ladeZeiger.aufFeld) {
+    const p = weltPunkt(e), s = ich();
+    if (abstand(p, s.lie) > 1) ziel = Math.atan2(p.y - s.lie.y, p.x - s.lie.x);
+    return;
+  }
   const r = cv.getBoundingClientRect(), dx = (e.clientX - ladeZeiger.x) / r.width * SW, dy = (e.clientY - ladeZeiger.y) / r.height * SH;
   const wx = hochkant ? -dy : dx, wy = hochkant ? dx : dy; // Bildschirm -> Bahnrichtung
-  const seitlich = wx * -Math.sin(ziel) + wy * Math.cos(ziel); // > 0: nach rechts gezogen
-  const s = ich(), hand = (s.hand === "links" ? -1 : 1) * (s.wurfart === "vorhand" ? -1 : 1);
-  winkel = Math.round(Math.max(-30, Math.min(30, ladeZeiger.w - seitlich * 0.45 * hand)));
+  const seitlich = wx * -Math.sin(ladeZeiger.ziel) + wy * Math.cos(ladeZeiger.ziel); // > 0: nach rechts gezogen
+  ziel = ladeZeiger.ziel + seitlich * 0.35 * DEG;
 });
 function loslassen() {
   if (zustand !== "laden") return;
