@@ -4,7 +4,7 @@
 Erster Kurs: der Hyzernauts Discgolfparcours im Volkspark Potsdam mit allen 15 Bahnen –
 weitere Kurse folgen.
 
-**Spielen:** https://junna656.github.io/Discgolf_Game/
+**Spielen:** https://www.discgolf-game.de
 
 ## Modi
 - **Freies Werfen** auf dem Sportplatz – Weiten testen, ohne Zählen
