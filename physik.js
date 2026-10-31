@@ -78,12 +78,23 @@
     const p = wurf.kraft, vh = wurf.wurfart === "vorhand" ? 1.2 : 1, st = E.streuung * (wurf.streuFaktor || 1);
     return Object.assign({}, wurf, {
       richtung: wurf.richtung + gauss() * (0.8 + 7 * Math.pow(p, 2.5)) * vh * st * DEG,
-      kraft: clamp(p * (1 + gauss() * (0.02 + 0.05 * p) * st), 0.05, 1.08),
+      kraft: clamp(p * (1 + gauss() * (0.02 + 0.05 * p) * st), 0.01, 1.08),
       winkel: wurf.winkel + gauss() * (1 + 6 * p * p) * st,
     });
   }
 
   // Ungefähre Weite bei voller Kraft, flach und ohne Wind (gleiche Formel wie in simuliere)
+  // Anteil der Reichweite je nach Kraft; unter 30 % geht es bis auf kurze Annäherungswürfe herunter
+  function kraftFaktor(k) {
+    return k >= 0.3 ? 0.25 + 0.75 * k : 0.03 + 0.445 * Math.max(0, k) / 0.3;
+  }
+  // umgekehrt: welche Kraft braucht die Scheibe für d Meter (ohne Rutschen)?
+  function kraftFuer(s, d) {
+    const g = d / (reichweite(s) / E.weite);
+    const k = g >= 0.475 ? (g - 0.25) / 0.75 : (g - 0.03) / 0.445 * 0.3;
+    return Math.max(0.02, Math.min(1, k));
+  }
+
   function reichweite(s) {
     return (30 + s.speed * 6.5 + s.glide * 2) * E.weite;
   }
@@ -115,7 +126,7 @@
     const seite = (wurf.hand === "links" ? -1 : 1) * (wurf.wurfart === "vorhand" ? -1 : 1);
     const gegen = -(wind.x * Math.cos(wurf.richtung) + wind.y * Math.sin(wurf.richtung)); // Gegenwind > 0
 
-    let D = reichweite(s) / E.weite * (0.25 + 0.75 * kraft);
+    let D = reichweite(s) / E.weite * kraftFaktor(kraft);
     D *= 1 - Math.min(Math.abs(winkel), 40) / 40 * 0.12;
     if (wurf.wurfart === "vorhand") D *= 0.9;
     D *= wurf.weiteFaktor || 1; // Stärke des Spielers
@@ -283,5 +294,5 @@
     return { pfad, lie, drin, ob, obIndex, mando, mandoIndex, typ, bremsPunkte, dauer: t, distanz: abstand(lie, wurf) };
   }
 
-  g.Physik = { simuliere, streue, gauss, abstand, istOB, obZone, imPolygon, seiteVonLinie, aufBowlingbahn, DEG, einstellungen: E, STANDARD, reichweite };
+  g.Physik = { kraftFaktor, kraftFuer, simuliere, streue, gauss, abstand, istOB, obZone, imPolygon, seiteVonLinie, aufBowlingbahn, DEG, einstellungen: E, STANDARD, reichweite };
 })(typeof window !== "undefined" ? window : globalThis);

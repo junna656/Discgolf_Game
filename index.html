@@ -1777,8 +1777,17 @@ const kiAmZug = () => !!(spieler && spieler[aktiv] && zustand !== "ende" && (spi
 function kiPlane(s, k) {
   const d = abstand(s.lie, bahn.korb), basis = zumKorb(s.lie), alterWinkel = winkel, alteScheibe = s.scheibe;
   let scheiben = [s.scheibe];
-  if (k.alleScheiben) scheiben = s.tasche.map((_, i) => i).filter(i => { const r = Physik.reichweite(s.tasche[i]); return r > d * 0.5 && r < d * 2.2; });
-  if (!scheiben.length) scheiben = [s.scheibe];
+  const nah = d < 40; // Annäherung an Circle 1: Putter oder Midrange, Kraft passend zur Entfernung
+  if (k.alleScheiben) scheiben = s.tasche.map((_, i) => i).filter(i => {
+    const sc = s.tasche[i], r = Physik.reichweite(sc);
+    return nah ? sc.speed <= 6 : r > d * 0.5 && r < d * 2.2;
+  });
+  if (!scheiben.length) scheiben = [nah ? Math.max(0, s.tasche.indexOf(putter(s))) : s.scheibe];
+  // Kräfte: die feste Auswahl der Stufe plus die passenden Kräfte für knapp vor, auf und knapp hinter den Korb
+  const kraefteFuer = si => {
+    const passend = [0.85, 0.95, 1.05].map(f => Physik.kraftFuer(s.tasche[si], d * f));
+    return nah ? passend : [...k.kraefte, ...passend];
+  };
   const bewerte = c => {
     s.scheibe = c.si; winkel = c.w;
     const st = staerke(s);
@@ -1789,7 +1798,7 @@ function kiPlane(s, k) {
     return e.drin ? 0 : (rest <= 10 ? 1 + rest * 0.04 : 2 + rest / 80) + (e.ob || e.mando === "verpasst" ? 1.2 : 0) + (e.typ === "baum" ? 0.3 : 0);
   };
   const kandidaten = [];
-  for (const si of scheiben) for (const r of k.richtungen) for (const w of k.winkel) for (const kr of k.kraefte) {
+  for (const si of scheiben) for (const r of k.richtungen) for (const w of (nah ? [0] : k.winkel)) for (const kr of kraefteFuer(si)) {
     const c = { si, richtung: basis + r * DEG, w, kr };
     c.note = bewerte(c); c.n = 1;
     kandidaten.push(c);
@@ -1828,7 +1837,8 @@ function kiZug() {
   ziel = plan.richtung + Physik.gauss() * k.zielfehler * DEG;
   aktualisierePanel();
   // kurz zielen lassen, dann laden und mit der geplanten Kraft loslassen
-  const kraftZiel = Math.max(0.3, Math.min(1, plan.kr + Physik.gauss() * k.kraftfehler));
+  // Kraftfehler relativ zur Kraft, damit kurze Annäherungen nicht übers Ziel schießen
+  const kraftZiel = Math.max(0.02, Math.min(1, plan.kr * (1 + Physik.gauss() * k.kraftfehler * 1.5)));
   spaeter(() => {
     if (!kiAmZug() || zustand !== "zielen") return;
     startLaden();
