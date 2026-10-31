@@ -72,6 +72,14 @@
   .person { display: flex; align-items: center; gap: 12px; }
   .person .punkt { width: 18px; height: 18px; flex-shrink: 0; }
   #vorschau { aspect-ratio: 320 / 150; cursor: default; }
+  .doku { font-family: system-ui, -apple-system, sans-serif; font-size: 15px; line-height: 1.5; color: var(--text); }
+  .doku h2 { font-family: "Silkscreen", monospace; font-size: 18px; color: var(--akzent); text-align: center; margin: 10px 0; }
+  .doku h3 { font-family: "Silkscreen", monospace; font-size: 13px; color: #ffe08a; margin: 18px 0 6px; font-weight: 400; }
+  .doku ul { margin: 0; padding-left: 18px; }
+  .doku li { margin: 4px 0; }
+  .doku p { margin: 0; }
+  .doku code { background: #263040; padding: 0 4px; }
+  .doku-zurueck { width: 100%; margin: 6px 0; font-size: 13px; padding: 10px; }
   select { font-family: inherit; font-size: 12px; background: #2b3542; color: var(--text); border: 2px solid var(--rand); padding: 6px; }
   .regler label { display: flex; justify-content: space-between; font-size: 11px; }
   .regler output { color: var(--akzent); }
@@ -85,6 +93,13 @@
   .tabs #werfen2 { flex: 1.6; background: #35502f; border-color: var(--akzent); user-select: none; -webkit-user-select: none; touch-action: none; }
   .tabs #werfen2:disabled { opacity: .4; }
   /* Hochkant: Bahn steht senkrecht, Abwurf unten */
+  .feldrahmen { position: relative; }
+  .feldrahmen.hoch { width: fit-content; max-width: 100%; margin: 0 auto; }
+  .kamknoepfe { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 4px; opacity: .9; }
+  .kamknoepfe button { background: rgba(14, 17, 22, .72); padding: 6px 4px; width: 62px; font-size: 10px !important; border-width: 2px; }
+  .kamknoepfe button:nth-child(-n+2) { font-size: 16px !important; padding: 2px 4px; }
+  .kamknoepfe button.an { background: #35502f; border-color: var(--akzent); }
+  canvas.zieht { cursor: grab; }
   canvas.hoch {
     aspect-ratio: 9 / 16; width: auto; max-width: 100%; margin: 0 auto;
     height: min(calc(100vh - 200px), calc((100vw - 24px) * 16 / 9));
@@ -123,14 +138,81 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 27</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 28</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>200 m Wiese – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
       <button class="gross" data-modus="vierer">Vierer Flight<small id="vierer-namen"></small></button>
       <label class="klein" style="display:flex;gap:8px;align-items:center;justify-content:space-between">Flights spielen:
         <select id="rundenwahl"><option value="0">Ganze Runde (15 Bahnen)</option></select></label>
-      <button class="gross" id="zu-einst" style="font-size:12px;padding:10px 16px;margin-top:8px">Einstellungen (Entwicklung)<small>Stärke von Hyzer, Anhyzer, Turn, Fade …</small></button>
+      <button class="gross" id="zu-doku" style="font-size:12px;padding:10px 16px;margin-top:8px">Anleitung<small>Steuerung, Regeln und Tipps</small></button>
+      <button class="gross" id="zu-einst" style="font-size:12px;padding:10px 16px">Einstellungen (Entwicklung)<small>Stärke von Hyzer, Anhyzer, Turn, Fade …</small></button>
+    </div>
+    <div id="menue-doku" class="doku" hidden>
+      <button class="doku-zurueck">← Zurück</button>
+      <h2>Anleitung</h2>
+
+      <h3>Spielmodi</h3>
+      <ul>
+        <li><b>Freies Werfen:</b> 200 m Wiese mit Entfernungsmarken alle 25 m. Jeder Wurf startet am Abwurf, es wird nicht gezählt. Kreuze zeigen, wo deine Scheiben gelandet sind; der weiteste Wurf ist gold.</li>
+        <li><b>Single Flight:</b> eine Person spielt die Runde.</li>
+        <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat.</li>
+        <li>Unter „Flights spielen“ wählst du die ganze Runde (15 Bahnen) oder eine einzelne Bahn.</li>
+      </ul>
+
+      <h3>Werfen</h3>
+      <ul>
+        <li><b>Zielen:</b> Handy – dorthin tippen, wohin der Wurf gehen soll. Rechner – Maus bewegen oder <kbd>←</kbd> <kbd>→</kbd>.</li>
+        <li><b>Kraft:</b> gedrückt halten (Spielfeld, „Werfen“ oder <kbd>Leertaste</kbd>), der Kraftbalken pendelt, beim Loslassen wird geworfen.</li>
+        <li><b>Streuung:</b> Je mehr Kraft, desto stärker weichen Richtung, Weite und Winkel ab. Im roten Bereich wird es wild.</li>
+        <li><b>Scheibe:</b> Das Spiel wählt passend zur Entfernung (Driver weit weg, Putter nah). Du kannst im Bag jederzeit selbst wechseln.</li>
+      </ul>
+
+      <h3>Abwurfwinkel und Wurfart</h3>
+      <ul>
+        <li><b>Hyzer</b> kippt die Scheibe nach außen: Sie zieht nach links. Mehrfach tippen = stärker (bis 30°).</li>
+        <li><b>Anhyzer</b> kippt nach innen: Sie zieht nach rechts.</li>
+        <li><b>Vorhand</b> spiegelt alle Kurven (Hyzer nach rechts), fliegt etwas kürzer und streut mehr.</li>
+        <li>Linkshänder (in taschen.js) spiegeln ebenfalls alle Kurven.</li>
+      </ul>
+
+      <h3>Flugzahlen</h3>
+      <p>Jede Scheibe hat vier Zahlen wie auf der echten Scheibe: <b>Speed</b> (Weite), <b>Glide</b> (wie lange sie segelt), <b>Turn</b> (Kurve nach rechts bei hoher Geschwindigkeit, negativ = mehr) und <b>Fade</b> (Haken nach links am Ende – je langsamer die Scheibe, desto mehr seitlich).</p>
+
+      <h3>Wind, Bäume und OB</h3>
+      <ul>
+        <li><b>Wind</b> (oben rechts): Gegenwind macht Scheiben kürzer und kurviger, Seitenwind trägt sie weg.</li>
+        <li><b>Bäume:</b> Trifft die Scheibe eine Krone, prallt sie mit einem leichten Kick ab.</li>
+        <li><b>OB</b> (weiße Linie mit roten Pflöcken, Zaun, dunkleres Gras): Strafwurf, weiter geht es dort, wo die Scheibe ins Aus geflogen ist. Der Rand des Spielfelds ist immer OB.</li>
+        <li><b>Bahn 1 „Bowling“:</b> Auf dem Holzdeck rutscht die Scheibe weit – und kann direkt in den Korb rutschen (STRIKE!).</li>
+        <li><b>Bahn 9:</b> Inselgrün – wer hinter der roten Linie landet, ist im Aus.</li>
+      </ul>
+
+      <h3>Putten (unter 10 m)</h3>
+      <ul>
+        <li>Ein Fadenkreuz wackelt um den Korb. Tippen bzw. <kbd>Leertaste</kbd>, wenn es auf den Ketten ist. Grün = Treffer möglich.</li>
+        <li><b>Spin-Putt:</b> wackliger, aber kaum Wind. Daneben fliegt er weit vorbei.</li>
+        <li><b>Push-Putt:</b> ruhiger, aber der Wind trägt mehr. Daneben bleibt er nah am Korb.</li>
+        <li>„Normal werfen statt putten“ schaltet auf einen normalen Wurf um, z. B. wenn ein Baum im Weg steht.</li>
+      </ul>
+
+      <h3>Zoom und Umsehen</h3>
+      <ul>
+        <li>Die Kamera wählt automatisch eine von drei Stufen (Übersicht, mittel, nah). Im Flug bleibt die Stufe fest.</li>
+        <li><b>+</b> / <b>−</b> am Spielfeldrand (Rechner auch Mausrad oder <kbd>+</kbd> <kbd>−</kbd>) stellen den Zoom selbst ein, <b>Auto</b> (<kbd>0</kbd>) schaltet zurück.</li>
+        <li><b>Umsehen</b> (<kbd>U</kbd>): Die Bahn durch Ziehen verschieben. Werfen ist dann aus – nochmal tippen oder „Auto“ beendet das Umsehen.</li>
+      </ul>
+
+      <h3>Thomas</h3>
+      <p>Wenn ein Wurf schiefgeht (Baum, OB, stark verzogen) oder ein Putt danebengeht, ruft Thomas: „Achtung, zweite Scheibe!“</p>
+
+      <h3>Anpassen</h3>
+      <ul>
+        <li><b>taschen.js:</b> Spieler, Farben, Wurfhand und die Scheiben jedes Bags mit Flugzahlen. <code>standard: true</code> = Startscheibe, <code>ruf</code> / <code>rufDatei</code> = Ruf als Text bzw. Aufnahme.</li>
+        <li><b>bahnen.js:</b> alle Bahnen. Bahn 1 ist nach dem Bahnschild nachgebaut, 2–15 stammen aus dem Übersichtsplan der Hyzernauts.</li>
+        <li><b>Einstellungen (Entwicklung):</b> Stärke von Hyzer/Anhyzer, Turn, Fade, Weite, Streuung, Wind, Flugtempo, Kick, Zoom und Stimme. Wird nur in diesem Browser gespeichert.</li>
+      </ul>
+      <button class="doku-zurueck">← Zurück</button>
     </div>
     <div id="menue-einst" class="liste" style="gap:8px" hidden>
       <h2 style="text-align:center;font-size:13px">Einstellungen (Entwicklung)</h2>
@@ -154,13 +236,22 @@
 </div>
 <div class="rahmen">
   <div class="spielfeld">
-    <canvas id="c" width="320" height="180"></canvas>
+    <div class="feldrahmen" id="feldrahmen">
+      <canvas id="c" width="320" height="180"></canvas>
+      <div class="kamknoepfe">
+        <button id="zoomrein" title="Reinzoomen (+)">+</button>
+        <button id="zoomraus" title="Rauszoomen (−)">−</button>
+        <button id="zoomauto" title="Zoom automatisch (0)">Auto</button>
+        <button id="umsehen" title="Bahn durch Ziehen ansehen (U)">Umsehen</button>
+      </div>
+    </div>
     <p class="klein hilfe">
       <b>Zielen:</b> Maus bewegen oder <kbd>←</kbd><kbd>→</kbd> ·
       <b>Werfen:</b> Maus / <kbd>Leertaste</kbd> gedrückt halten, loslassen = Kraft ·
       <b>Winkel:</b> <kbd>Q</kbd> Hyzer, <kbd>W</kbd> flach, <kbd>E</kbd> Anhyzer · <kbd>F</kbd> Rückhand/Vorhand ·
       <b>Scheibe:</b> <kbd>↑</kbd><kbd>↓</kbd> ·
-      <b>Putten</b> (unter 10 m): Klick / <kbd>Leertaste</kbd>, wenn das Fadenkreuz auf den Ketten ist · <kbd>P</kbd> Putt/Wurf · <kbd>S</kbd> Putt-Stil
+      <b>Putten</b> (unter 10 m): Klick / <kbd>Leertaste</kbd>, wenn das Fadenkreuz auf den Ketten ist · <kbd>P</kbd> Putt/Wurf · <kbd>S</kbd> Putt-Stil ·
+      <b>Zoom:</b> <kbd>+</kbd><kbd>−</kbd> oder Mausrad, <kbd>0</kbd> automatisch · <kbd>U</kbd> Umsehen (ziehen)
     </p>
   </div>
   <div class="seite">
@@ -203,7 +294,7 @@
         <button data-stil="spin">Spin-Putt</button>
         <button data-stil="push">Push-Putt</button>
       </div>
-      <p class="klein" style="margin:6px 0 0">Spin: wackliger, aber windstabil. Push: ruhiger, aber der Wind trägt mehr.</p>
+      <p class="klein" style="margin:6px 0 0">Spin: wackliger und windstabil, daneben fliegt er weit vorbei. Push: ruhiger, aber der Wind trägt mehr – daneben bleibt er nah am Korb.</p>
     </div>
     <button id="werfen" class="nur-feld">Werfen (halten)</button>
     <button id="modus" class="nur-feld">Normal werfen statt putten</button>
@@ -215,9 +306,9 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=27"></script>
-<script src="bahnen.js?v=27"></script>
-<script src="physik.js?v=27"></script>
+<script src="taschen.js?v=28"></script>
+<script src="bahnen.js?v=28"></script>
+<script src="physik.js?v=28"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -232,6 +323,8 @@ ctx.imageSmoothingEnabled = false;
 
 // Kamera: Zoomstufe z und Mittelpunkt (x, y) in Bildpunkten der Bahn bei dieser Stufe; kx/ky = linke obere Ecke
 let kamera = null, kx = 0, ky = 0;
+// zoomManuell: feste Stufe statt automatisch; umsehen: Bahn durch Ziehen verschieben
+let zoomManuell = null, umsehen = false, zieh = null;
 // Handy hochkant: Bahn um 90° drehen (Abwurf unten, Korb oben). SW/SH = Bildschirmgröße in Pixeln
 let hochkant = false, SW = W, SH = H;
 const hochMQ = matchMedia("(max-width: 860px) and (orientation: portrait)");
@@ -241,6 +334,7 @@ function pruefeAusrichtung() {
   SH = hochkant ? W : H;
   if (cv.width !== SW) { cv.width = SW; cv.height = SH; ctx.imageSmoothingEnabled = false; kamera = null; }
   cv.classList.toggle("hoch", hochkant);
+  document.getElementById("feldrahmen").classList.toggle("hoch", hochkant);
 }
 hochMQ.addEventListener("change", pruefeAusrichtung);
 pruefeAusrichtung();
@@ -774,16 +868,18 @@ function puttEnde() {
   if (ergebnis !== "drin") rufe(s);
   const r = zumKorb(s.lie), dx = Math.cos(r), dy = Math.sin(r), qx = -dy, qy = dx;
   const k = bahn.korb, z = Math.random;
+  // Spin-Putt fliegt schnell: daneben heißt weit vorbei. Push-Putt ist langsam: bleibt nah am Korb.
+  const weit = puttStil === "spin" ? 1.5 : 0.55;
   if (ergebnis === "drin") {
     s.lie = { x: k.x, y: k.y };
     s.fertig = true;
     zeigeErgebnis(s);
   } else {
     let p;
-    if (ergebnis === "hoch") { const a = 1 + z() * 3; p = { x: k.x + dx * a + qx * o.x * 0.08, y: k.y + dy * a + qy * o.x * 0.08 }; zeigeBanner("DRÜBER", "#ff9a5a"); }
+    if (ergebnis === "hoch") { const a = (1 + z() * 3) * weit; p = { x: k.x + dx * a + qx * o.x * 0.08, y: k.y + dy * a + qy * o.x * 0.08 }; zeigeBanner("DRÜBER", "#ff9a5a"); }
     else if (ergebnis === "kurz") { const a = 0.4 + z() * 1.1; p = { x: k.x - dx * a, y: k.y - dy * a }; zeigeBanner("ZU KURZ", "#ff9a5a"); }
-    else if (ergebnis === "spit") { const a = z() * Math.PI * 2, d = 0.6 + z(); p = { x: k.x + Math.cos(a) * d, y: k.y + Math.sin(a) * d }; zeigeBanner("SPIT-OUT!", "#ff9a5a"); sfx.ketten(); }
-    else { const sg = Math.sign(o.x) || 1, a = 0.8 + z() * 1.6, b = z() * 2; p = { x: k.x + qx * sg * a + dx * b, y: k.y + qy * sg * a + dy * b }; zeigeBanner("DANEBEN", "#ff9a5a"); }
+    else if (ergebnis === "spit") { const a = z() * Math.PI * 2, d = (0.6 + z()) * weit; p = { x: k.x + Math.cos(a) * d, y: k.y + Math.sin(a) * d }; zeigeBanner("SPIT-OUT!", "#ff9a5a"); sfx.ketten(); }
+    else { const sg = Math.sign(o.x) || 1, a = (0.8 + z() * 1.6) * weit, b = z() * 2 * weit; p = { x: k.x + qx * sg * a + dx * b, y: k.y + qy * sg * a + dy * b }; zeigeBanner("DANEBEN", "#ff9a5a"); }
     if (istOB(p, bahn)) p = { x: k.x - dx, y: k.y - dy };
     s.lie = p;
     if (ergebnis !== "spit") sfx.landung();
@@ -1050,7 +1146,17 @@ function mitteVon(punkte, z) {
 }
 function bewegeKamera(dt) {
   const fliegt = zustand === "flug" || (zustand === "pause" && !puttModus);
-  let z = kamera && fliegt ? kamera.z : passendeStufe(), ziel2;
+  let z = zoomManuell ?? (kamera && (fliegt || umsehen) ? kamera.z : passendeStufe()), ziel2;
+  if (umsehen && kamera) {
+    // beim Umsehen bleibt die Mitte, wo der Spieler sie hingezogen hat (bei Stufenwechsel umgerechnet)
+    if (kamera.z !== z) { kamera.x *= z / kamera.z; kamera.y *= z / kamera.z; kamera.z = z; }
+    kamera.x = Math.max(SW / 2, Math.min(SW * z - SW / 2, kamera.x));
+    kamera.y = Math.max(SH / 2, Math.min(SH * z - SH / 2, kamera.y));
+    S = S0 * z;
+    kx = Math.round(kamera.x - SW / 2);
+    ky = Math.round(kamera.y - SH / 2);
+    return;
+  }
   if (zustand === "flug" && flug) {
     // nur nachschieben, wenn die Scheibe den mittleren Bereich verlässt
     const p = projiziere(flugPosition().p, z), mx = SW * 0.3, my = SH * 0.3;
@@ -1127,6 +1233,7 @@ function schleife(jetzt) {
   schirmTransform(); // Anzeigen ohne Kamera darüber
 
   zeichneWind();
+  if (umsehen) text(hochkant ? "ZIEHEN: UMSEHEN" : "UMSEHEN: ZIEHEN ZUM VERSCHIEBEN", SW / 2, 34, "#ffe08a", "center");
   if (zustand !== "ende") {
     const s = ich(), d = abstand(s.lie, bahn.korb);
     text(s.name.toUpperCase(), 4, 4, s.farbe);
@@ -1270,11 +1377,35 @@ el("modus").addEventListener("click", wechsleModus);
 
 for (const k of [el("werfen"), el("werfen2")]) k.addEventListener("pointerdown", e => {
   e.preventDefault();
+  if (umsehen) setzeUmsehen(false); // Werfen beendet das Umsehen
   if (document.body.dataset.ansicht !== "feld") { zeigeAnsicht("feld"); return; }
   if (zustand === "putt") putten(); else startLaden();
 });
-window.addEventListener("pointerup", () => loslassen());
+window.addEventListener("pointerup", () => { zieh = null; loslassen(); });
 window.addEventListener("pointercancel", () => loslassen());
+
+// Kamera-Knöpfe: Zoom manuell (+/−), automatisch, Umsehen
+function setzeZoom(z) {
+  zoomManuell = z;
+  el("zoomauto").classList.toggle("an", z === null);
+  el("zoomauto").textContent = z === null ? "Auto" : String(z).replace(".", ",") + "×";
+}
+function zoomSchritt(r) {
+  const akt = zoomManuell ?? (kamera ? kamera.z : 1), i = STUFEN.indexOf(akt);
+  setzeZoom(STUFEN[Math.max(0, Math.min(STUFEN.length - 1, (i < 0 ? 0 : i) + r))]);
+}
+function setzeUmsehen(an) {
+  umsehen = an;
+  zieh = null;
+  el("umsehen").classList.toggle("an", an);
+  cv.classList.toggle("zieht", an);
+}
+el("zoomrein").addEventListener("click", () => zoomSchritt(1));
+el("zoomraus").addEventListener("click", () => zoomSchritt(-1));
+el("zoomauto").addEventListener("click", () => { setzeZoom(null); setzeUmsehen(false); });
+el("umsehen").addEventListener("click", () => setzeUmsehen(!umsehen));
+cv.addEventListener("wheel", e => { e.preventDefault(); zoomSchritt(e.deltaY < 0 ? 1 : -1); }, { passive: false });
+setzeZoom(null);
 
 // Zielen mit der Maus, Werfen durch Halten auf dem Spielfeld
 function weltPunkt(e) {
@@ -1288,9 +1419,23 @@ function zieleAuf(e) {
   const p = weltPunkt(e), s = ich();
   if (abstand(p, s.lie) > 1) ziel = Math.atan2(p.y - s.lie.y, p.x - s.lie.x);
 }
-cv.addEventListener("pointermove", zieleAuf);
+cv.addEventListener("pointermove", e => {
+  if (umsehen) {
+    if (!zieh) return;
+    const r = cv.getBoundingClientRect();
+    kamera.x = zieh.x - (e.clientX - zieh.px) / r.width * SW;
+    kamera.y = zieh.y - (e.clientY - zieh.py) / r.height * SH;
+    return;
+  }
+  zieleAuf(e);
+});
 cv.addEventListener("pointerdown", e => {
   e.preventDefault();
+  if (umsehen) {
+    if (kamera) zieh = { px: e.clientX, py: e.clientY, x: kamera.x, y: kamera.y };
+    try { cv.setPointerCapture(e.pointerId); } catch (err) { /* egal */ }
+    return;
+  }
   if (zustand === "ende") { weiter(); return; }
   if (zustand === "putt") { putten(); return; }
   zieleAuf(e);
@@ -1301,6 +1446,10 @@ window.addEventListener("keydown", e => {
   const k = e.key;
   if (!el("menue").hidden || !spieler) return;
   if (k === "m" || k === "M") { zeigeMenue(); return; }
+  if (k === "+" || k === "=") { zoomSchritt(1); return; }
+  if (k === "-") { zoomSchritt(-1); return; }
+  if (k === "0") { setzeZoom(null); setzeUmsehen(false); return; }
+  if (k === "u" || k === "U") { setzeUmsehen(!umsehen); return; }
   if (k === " ") {
     e.preventDefault();
     if (e.repeat) return;
@@ -1349,6 +1498,7 @@ function zeigeMenue() {
   el("menue-start").hidden = false;
   el("menue-wahl").hidden = true;
   el("menue-einst").hidden = true;
+  el("menue-doku").hidden = true;
   el("menue").hidden = false;
 }
 
@@ -1430,6 +1580,8 @@ el("zu-einst").addEventListener("click", () => {
   zeichneVorschau();
 });
 el("einst-zurueck").addEventListener("click", () => { el("menue-start").hidden = false; el("menue-einst").hidden = true; });
+el("zu-doku").addEventListener("click", () => { el("menue-start").hidden = true; el("menue-doku").hidden = false; el("menue").scrollTop = 0; });
+document.querySelectorAll(".doku-zurueck").forEach(b => b.addEventListener("click", () => { el("menue-doku").hidden = true; el("menue-start").hidden = false; el("menue").scrollTop = 0; }));
 el("einst-standard").addEventListener("click", () => {
   Object.assign(E, Physik.STANDARD, TON_STANDARD);
   zeigeStimmen();
