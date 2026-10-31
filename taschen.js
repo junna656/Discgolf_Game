@@ -95,6 +95,8 @@ window.SPIELER = [
       { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1 }, // Latitude 64°
       { name: "Valkyrie", typ: "Driver", speed: 9, glide: 4, turn: -2, fade: 2 }, // Innova
       { name: "Method", typ: "Midrange", speed: 5, glide: 5, turn: 0, fade: 3 },  // Discmania Method
+      { name: "Mako3", typ: "Midrange", speed: 5, glide: 5, turn: 0, fade: 0 },   // Innova Mako3
+      { name: "Svea", typ: "Midrange", speed: 5, glide: 6, turn: -1, fade: 0 },   // Kastaplast Svea – Flugzahlen bitte prüfen
       { name: "Hydrogen", typ: "Putter", speed: 1, glide: 2, turn: 0, fade: 0 },  // Loft Discs Hydrogen
     ],
   },
