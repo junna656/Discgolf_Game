@@ -274,8 +274,9 @@
     if (m) {
       mando = m.ok ? "ok" : "verpasst";
       if (!m.ok) {
-        // verpasst: +1 und noch einmal von der alten Lage (zählt vor OB und Treffer)
-        mandoIndex = m.index; drin = false; ob = false; obIndex = -1; lie = { x: wurf.x, y: wurf.y };
+        // verpasst: +1, weiter von der Mando-Dropzone (sonst von der alten Lage); zählt vor OB und Treffer
+        const dz = bahn.mando.dropzone;
+        mandoIndex = m.index; drin = false; ob = false; obIndex = -1; lie = dz ? { x: dz.x, y: dz.y } : { x: wurf.x, y: wurf.y };
       }
     }
 

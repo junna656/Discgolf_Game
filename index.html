@@ -178,7 +178,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 61</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 62</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <div class="kurswahl">
@@ -235,7 +235,7 @@
         <li><b>OB</b> (weiße Linie mit roten Pflöcken, Zaun, dunkleres Gras): Strafwurf, weiter geht es dort, wo die Scheibe ins Aus geflogen ist. Der Rand des Spielfelds ist immer OB.</li>
         <li><b>Bahn 1 „Bowling“:</b> Auf dem Holzdeck rutscht die Scheibe weit – und kann direkt in den Korb rutschen (STRIKE!).</li>
         <li><b>Bahn 9 (Insel):</b> Der Korb steht in einer Box kurz hinter dem Weg – vorne und links Baumstämme, rechts Sträucher. Alles außerhalb der Box ist OB. Nach OB geht es vom zweiten Abwurf weiter (gelb umrandeter Kasten auf dem Fairway).</li>
-        <li><b>Bahn 12 (Mando):</b> Der Wurf muss zwischen dem großen Baum links vom Weg und dem kleinen Baum rechts davon hindurch (gelbe Linie, rote Pfeile). Wer außen vorbei fliegt, bekommt +1 und wirft noch einmal von der alten Lage.</li>
+        <li><b>Bahn 12 (Mando):</b> Der Wurf muss zwischen dem großen Baum links vom Weg und dem kleinen Baum rechts davon hindurch (gelbe Linie, rote Pfeile). Wer außen vorbei fliegt, bekommt +1 und wirft von der Dropzone vor der Lücke weiter (gelb umrandeter Kasten links vom Weg).</li>
       </ul>
 
       <h3>Putten (unter 10 m)</h3>
@@ -388,10 +388,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=61"></script>
-<script src="bahnen.js?v=61"></script>
-<script src="physik.js?v=61"></script>
-<script src="portraets.js?v=61"></script>
+<script src="taschen.js?v=62"></script>
+<script src="bahnen.js?v=62"></script>
+<script src="physik.js?v=62"></script>
+<script src="portraets.js?v=62"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -649,8 +649,8 @@ function zeichneHintergrund(z) {
   c.fillStyle = "#8c8c88"; c.fillRect(ax - tw / 2 + 1, ay - th / 2 + 1, tw - 2, th - 2);
   c.fillStyle = "#a8a8a2"; c.fillRect(ax - tw / 2 + 1, ay - th / 2 + 1, tw - 2, zr);
   // Dropzone: Box mit gelbem Rand (nach OB geht es hier weiter)
-  if (bahn.dropzone) {
-    const dx = Math.round(bahn.dropzone.x * S), dy = Math.round(bahn.dropzone.y * S);
+  for (const dz of [bahn.dropzone, bahn.mando && bahn.mando.dropzone].filter(Boolean)) {
+    const dx = Math.round(dz.x * S), dy = Math.round(dz.y * S);
     c.fillStyle = "#e8c030"; c.fillRect(dx - tw / 2, dy - th / 2, tw, th);
     c.fillStyle = "#8c8c88"; c.fillRect(dx - tw / 2 + zr, dy - th / 2 + zr, tw - 2 * zr, th - 2 * zr);
   }
@@ -871,7 +871,8 @@ function loslassen() {
 function flugEnde() {
   const s = ich(), e = flug.erg;
   if (!e.drin && (e.typ === "baum" || e.ob || e.mando === "verpasst" || flug.verzogen)) rufe(s);
-  if (e.mando === "ok") s.mandoOk = true;
+  // durch die Lücke, oder nach verpasster Mando von der Dropzone aus: Mando erledigt
+  if (e.mando === "ok" || (e.mando === "verpasst" && bahn.mando.dropzone)) s.mandoOk = true;
   if (modus === "frei") {
     // Weitwurf: Landepunkt markieren, dann wieder vom Abwurf
     const d = abstand(e.lie, bahn.abwurf);
@@ -924,7 +925,7 @@ function zeigeBanner(text, farbe, dauer = 1.2, gr = 16, blinkt = false) { banner
 function zeigeMando() {
   sfx.ob();
   zeigeBanner("MANDO +1", "#ff3b2f", 2.2, 32, true);
-  spaeter(() => zeigeBanner("NOCHMAL VON DER ALTEN LAGE", "#ffd84a", 1.8, 8), 2200);
+  spaeter(() => zeigeBanner(bahn.mando.dropzone ? "WEITER VON DER DROPZONE" : "NOCHMAL VON DER ALTEN LAGE", "#ffd84a", 1.8, 8), 2200);
 }
 function zeigeOB(strafe) {
   sfx.ob();
