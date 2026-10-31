@@ -15,11 +15,17 @@
 //    stark verzogen durch Streuung) oder ein Putt danebengeht
 //  rufDatei (optional): eigene Aufnahme, z. B. "rufe/thomas.m4a" (mp3/m4a/wav)
 //    – klingt viel echter als die Computerstimme. Ohne Datei spricht der Browser.
+//  aussehen: für das 8-Bit-Porträt und die Figur im Spiel (Haut, Haare, Bart, Brille,
+//    Kopf: cap/stirnband, Jacke …)
+//  karte: Infos für die Spielerkarte – spitzname und infos (Liste kurzer Texte)
 // ============================================================
 
 window.SPIELER = [
   {
     name: "Thomas",
+    aussehen: { haut: "#f2c4a4", haare: "#4a3020", frisur: "geheimratsecken", bart: "vollbart", bartfarbe: "#4a3020",
+      brille: "#aab8be", jacke: "#2b7bd8", jacke2: "#1f5c66", riemen: "#151515", augen: "#5a7a6a" },
+    karte: { spitzname: "", infos: [] },   // Infos folgen
     farbe: "#e8483c",
     hand: "rechts",
     ruf: "Achtung, zweite Scheibe!",
@@ -35,6 +41,9 @@ window.SPIELER = [
   },
   {
     name: "Daniel",
+    aussehen: { haut: "#efc09c", haare: "#b08850", bart: "vollbart", bartfarbe: "#9a8468", kopf: { typ: "stirnband", farbe: "#6e8ea0" },
+      jacke: "#f2c230", jacke2: "#1e2438", kordel: "#1e2438", augen: "#4a6a8a" },
+    karte: { spitzname: "", infos: [] },   // Infos folgen
     farbe: "#3c8ce8",
     hand: "rechts",
     tasche: [
@@ -44,6 +53,9 @@ window.SPIELER = [
   },
   {
     name: "André",
+    aussehen: { haut: "#eebd9a", haare: "#6a4428", frisur: "zerzaust", bart: "stoppeln", bartfarbe: "#6a4428",
+      jacke: "#7c8696", jacke2: "#18181c", weste: true, augen: "#4a3a2a" },
+    karte: { spitzname: "", infos: [] },   // Infos folgen
     farbe: "#f0c030",
     hand: "rechts",
     tasche: [
@@ -57,6 +69,9 @@ window.SPIELER = [
   },
   {
     name: "Gunnar",
+    aussehen: { haut: "#f0c0a0", haare: "#5a3a24", bart: "schnurrbart", bartfarbe: "#7a4a2a", kopf: { typ: "cap", farbe: "#151515", abzeichen: "#f0f0f0" },
+      jacke: "#1c1c1e", jacke2: "#3a3a40", reissverschluss: "#8a8a96", fleece: true, augen: "#4a7ab8" },
+    karte: { spitzname: "", infos: [] },   // Infos folgen
     farbe: "#9c5ce0",
     hand: "rechts",
     tasche: [

@@ -71,6 +71,19 @@
   .gross:hover, .gross:focus-visible { border-color: var(--akzent); }
   .person { display: flex; align-items: center; gap: 12px; }
   .person .punkt { width: 18px; height: 18px; flex-shrink: 0; }
+  .person canvas.mini { width: 48px; height: 48px; border: 2px solid var(--rand); aspect-ratio: auto; flex-shrink: 0; cursor: pointer; }
+  /* Spielerkarte im Sammelkarten-Stil */
+  .spielerkarte { border: 4px solid var(--farbe); background: linear-gradient(#1f2630, #141820); padding: 12px; box-shadow: 0 0 0 3px #0a0c10, 6px 6px 0 #0a0c10; }
+  .spielerkarte .kopfzeile { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .spielerkarte .kname { font-size: 24px; color: var(--farbe); text-shadow: 2px 2px 0 #000; }
+  .spielerkarte .khand { font-size: 10px; color: var(--leise); }
+  .spielerkarte canvas.portrait { display: block; width: 100%; max-width: 260px; height: auto; aspect-ratio: 1; margin: 0 auto 10px; border: 3px solid #0a0c10; }
+  .spielerkarte .kspitz { text-align: center; font-size: 12px; color: #ffe08a; margin-bottom: 8px; }
+  .spielerkarte .kwerte { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; font-size: 11px; margin-bottom: 8px; }
+  .spielerkarte .kwerte span:nth-child(even) { text-align: right; color: #ffe08a; }
+  .spielerkarte .kinfo { font-family: system-ui, sans-serif; font-size: 14px; line-height: 1.4; margin: 0 0 8px; padding-left: 18px; }
+  .spielerkarte .kbag { display: flex; flex-wrap: wrap; gap: 4px; }
+  .spielerkarte .kbag span { font-size: 9px; padding: 3px 5px; border-left: 4px solid; background: #263040; }
   #vorschau { aspect-ratio: 320 / 150; cursor: default; }
   .doku { font-family: system-ui, -apple-system, sans-serif; font-size: 15px; line-height: 1.5; color: var(--text); }
   .doku h2 { font-family: "Silkscreen", monospace; font-size: 18px; color: var(--akzent); text-align: center; margin: 10px 0; }
@@ -139,7 +152,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 35</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 36</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -230,6 +243,11 @@
       <div class="knoepfe"><button id="einst-standard" style="flex:1">Standard</button><button id="einst-zurueck" style="flex:1">← Zurück</button></div>
       <p class="klein" style="margin:0">Wird in diesem Browser gespeichert. Vorschau: volle Kraft, kein Wind, keine Streuung.</p>
     </div>
+    <div id="menue-karte" class="liste" style="gap:10px" hidden>
+      <div class="spielerkarte" id="spielerkarte"></div>
+      <button class="gross" id="karte-los" style="text-align:center">Los geht's</button>
+      <button id="karte-zurueck">← Andere Person</button>
+    </div>
     <div id="menue-wahl" class="liste" style="gap:10px" hidden>
       <h2 id="wahl-titel" style="text-align:center;font-size:13px">Wer spielt?</h2>
       <div id="personen" class="liste" style="gap:10px"></div>
@@ -311,9 +329,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=35"></script>
-<script src="bahnen.js?v=35"></script>
-<script src="physik.js?v=35"></script>
+<script src="taschen.js?v=36"></script>
+<script src="bahnen.js?v=36"></script>
+<script src="physik.js?v=36"></script>
+<script src="portraets.js?v=36"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -973,9 +992,14 @@ function zeichneSpieler() {
     if (i === aktiv && zustand !== "flug") {
       if (Math.floor(uhr * 3) % 2) { ctx.fillStyle = PAL.weiss; ctx.fillRect(x, y - 10, 3, 1); ctx.fillRect(x + 1, y - 9, 1, 1); }
     }
+    const a = s.aussehen || {}, kopf = a.kopf || {};
     ctx.fillStyle = PAL.schatten; ctx.fillRect(x, y + 1, 4, 2);
-    ctx.fillStyle = s.farbe; ctx.fillRect(x, y - 4, 3, 4);
-    ctx.fillStyle = "#f0c8a0"; ctx.fillRect(x, y - 7, 3, 3);
+    ctx.fillStyle = s.farbe; ctx.fillRect(x - 1, y + 1, 5, 1); // Spielerfarbe als Sockel
+    ctx.fillStyle = a.jacke || s.farbe; ctx.fillRect(x, y - 4, 3, 4);
+    ctx.fillStyle = a.haut || "#f0c8a0"; ctx.fillRect(x, y - 7, 3, 3);
+    ctx.fillStyle = kopf.farbe || a.haare || "#5a3a24"; ctx.fillRect(x, y - 7, 3, 1);
+    if (kopf.typ === "cap") ctx.fillRect(x + 2, y - 6, 2, 1);
+    if (a.bart === "vollbart") { ctx.fillStyle = a.bartfarbe; ctx.fillRect(x, y - 5, 3, 1); }
     ctx.fillStyle = PAL.schwarz; ctx.fillRect(x, y, 1, 1); ctx.fillRect(x + 2, y, 1, 1);
   });
 }
@@ -1563,6 +1587,7 @@ function zeigeMenue() {
   el("menue-wahl").hidden = true;
   el("menue-einst").hidden = true;
   el("menue-doku").hidden = true;
+  el("menue-karte").hidden = true;
   el("menue").hidden = false;
 }
 
@@ -1657,8 +1682,36 @@ let gewaehlterModus = null;
 BAHNEN.filter(b => !b.distanzmarken).forEach((b, i) => el("rundenwahl").insertAdjacentHTML("beforeend", `<option value="${i + 1}">Nur Bahn ${b.nummer}</option>`));
 el("vierer-namen").textContent = SPIELER.map(s => s.name).join(", ").replace(/, ([^,]*)$/, " & $1") + " spielen zusammen";
 el("personen").innerHTML = SPIELER.map((s, i) => `
-  <button class="gross person" data-person="${i}"><span class="punkt" style="background:${s.farbe}"></span>
+  <button class="gross person" data-person="${i}" style="border-left-color:${s.farbe}"><canvas class="mini" width="32" height="32"></canvas>
     <span>${s.name}<small>${s.tasche.length} Scheiben · ${s.hand === "links" ? "Linkshand" : "Rechtshand"}</small></span></button>`).join("");
+document.querySelectorAll("#personen canvas.mini").forEach((c, i) => zeichnePortrait(c.getContext("2d"), SPIELER[i]));
+
+// Spielerkarte: erscheint bei der Auswahl einer Person
+let gewaehltePerson = 0;
+function zeigeKarte(i) {
+  const s = SPIELER[i], k = s.karte || {}, lieb = s.tasche.find(d => d.standard) || s.tasche[0];
+  const weiteste = s.tasche.reduce((a, d) => Physik.reichweite(d) > Physik.reichweite(a) ? d : a);
+  gewaehltePerson = i;
+  el("spielerkarte").style.setProperty("--farbe", s.farbe);
+  el("spielerkarte").innerHTML = `
+    <div class="kopfzeile"><span class="kname">${s.name.toUpperCase()}</span><span class="khand">${s.hand === "links" ? "Linkshand" : "Rechtshand"} · ${s.wurfart === "vorhand" ? "Vorhand" : "Rückhand"}</span></div>
+    <canvas class="portrait" width="32" height="32"></canvas>
+    ${k.spitzname ? `<div class="kspitz">„${k.spitzname}“</div>` : ""}
+    <div class="kwerte">
+      <span>Lieblingsscheibe</span><span>${lieb.name}</span>
+      <span>Weiteste Scheibe</span><span>${weiteste.name} · ca. ${Math.round(Physik.reichweite(weiteste))} m</span>
+      <span>Bag</span><span>${s.tasche.length} Scheiben</span>
+      ${s.ruf ? `<span>Ruf</span><span>„${s.ruf}“</span>` : ""}
+    </div>
+    ${(k.infos || []).length ? `<ul class="kinfo">${k.infos.map(t => `<li>${t}</li>`).join("")}</ul>` : `<p class="klein" style="margin:0 0 8px">Mehr Infos folgen.</p>`}
+    <div class="kbag">${s.tasche.map(d => `<span style="border-color:${TYPFARBE[d.typ] || "#888"}">${d.name}</span>`).join("")}</div>`;
+  zeichnePortrait(el("spielerkarte").querySelector("canvas").getContext("2d"), s);
+  el("menue-wahl").hidden = true;
+  el("menue-karte").hidden = false;
+  el("menue").scrollTop = 0;
+}
+el("karte-los").addEventListener("click", () => starteModus(gewaehlterModus, gewaehltePerson));
+el("karte-zurueck").addEventListener("click", () => { el("menue-karte").hidden = true; el("menue-wahl").hidden = false; });
 document.querySelectorAll("[data-modus]").forEach(b => b.addEventListener("click", () => {
   const m = b.dataset.modus;
   weckeSprache();
@@ -1670,7 +1723,7 @@ document.querySelectorAll("[data-modus]").forEach(b => b.addEventListener("click
 }));
 el("personen").addEventListener("click", e => {
   const b = e.target.closest("[data-person]");
-  if (b) starteModus(gewaehlterModus, +b.dataset.person);
+  if (b) zeigeKarte(+b.dataset.person);
 });
 el("zurueck").addEventListener("click", () => { el("menue-start").hidden = false; el("menue-wahl").hidden = true; });
 el("zummenue").addEventListener("click", zeigeMenue);
