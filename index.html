@@ -170,7 +170,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 51</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 52</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <div class="kurswahl">
@@ -225,7 +225,7 @@
         <li><b>Bäume:</b> Fliegt die Scheibe durch eine Krone, gibt es drei Möglichkeiten: Sie <b>prallt ab</b> (45 %, mit leichtem Kick), wird von den Ästen <b>abgebremst</b> und fliegt deutlich kürzer weiter (30 %), oder sie fliegt <b>durch eine Lücke</b> (25 %). In den ersten 5 m ab Abwurfpunkt zählen Bäume nicht.</li>
         <li><b>OB</b> (weiße Linie mit roten Pflöcken, Zaun, dunkleres Gras): Strafwurf, weiter geht es dort, wo die Scheibe ins Aus geflogen ist. Der Rand des Spielfelds ist immer OB.</li>
         <li><b>Bahn 1 „Bowling“:</b> Auf dem Holzdeck rutscht die Scheibe weit – und kann direkt in den Korb rutschen (STRIKE!).</li>
-        <li><b>Bahn 9:</b> Strafzone um den Korb – wer außerhalb der Linie landet, ist im Aus und wirft von der Dropzone (gelb umrandete Box auf dem Fairway) weiter.</li>
+        <li><b>Bahn 9:</b> OB beginnt erst hinter dem Korb – begrenzt durch Baumstämme (vorne und links) und Sträucher (rechts). Nach OB geht es von der Dropzone (gelb umrandete Box auf dem Fairway) weiter.</li>
       </ul>
 
       <h3>Putten (unter 10 m)</h3>
@@ -366,10 +366,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=51"></script>
-<script src="bahnen.js?v=51"></script>
-<script src="physik.js?v=51"></script>
-<script src="portraets.js?v=51"></script>
+<script src="taschen.js?v=52"></script>
+<script src="bahnen.js?v=52"></script>
+<script src="physik.js?v=52"></script>
+<script src="portraets.js?v=52"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -587,6 +587,7 @@ function zeichneHintergrund(z) {
     pk.forEach((a, i) => {
       const b = pk[(i + 1) % pk.length];
       if (o.linie && i === pk.length - 1) return; // Linie ist nicht geschlossen
+      if (o.art === "natur") return; // Grenze sind Baumstämme/Sträucher, keine Linie
       if ((am(a[0], bahn.welt.breite) && a[0] === b[0]) || (am(a[1], bahn.welt.hoehe) && a[1] === b[1])) return;
       const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) * S);
       for (let k = 0; k <= n; k++) {
@@ -631,7 +632,7 @@ function zeichneHintergrund(z) {
     c.fillStyle = "#8c8c88"; c.fillRect(dx - tw / 2 + zr, dy - th / 2 + zr, tw - 2 * zr, th - 2 * zr);
   }
   // Holzbalken
-  c.strokeStyle = PAL.brett; c.lineWidth = Math.max(1, 0.4 * S); c.lineCap = "butt";
+  c.strokeStyle = PAL.brett; c.lineWidth = Math.max(2, 0.6 * S); c.lineCap = "butt";
   for (const bl of bahn.balken || []) { c.beginPath(); bl.forEach(([x, y], i) => i ? c.lineTo(x * S, y * S) : c.moveTo(x * S, y * S)); c.stroke(); }
   // Bäume: Schatten, dann Kronen
   for (const b of bahn.baeume) pixelKreis(c, b.x * S + 2 * z, b.y * S + 2 * z, b.r * S, PAL.schatten);
