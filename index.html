@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Discgolf Potsdam</title>
+<title>Boogie Garanten</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap">
 <style>
   :root {
@@ -71,6 +71,10 @@
   .gross:hover, .gross:focus-visible { border-color: var(--akzent); }
   .person { display: flex; align-items: center; gap: 12px; }
   .person .punkt { width: 18px; height: 18px; flex-shrink: 0; }
+  .kurswahl { border: 3px solid var(--rand); background: rgba(14, 17, 22, .55); padding: 10px; margin: 4px 0; }
+  .kurswahl h2 { text-align: center; font-size: 13px; color: #ffe08a; }
+  .kurs { text-align: left; font-size: 14px; padding: 10px 12px; background: #22302a; border-width: 3px; }
+  .kurs small { display: block; font-size: 10px; color: var(--leise); margin-top: 3px; }
   .person canvas.mini { width: 48px; height: 48px; border: 2px solid var(--rand); aspect-ratio: auto; flex-shrink: 0; cursor: pointer; }
   /* Spielerkarte im Sammelkarten-Stil */
   .spielerkarte { border: 4px solid var(--farbe); background: linear-gradient(#1f2630, #141820); padding: 12px; box-shadow: 0 0 0 3px #0a0c10, 6px 6px 0 #0a0c10; }
@@ -151,14 +155,19 @@
 <div class="menue" id="menue">
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
-    <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 43</span></p>
+    <h1 class="titel">BOOGIE<br>GARANTEN</h1>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 44</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
+      <div class="kurswahl">
+        <h2>Kurs</h2>
+        <div id="kurse" class="liste" style="gap:8px"></div>
+        <p class="klein" style="margin:6px 0 0;text-align:center">Weitere Kurse folgen …</p>
+      </div>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
       <button class="gross" data-modus="vierer">Vierer Flight<small id="vierer-namen"></small></button>
       <label class="klein" style="display:flex;gap:8px;align-items:center;justify-content:space-between">Flights spielen:
-        <select id="rundenwahl"><option value="0">Ganze Runde (15 Bahnen)</option></select></label>
+        <select id="rundenwahl"></select></label>
       <button class="gross" id="zu-doku" style="font-size:12px;padding:10px 16px;margin-top:8px">Anleitung<small>Steuerung, Regeln und Tipps</small></button>
       <button class="gross" id="zu-einst" style="font-size:12px;padding:10px 16px">Einstellungen (Entwicklung)<small>Stärke von Hyzer, Anhyzer, Turn, Fade …</small></button>
     </div>
@@ -171,7 +180,8 @@
         <li><b>Freies Werfen:</b> Sportplatz mit Fußballfeld und Entfernungsmarken alle 25 m, Korb in 130 m. Jeder Wurf startet am Abwurf, es wird nicht gezählt. Kreuze zeigen, wo deine Scheiben gelandet sind; der weiteste Wurf ist gold.</li>
         <li><b>Single Flight:</b> eine Person spielt die Runde.</li>
         <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat.</li>
-        <li>Unter „Flights spielen“ wählst du die ganze Runde (15 Bahnen) oder eine einzelne Bahn.</li>
+        <li><b>Kurs:</b> Im Hauptmenü wählst du den Kurs für die Flights. Bisher gibt es den Hyzernauts Discgolfparcours im Volkspark Potsdam – weitere Kurse folgen.</li>
+        <li>Unter „Flights spielen“ wählst du die ganze Runde oder eine einzelne Bahn des Kurses.</li>
       </ul>
 
       <h3>Werfen</h3>
@@ -235,7 +245,7 @@
       <h3>Anpassen</h3>
       <ul>
         <li><b>taschen.js:</b> Spieler, Farben, Wurfhand und die Scheiben jedes Bags mit Flugzahlen. <code>standard: true</code> = Startscheibe, <code>ruf</code> / <code>rufDatei</code> = Ruf als Text bzw. Aufnahme.</li>
-        <li><b>bahnen.js:</b> alle Bahnen. Bahn 1 ist nach dem Bahnschild nachgebaut, 2–15 stammen aus dem Übersichtsplan der Hyzernauts.</li>
+        <li><b>bahnen.js:</b> alle Kurse (KURSE) mit ihren Bahnen und das freie Feld. Ein neuer Kurs ist ein weiterer Eintrag in KURSE und erscheint automatisch in der Kursauswahl.</li>
         <li><b>Einstellungen (Entwicklung):</b> Stärke von Hyzer/Anhyzer, Turn, Fade, Weite, Streuung, Wind, Flugtempo, Kick, Zoom und Stimme. Wird nur in diesem Browser gespeichert.</li>
       </ul>
       <button class="doku-zurueck">← Zurück</button>
@@ -307,7 +317,7 @@
       <div class="knoepfe"><button id="zummenue" style="flex:1;font-size:13px;padding:10px 6px">Hauptmenü</button></div>
     </div>
     <div class="box nur-bag">
-      <h1>Discgolf Potsdam</h1>
+      <h1>Boogie Garanten</h1>
       <div class="klein" id="bahninfo"></div>
     </div>
     <div class="box nur-bag">
@@ -339,10 +349,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=43"></script>
-<script src="bahnen.js?v=43"></script>
-<script src="physik.js?v=43"></script>
-<script src="portraets.js?v=43"></script>
+<script src="taschen.js?v=44"></script>
+<script src="bahnen.js?v=44"></script>
+<script src="physik.js?v=44"></script>
+<script src="portraets.js?v=44"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -1391,7 +1401,7 @@ function schleife(jetzt) {
 const el = id => document.getElementById(id);
 function aktualisierePanel() {
   el("bahninfo").innerHTML =
-    `${bahn.ort || ""}<br>${bahn.kurz ? "" : "Bahn " + bahn.nummer + " "}${bahn.name ? "„" + bahn.name + "“ " : ""}· Par ${bahn.par} · ${Math.round(abstand(bahn.abwurf, bahn.korb))} m`
+    `${bahn.distanzmarken ? bahn.ort || "" : kurs.name + " · " + kurs.ort}<br>${bahn.kurz ? "" : "Bahn " + bahn.nummer + " "}${bahn.name ? "„" + bahn.name + "“ " : ""}· Par ${bahn.par} · ${Math.round(abstand(bahn.abwurf, bahn.korb))} m`
     + (runde.length > 1 ? `<br>Runde: Bahn ${rundenIndex + 1} von ${runde.length}` : "");
   el("modusname").textContent = { frei: "Freies Werfen", single: "Single Flight", vierer: "Vierer Flight" }[modus];
   el("spielerliste").innerHTML = spieler.map((s, i) => {
@@ -1608,9 +1618,9 @@ function setzeBahn(b) {
 function starteModus(m, person) {
   modus = m;
   teilnehmer = m === "vierer" ? SPIELER.map((_, i) => i) : [person];
-  const feld = BAHNEN.find(b => b.distanzmarken);
+  const feld = FREIES_FELD;
   if (m === "frei" && !feld) { alert("Das freie Feld wurde nicht geladen. Bitte die Seite neu laden."); return; }
-  const plaetze = BAHNEN.filter(b => !b.distanzmarken), wahl = +el("rundenwahl").value;
+  const plaetze = kurs.bahnen, wahl = +el("rundenwahl").value;
   runde = m === "frei" ? [feld] : wahl ? [plaetze[wahl - 1]] : plaetze;
   el("menue").hidden = true;
   zeigeAnsicht("feld");
@@ -1715,7 +1725,27 @@ el("einst-standard").addEventListener("click", () => {
   zeichneVorschau();
 });
 let gewaehlterModus = null;
-BAHNEN.filter(b => !b.distanzmarken).forEach((b, i) => el("rundenwahl").insertAdjacentHTML("beforeend", `<option value="${i + 1}">Nur Bahn ${b.nummer}</option>`));
+// ---------- Kursauswahl (weitere Kurse kommen in bahnen.js unter KURSE dazu) ----------
+let kurs = KURSE[0];
+try { kurs = KURSE.find(k => k.id === localStorage.getItem("discgolf-kurs")) || KURSE[0]; } catch (e) { /* egal */ }
+function zeigeKurse() {
+  el("kurse").innerHTML = KURSE.map((k, i) => {
+    const par = k.bahnen.reduce((a, b) => a + b.par, 0);
+    const meter = Math.round(k.bahnen.reduce((a, b) => a + abstand(b.abwurf, b.korb), 0));
+    return `<button class="kurs ${k === kurs ? "an" : ""}" data-kurs="${i}">${k.name}<small>${k.ort} · ${k.bahnen.length} Bahnen · Par ${par} · ${meter} m</small></button>`;
+  }).join("");
+  // Runde: ganze Runde oder eine einzelne Bahn des gewählten Kurses
+  el("rundenwahl").innerHTML = `<option value="0">Ganze Runde (${kurs.bahnen.length} Bahnen)</option>`
+    + kurs.bahnen.map((b, i) => `<option value="${i + 1}">Nur Bahn ${b.nummer}</option>`).join("");
+}
+el("kurse").addEventListener("click", e => {
+  const b = e.target.closest("[data-kurs]");
+  if (!b) return;
+  kurs = KURSE[+b.dataset.kurs];
+  try { localStorage.setItem("discgolf-kurs", kurs.id); } catch (err) { /* egal */ }
+  zeigeKurse();
+});
+zeigeKurse();
 el("vierer-namen").textContent = SPIELER.map(s => s.name).join(", ").replace(/, ([^,]*)$/, " & $1") + " spielen zusammen";
 el("personen").innerHTML = SPIELER.map((s, i) => `
   <button class="gross person" data-person="${i}" style="border-left-color:${s.farbe}"><canvas class="mini" width="32" height="32"></canvas>

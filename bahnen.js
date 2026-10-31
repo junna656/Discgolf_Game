@@ -1,6 +1,11 @@
 // ============================================================
-//  BAHNEN  –  Hyzernauts Discgolfparcours, Volkspark Potsdam
+//  KURSE UND BAHNEN
 // ============================================================
+//  KURSE: Liste der Discgolf-Kurse, jeder mit name, ort und seinen bahnen.
+//  Neuer Kurs: einfach einen weiteren Eintrag { id, name, ort, bahnen: [...] }
+//  in KURSE ergänzen – er erscheint dann automatisch in der Kursauswahl.
+//  FREIES_FELD: der Platz zum freien Werfen (Sportplatz).
+//
 //  Koordinaten in Metern, Draufsicht: x nach rechts, y nach unten.
 //  OB: Rechteck {x,y,w,h}, Polygon {punkte}, Grenzlinie {linie, innen}
 //  (OB ist die Seite der Linie, auf der "innen" NICHT liegt) oder
@@ -21,7 +26,12 @@
 //  11: 57,8 / 3   12: 91,2 / 3   13: 94,4 / 3   14: 83,4 / 3   15: 88,0 / 3
 // ============================================================
 
-window.BAHNEN = [
+window.KURSE = [
+{
+  id: "potsdam",
+  name: "Hyzernauts Discgolfparcours",
+  ort: "Volkspark Potsdam",
+  bahnen: [
   {
     // Nachgebaut nach Bahnschild (2026), Übersichtsplan und Fotos aus UDisc
     nummer: 1,
@@ -194,7 +204,12 @@ window.BAHNEN = [
     wege: [{"punkte":[[12.8,18.8],[113.0,10.9],[133.5,9.8]],"breite":2.5},{"punkte":[[19.1,35.4],[78.3,74.0]],"breite":2.5},{"punkte":[[15.9,34.6],[37.2,74.0]],"breite":2.5},{"punkte":[[97.2,74.0],[130.4,66.1]],"breite":2.5}],
     ob: [{"name":"Weg links","art":"linie","linie":[[12.8,20.4],[113.0,12.5],[133.5,11.4]],"innen":[113,31.6]},{"name":"Weg rechts","art":"linie","linie":[[19.1,35.4],[78.3,74.0],[97.2,74.0],[130.4,66.1]],"innen":[113,31.6]}],
   },
-  {
+  ],
+},
+// weitere Kurse folgen hier
+];
+
+window.FREIES_FELD = {
     // Freies Werfen auf dem Sportplatz (nach Luftbild): Fußballfeld 98 × 66 m, Abwurf auf der Wiese
     // vor dem unteren Tor, Korb 130 m entfernt hinter dem oberen Tor
     nummer: 0,
@@ -213,5 +228,7 @@ window.BAHNEN = [
     tore: [[[27.0,42.7],[28.2,50.1]],[[126.2,42.7],[127.4,50.1]],[[92,82.9],[98,84.9]],[[100,83.9],[106,85.9]]],
     ob: [],
     distanzmarken: 25,
-  },
-];
+  };
+
+// alle Bahnen in einer Liste (Kurse und freies Feld)
+window.BAHNEN = [...window.KURSE.flatMap(k => k.bahnen), window.FREIES_FELD];

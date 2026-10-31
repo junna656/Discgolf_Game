@@ -1,7 +1,8 @@
-# Discgolf Potsdam
+# Boogie Garanten
 
-8-Bit-Discgolf-Spiel im Browser: der Hyzernauts Discgolfparcours im Volkspark Potsdam
-mit allen 15 Bahnen – für Thomas, Daniel, André und Gunnar.
+8-Bit-Discgolf-Spiel im Browser für Thomas, Daniel, André und Gunnar.
+Erster Kurs: der Hyzernauts Discgolfparcours im Volkspark Potsdam mit allen 15 Bahnen –
+weitere Kurse folgen.
 
 **Spielen:** https://junna656.github.io/Discgolf_Game/
 
@@ -15,7 +16,7 @@ mit allen 15 Bahnen – für Thomas, Daniel, André und Gunnar.
 |---|---|
 | `index.html` | das Spiel (Grafik, Steuerung, Menü, Anleitung) |
 | `taschen.js` | Spieler, Bags mit Flugzahlen, Stärken, Aussehen, Spielerkarten |
-| `bahnen.js` | alle Bahnen und das freie Feld |
+| `bahnen.js` | alle Kurse (`KURSE`) mit ihren Bahnen und das freie Feld – ein neuer Kurs ist einfach ein weiterer Eintrag |
 | `physik.js` | Flugmodell (Turn, Fade, Hyzer/Anhyzer, Wind, Streuung, Bäume, OB) |
 | `portraets.js` | 8-Bit-Porträts der Spieler |
 | `rufe/` | Ruf-Aufnahmen („Achtung, zweite Scheibe!“) |
