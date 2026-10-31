@@ -178,7 +178,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 60</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 61</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <div class="kurswahl">
@@ -235,6 +235,7 @@
         <li><b>OB</b> (weiße Linie mit roten Pflöcken, Zaun, dunkleres Gras): Strafwurf, weiter geht es dort, wo die Scheibe ins Aus geflogen ist. Der Rand des Spielfelds ist immer OB.</li>
         <li><b>Bahn 1 „Bowling“:</b> Auf dem Holzdeck rutscht die Scheibe weit – und kann direkt in den Korb rutschen (STRIKE!).</li>
         <li><b>Bahn 9 (Insel):</b> Der Korb steht in einer Box kurz hinter dem Weg – vorne und links Baumstämme, rechts Sträucher. Alles außerhalb der Box ist OB. Nach OB geht es vom zweiten Abwurf weiter (gelb umrandeter Kasten auf dem Fairway).</li>
+        <li><b>Bahn 12 (Mando):</b> Der Wurf muss zwischen dem großen Baum links vom Weg und dem kleinen Baum rechts davon hindurch (gelbe Linie, rote Pfeile). Wer außen vorbei fliegt, bekommt +1 und wirft noch einmal von der alten Lage.</li>
       </ul>
 
       <h3>Putten (unter 10 m)</h3>
@@ -387,10 +388,10 @@
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=60"></script>
-<script src="bahnen.js?v=60"></script>
-<script src="physik.js?v=60"></script>
-<script src="portraets.js?v=60"></script>
+<script src="taschen.js?v=61"></script>
+<script src="bahnen.js?v=61"></script>
+<script src="physik.js?v=61"></script>
+<script src="portraets.js?v=61"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -671,6 +672,24 @@ function zeichneHintergrund(z) {
       c.fillRect(Math.round(b.x * S + Math.cos(a) * dd), Math.round(b.y * S + Math.sin(a) * dd), 1, 1);
     }
   }
+  // Mando: gestrichelte gelbe Linie durch die Lücke, rote Pfeile an beiden Bäumen zeigen hinein
+  if (bahn.mando) {
+    const [ax, ay] = bahn.mando.a, [bx, by] = bahn.mando.b, len = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / len, uy = (by - ay) / len;
+    const pk = Math.max(1, Math.round(0.5 * S));
+    c.fillStyle = "#ffd84a";
+    for (let d = 0; d <= len; d += 1.2) if (!(Math.floor(d / 1.2) % 2)) c.fillRect(Math.round((ax + ux * d) * S), Math.round((ay + uy * d) * S), pk, pk);
+    const pfeil = (x, y, rx, ry) => {
+      c.fillStyle = "#e8352a";
+      for (let i = 0; i < 6; i++) {
+        const q = 0.4 * i, br = 1.8 - 0.3 * i;
+        for (let w = -br; w <= br; w += 0.3) c.fillRect(Math.round((x + rx * q - ry * w) * S), Math.round((y + ry * q + rx * w) * S), pk, pk);
+      }
+    };
+    // Pfeile am Kronenrand
+    const rand = (x, y) => Math.max(1, ((bahn.baeume.find(t => Math.hypot(t.x - x, t.y - y) < 1) || {}).r || 2) - 1.2);
+    pfeil(ax + ux * rand(ax, ay), ay + uy * rand(ax, ay), ux, uy);
+    pfeil(bx - ux * rand(bx, by), by - uy * rand(bx, by), -ux, -uy);
+  }
   return hg;
 }
 
@@ -720,6 +739,7 @@ function starteBahn() {
     s.lie = { x: bahn.abwurf.x, y: bahn.abwurf.y };
     s.wuerfe = 0;
     s.fertig = false;
+    s.mandoOk = false;
     s.scheibe = startScheibe(s.tasche);
   }
   const st = 1 + Math.random() * 5, ri = Math.random() * Math.PI * 2;
@@ -835,6 +855,7 @@ function loslassen() {
   const s = ich();
   const st = staerke(s);
   const wurf = streue({ x: s.lie.x, y: s.lie.y, richtung: ziel, kraft, winkel, scheibe: scheibe(), hand: s.hand, wurfart: s.wurfart, streuFaktor: st.streuung, weiteFaktor: st.weite });
+  wurf.mandoOk = s.mandoOk;
   const erg = simuliere(bahn, wurf, boe());
   s.wuerfe++;
   // Wie stark hat die Streuung den Wurf verzogen? (für den Ruf)
@@ -849,7 +870,8 @@ function loslassen() {
 
 function flugEnde() {
   const s = ich(), e = flug.erg;
-  if (!e.drin && (e.typ === "baum" || e.ob || flug.verzogen)) rufe(s);
+  if (!e.drin && (e.typ === "baum" || e.ob || e.mando === "verpasst" || flug.verzogen)) rufe(s);
+  if (e.mando === "ok") s.mandoOk = true;
   if (modus === "frei") {
     // Weitwurf: Landepunkt markieren, dann wieder vom Abwurf
     const d = abstand(e.lie, bahn.abwurf);
@@ -872,6 +894,9 @@ function flugEnde() {
     s.fertig = true;
     sfx.ketten();
     zeigeErgebnis(s, e.typ === "bowling" ? "STRIKE!" : null);
+  } else if (e.mando === "verpasst") {
+    s.wuerfe++;
+    if (!flug.mandoGezeigt) zeigeMando();
   } else if (e.ob) {
     s.wuerfe++;
     if (!flug.obGezeigt) zeigeOB(true);
@@ -896,6 +921,11 @@ function zeigeErgebnis(s, extra) {
 }
 
 function zeigeBanner(text, farbe, dauer = 1.2, gr = 16, blinkt = false) { banner = { text, farbe, t0: uhr, dauer, gr, blinkt }; }
+function zeigeMando() {
+  sfx.ob();
+  zeigeBanner("MANDO +1", "#ff3b2f", 2.2, 32, true);
+  spaeter(() => zeigeBanner("NOCHMAL VON DER ALTEN LAGE", "#ffd84a", 1.8, 8), 2200);
+}
 function zeigeOB(strafe) {
   sfx.ob();
   zeigeBanner(strafe ? "OB +1" : "OB", "#ff3b2f", 2.2, 32, true);
@@ -1399,6 +1429,10 @@ function schleife(jetzt) {
       sfx.ast();
       zeigeBanner("ABGEBREMST", "#9be07a", 0.9, 8);
     }
+    if (e.mando === "verpasst" && !flug.mandoGezeigt && fp.i >= e.mandoIndex && modus !== "frei") {
+      flug.mandoGezeigt = true;
+      zeigeMando();
+    }
     if (e.ob && !flug.obGezeigt && fp.i >= e.obIndex) {
       flug.obGezeigt = true;
       zeigeOB(modus !== "frei");
@@ -1734,9 +1768,10 @@ function kiPlane(s, k) {
     s.scheibe = c.si; winkel = c.w;
     const st = staerke(s);
     const wurf = streue({ x: s.lie.x, y: s.lie.y, richtung: c.richtung, kraft: c.kr, winkel: c.w, scheibe: s.tasche[c.si], hand: s.hand, wurfart: s.wurfart, streuFaktor: st.streuung, weiteFaktor: st.weite });
+    wurf.mandoOk = s.mandoOk;
     const e = simuliere(bahn, wurf, wind), rest = abstand(e.lie, bahn.korb);
     // geschätzte Würfe bis ins Loch: im Putt-Bereich ~1, sonst 2 + Entfernung; OB kostet einen Strafwurf
-    return e.drin ? 0 : (rest <= 10 ? 1 + rest * 0.04 : 2 + rest / 80) + (e.ob ? 1.2 : 0) + (e.typ === "baum" ? 0.3 : 0);
+    return e.drin ? 0 : (rest <= 10 ? 1 + rest * 0.04 : 2 + rest / 80) + (e.ob || e.mando === "verpasst" ? 1.2 : 0) + (e.typ === "baum" ? 0.3 : 0);
   };
   const kandidaten = [];
   for (const si of scheiben) for (const r of k.richtungen) for (const w of k.winkel) for (const kr of k.kraefte) {

@@ -90,6 +90,24 @@
 
   // wurf: {x, y, richtung (rad), kraft 0..1, winkel (Grad, + = Hyzer, - = Anhyzer), scheibe, hand, wurfart}
   // wind: {x, y} in m/s (Richtung, in die der Wind weht)
+  // Wo kreuzt der Flug die Mando-Linie? { ok: in der Lücke, index } oder null (nicht erreicht)
+  function mandoKreuzung(bahn, pfad, start) {
+    const m = bahn.mando;
+    if (!m) return null;
+    const [ax, ay] = m.a, [bx, by] = m.b, dx = bx - ax, dy = by - ay;
+    const seite = p => dx * (p.y - ay) - dy * (p.x - ax);
+    const s0 = seite(bahn.abwurf);
+    if (seite(start) * s0 <= 0) return null; // schon jenseits der Mando
+    for (let k = 1; k < pfad.length; k++) {
+      const s1 = seite(pfad[k - 1]), s2 = seite(pfad[k]);
+      if (s2 * s0 > 0) continue;
+      const f = s1 / (s1 - s2 || 1), x = pfad[k - 1].x + (pfad[k].x - pfad[k - 1].x) * f, y = pfad[k - 1].y + (pfad[k].y - pfad[k - 1].y) * f;
+      const u = ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy);
+      return { ok: u >= 0 && u <= 1, index: k };
+    }
+    return null;
+  }
+
   function simuliere(bahn, wurf, wind) {
     const s = wurf.scheibe, kraft = wurf.kraft, winkel = wurf.winkel;
     wind = { x: wind.x * E.wind, y: wind.y * E.wind };
@@ -250,7 +268,18 @@
     }
     if (drin) lie = { x: bahn.korb.x, y: bahn.korb.y };
 
-    return { pfad, lie, drin, ob, obIndex, typ, bremsPunkte, dauer: t, distanz: abstand(lie, wurf) };
+    // Mando: die Scheibe muss die Linie zwischen zwei Bäumen in der Lücke kreuzen
+    let mando = null, mandoIndex = -1;
+    const m = !wurf.mandoOk && mandoKreuzung(bahn, pfad, wurf);
+    if (m) {
+      mando = m.ok ? "ok" : "verpasst";
+      if (!m.ok) {
+        // verpasst: +1 und noch einmal von der alten Lage (zählt vor OB und Treffer)
+        mandoIndex = m.index; drin = false; ob = false; obIndex = -1; lie = { x: wurf.x, y: wurf.y };
+      }
+    }
+
+    return { pfad, lie, drin, ob, obIndex, mando, mandoIndex, typ, bremsPunkte, dauer: t, distanz: abstand(lie, wurf) };
   }
 
   g.Physik = { simuliere, streue, gauss, abstand, istOB, obZone, imPolygon, seiteVonLinie, aufBowlingbahn, DEG, einstellungen: E, STANDARD, reichweite };
