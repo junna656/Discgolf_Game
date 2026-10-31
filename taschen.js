@@ -65,16 +65,17 @@ window.SPIELER = [
     name: "André",
     aussehen: { haut: "#eebd9a", haare: "#6a4428", frisur: "zerzaust", bart: "vollbart", bartfarbe: "#5e3c22",
       jacke: "#7c8696", jacke2: "#18181c", weste: true, augen: "#4a3a2a" },
-    karte: { lieblingsscheibe: "Shryke", infos: ["Sehr starke Vorhand – weit und präzise", "Rechtshänder"] },
+    karte: { lieblingsscheibe: "Mako3", infos: ["Sehr starke Vorhand – weit und präzise", "Rechtshänder"] },
     staerken: { vorhand: { streuung: 0.5, weite: 1.15 } },   // Vorhand: halbe Streuung, 15 % weiter
     farbe: "#f0c030",
     hand: "rechts",
     wurfart: "vorhand",
     tasche: [
       { name: "Hammer",     typ: "Driver",   speed: 13, glide: 5, turn: -1, fade: 3 },
-      { name: "Shryke", typ: "Driver", speed: 13, glide: 6, turn: -2, fade: 2, standard: true }, // Innova – Lieblingsscheibe
+      { name: "Shryke", typ: "Driver", speed: 13, glide: 6, turn: -2, fade: 2 }, // Innova
       { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1 }, // Latitude 64°
       { name: "Möwe",       typ: "Fairway",  speed: 7,  glide: 6, turn: -1, fade: 2 },
+      { name: "Mako3", typ: "Midrange", speed: 5, glide: 5, turn: 0, fade: 0, standard: true }, // Innova Mako3 – Lieblingsscheibe
       { name: "Kompass",    typ: "Midrange", speed: 5,  glide: 5, turn: 0,  fade: 1 },
       { name: "Muschel",    typ: "Putter",   speed: 2,  glide: 4, turn: 0,  fade: 0 },
       { name: "Zange",      typ: "Putter",   speed: 3,  glide: 2, turn: 0,  fade: 3 },
