@@ -93,9 +93,9 @@ window.SPIELER = [
       { name: "Trace", typ: "Driver", speed: 11, glide: 5, turn: -1, fade: 2 }, // Streamline Discs Trace (Neutron)
       { name: "Heat",      typ: "Driver",   speed: 9, glide: 3, turn: -3, fade: 1, standard: true }, // Lieblingsscheibe
       { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1 }, // Latitude 64°
-      { name: "Sense",      typ: "Fairway",  speed: 9,  glide: 4, turn: 0,  fade: 3 },
-      { name: "Eule",       typ: "Midrange", speed: 4,  glide: 6, turn: -1, fade: 0 },
-      { name: "Bolzen",     typ: "Putter",   speed: 2,  glide: 3, turn: 0,  fade: 1 },
+      { name: "Valkyrie", typ: "Driver", speed: 9, glide: 4, turn: -2, fade: 2 }, // Innova
+      { name: "Method", typ: "Midrange", speed: 5, glide: 5, turn: 0, fade: 2 },  // Flugzahlen bitte prüfen
+      { name: "Loft", typ: "Putter", speed: 2, glide: 3, turn: 0, fade: 1 },      // Flugzahlen bitte prüfen
     ],
   },
 ];
