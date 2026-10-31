@@ -90,6 +90,7 @@
     padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
   }
   .tabs button { flex: 1; font-size: 13px; padding: 12px 6px; }
+  .tabs .dreh { flex: 0.7; font-size: 20px; padding: 8px 2px; user-select: none; -webkit-user-select: none; touch-action: none; }
   .tabs #werfen2 { flex: 1.6; background: #35502f; border-color: var(--akzent); user-select: none; -webkit-user-select: none; touch-action: none; }
   .tabs #werfen2:disabled { opacity: .4; }
   /* Hochkant: Bahn steht senkrecht, Abwurf unten */
@@ -138,7 +139,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">DISCGOLF<br>POTSDAM</h1>
-    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 31</span></p>
+    <p class="untertitel">Hyzernauts Parcours · Volkspark<br><span style="color:#9fc49a">Version 32</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -164,6 +165,8 @@
       <ul>
         <li><b>Zielen:</b> Handy – dorthin tippen, wohin der Wurf gehen soll. Rechner – Maus bewegen oder <kbd>←</kbd> <kbd>→</kbd>.</li>
         <li><b>Kraft:</b> gedrückt halten (Spielfeld, „Werfen“ oder <kbd>Leertaste</kbd>), der Kraftbalken pendelt, beim Loslassen wird geworfen.</li>
+        <li><b>Winkel beim Halten:</b> Solange du gedrückt hältst, kannst du seitlich ziehen – zur Seite, in die die Scheibe kurven soll (Rückhand: links = Hyzer, rechts = Anhyzer). Der Pfeil an der Ziellinie zeigt die Kurve.</li>
+        <li><b>Richtung am Handy:</b> die Knöpfe <b>&lt;</b> und <b>&gt;</b> neben „Werfen“ drehen die Wurfrichtung, gedrückt halten dreht schneller.</li>
         <li><b>Streuung:</b> Je mehr Kraft, desto stärker weichen Richtung, Weite und Winkel ab. Im roten Bereich wird es wild.</li>
         <li><b>Scheibe:</b> Das Spiel wählt passend zur Entfernung (Driver weit weg, Putter nah). Du kannst im Bag jederzeit selbst wechseln.</li>
       </ul>
@@ -302,13 +305,15 @@
 </div>
 <nav class="tabs">
   <button data-ansicht="feld">Spiel</button>
+  <button class="dreh" data-dreh="-1" title="Richtung nach links">&lt;</button>
   <button id="werfen2">Werfen</button>
+  <button class="dreh" data-dreh="1" title="Richtung nach rechts">&gt;</button>
   <button data-ansicht="bag">Bag</button>
 </nav>
 
-<script src="taschen.js?v=31"></script>
-<script src="bahnen.js?v=31"></script>
-<script src="physik.js?v=31"></script>
+<script src="taschen.js?v=32"></script>
+<script src="bahnen.js?v=32"></script>
+<script src="physik.js?v=32"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -698,12 +703,25 @@ function boe() {
 }
 
 // ---------- Normaler Wurf ----------
-function startLaden() {
+// ladeZeiger: wo der Finger/die Maus beim Start des Ladens war (zum Winkel-Ziehen)
+let ladeZeiger = null;
+function startLaden(e) {
   if (zustand !== "zielen") return;
   zustand = "laden";
   ladeZeit = uhr;
   kraft = 0;
+  ladeZeiger = e && e.clientX !== undefined ? { x: e.clientX, y: e.clientY, w: winkel } : null;
 }
+// Seitlich ziehen, solange gedrückt: zur Seite, in die die Scheibe kurven soll
+// (Rückhand rechts: nach links ziehen = Hyzer, nach rechts = Anhyzer)
+window.addEventListener("pointermove", e => {
+  if (zustand !== "laden" || !ladeZeiger || umsehen) return;
+  const r = cv.getBoundingClientRect(), dx = (e.clientX - ladeZeiger.x) / r.width * SW, dy = (e.clientY - ladeZeiger.y) / r.height * SH;
+  const wx = hochkant ? -dy : dx, wy = hochkant ? dx : dy; // Bildschirm -> Bahnrichtung
+  const seitlich = wx * -Math.sin(ziel) + wy * Math.cos(ziel); // > 0: nach rechts gezogen
+  const s = ich(), hand = (s.hand === "links" ? -1 : 1) * (s.wurfart === "vorhand" ? -1 : 1);
+  winkel = Math.round(Math.max(-30, Math.min(30, ladeZeiger.w - seitlich * 0.45 * hand)));
+});
 function loslassen() {
   if (zustand !== "laden") return;
   const s = ich();
@@ -1216,6 +1234,7 @@ function schleife(jetzt) {
   uhr += dt;
   if (!spieler) { requestAnimationFrame(schleife); return; }
 
+  if (dreh && zustand === "zielen" && uhr - drehStart > 0.3) ziel += dreh * 25 * DEG * dt;
   if (zustand === "laden") {
     const ph = ((uhr - ladeZeit) / 1.1) % 2;
     kraft = ph < 1 ? ph : 2 - ph;
@@ -1355,7 +1374,7 @@ function aktualisierePanel() {
 }
 
 function setzeWinkel(w) {
-  if (zustand !== "zielen") return;
+  if (zustand !== "zielen" && zustand !== "laden") return;
   winkel = Math.max(-30, Math.min(30, w));
   aktualisierePanel();
 }
@@ -1406,10 +1425,22 @@ for (const k of [el("werfen"), el("werfen2")]) k.addEventListener("pointerdown",
   e.preventDefault();
   if (umsehen) setzeUmsehen(false); // Werfen beendet das Umsehen
   if (document.body.dataset.ansicht !== "feld") { zeigeAnsicht("feld"); return; }
-  if (zustand === "putt") putten(); else startLaden();
+  if (zustand === "putt") putten(); else startLaden(e);
 });
 window.addEventListener("pointerup", () => { zieh = null; loslassen(); });
 window.addEventListener("pointercancel", () => loslassen());
+
+// Richtungsknöpfe (Handy): tippen dreht 1°, gedrückt halten dreht weiter
+let dreh = 0, drehStart = 0;
+document.querySelectorAll("[data-dreh]").forEach(b => {
+  b.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    if (zustand !== "zielen") return;
+    dreh = +b.dataset.dreh; drehStart = uhr;
+    ziel += dreh * DEG;
+  });
+  for (const ev of ["pointerup", "pointerleave", "pointercancel"]) b.addEventListener(ev, () => { dreh = 0; });
+});
 
 // Kamera-Knöpfe: Zoom manuell (+/−), automatisch, Umsehen
 function setzeZoom(z) {
@@ -1466,7 +1497,7 @@ cv.addEventListener("pointerdown", e => {
   if (zustand === "ende") { weiter(); return; }
   if (zustand === "putt") { putten(); return; }
   zieleAuf(e);
-  startLaden();
+  startLaden(e);
 });
 
 window.addEventListener("keydown", e => {
