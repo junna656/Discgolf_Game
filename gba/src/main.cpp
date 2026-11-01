@@ -17,6 +17,10 @@
 #include "bn_sram.h"
 #include "bn_string.h"
 #include "bn_vector.h"
+#include "bn_palette_bitmap_roi.h"
+#include "bn_palette_bitmap_bg_painter.h"
+#include "bn_palette_bitmap_bg_ptr.h"
+#include "bn_optional.h"
 #include "bn_math.h"
 #include "bn_bg_palettes.h"
 #include "bn_sprite_ptr.h"
@@ -44,6 +48,7 @@
 #endif
 #include "gen_bahnen.h"
 #include "gen_taschen.h"
+#include "gen_bahn_bilder.h"
 #include "gen_zufall_test.h"
 #include "zufall.h"
 
@@ -351,7 +356,7 @@ void benchmark()
 // Links/Rechts: Bahn, L/R: Spieler, SELECT: zurück
 void szene_daten()
 {
-    bn::bg_palettes::set_transparent_color(bn::color(5, 12, 5));
+    bn::bg_palettes::set_transparent_color(bn::color(0, 0, 0));
 
     bn::sprite_text_generator gross(common::variable_8x16_sprite_font);
     bn::sprite_text_generator klein(common::variable_8x8_sprite_font);
@@ -366,6 +371,11 @@ void szene_daten()
     bn::vector<bn::sprite_ptr, 26> flug;
     bn::fixed massstab, mitte_x, mitte_y;
     uint32_t bilder = 0;
+
+    // Übersicht der Bahn (gerendert aus der Webversion) als Bitmap-Hintergrund, ganze Bildschirmbreite
+    constexpr int oben = 13;   // Bildzeile, in der die Übersicht beginnt
+    bn::optional<bn::palette_bitmap_bg_ptr> hintergrund;
+    int noch_zeichnen = 0;     // Seiten, die die Übersicht noch bekommen müssen (Doppelpuffer)
 
     while(! bn::keypad::select_pressed())
     {
@@ -382,8 +392,10 @@ void szene_daten()
             kennzahl.clear();
             karte.clear();
             flug.clear();
+            hintergrund.reset();   // es gibt nur einen Bitmap-Hintergrund
+            bn::core::update();
             szene_spiel(bahn_nr, spieler_nr, bilder);
-            bn::bg_palettes::set_transparent_color(bn::color(5, 12, 5));
+            bn::bg_palettes::set_transparent_color(bn::color(0, 0, 0));
             bn::core::update();
             neu = true;
         }
@@ -410,47 +422,32 @@ void szene_daten()
                 }
                 z.append("   Par ");
                 z.append(int(b.par));
-                gross.generate(0, -70, zeile, texte);
+                gross.generate(0, -72, zeile, texte);
             }
 
-            // Minikarte: Spielfläche 192 Pixel breit, in der Mitte bei y = -4
-            massstab = bn::fixed(192) / fx(b.breite);
+            // Übersicht: Bild der Bahn (240 Pixel breit) ab Zeile "oben"; der Korb als Markierung darüber
+            const bn::palette_bitmap_item& uebersicht = *gen::uebersichten[bahn_nr];
+            hintergrund.reset();
+            hintergrund = bn::palette_bitmap_bg_ptr::create(uebersicht.palette_item());
+            noch_zeichnen = 2;
+            massstab = bn::fixed(gen::uebersicht_breite) / fx(b.breite);
             mitte_x = fx(b.breite) / 2;
             mitte_y = fx(b.hoehe) / 2;
-            auto bild = [&](daten::punkt p, int frame)
             {
-                bn::fixed x = (fx(p.x) - mitte_x) * massstab, y = (fx(p.y) - mitte_y) * massstab - 4;
-                if(! karte.full())
-                {
-                    bn::sprite_ptr s = bn::sprite_items::karte.create_sprite(x, y, frame);
-                    s.set_z_order(frame >= 3 ? 0 : 1);   // Abwurf und Korb vor den Bäumen
-                    karte.push_back(bn::move(s));
-                }
-            };
-            bild(b.abwurf, 3);
-            bild(b.korb, 4);
-            for(int i = 0; i < b.baeume_anzahl; ++i)
-            {
-                bn::fixed r = fx(b.baeume[i].r) * massstab;
-                bild(b.baeume[i].p, r < 4 ? 0 : r < 6 ? 1 : 2);
+                bn::fixed x = (fx(b.korb.x) - mitte_x) * massstab, y = (fx(b.korb.y) - mitte_y) * massstab;
+                bn::sprite_ptr s = bn::sprite_items::karte.create_sprite(x, y, 4);
+                s.set_z_order(0);
+                karte.push_back(bn::move(s));
             }
 
-            // Kennzahlen der Bahn
+            // Länge und Hinweis
             {
                 int dx = (b.korb.x.roh - b.abwurf.x.roh) >> 12, dy = (b.korb.y.roh - b.abwurf.y.roh) >> 12;
                 bn::string<64> zeile;
                 bn::ostringstream z(zeile);
                 z.append(bn::sqrt(dx * dx + dy * dy));
-                z.append(" m   ");
-                z.append(int(b.baeume_anzahl));
-                z.append(" Baeume   ");
-                z.append(int(b.ob_anzahl));
-                z.append(" OB");
-                if(b.hat_bowlingbahn) { z.append("   Bowlingbahn"); }
-                if(b.mauern_anzahl) { z.append("   Mauer"); }
-                if(b.hat_mando) { z.append("   Mando"); }
-                if(b.hat_dropzone) { z.append("   Dropzone"); }
-                klein.generate(0, 58, zeile, kennzahl);
+                z.append(" m   START: spielen   A: Testwurf");
+                klein.generate(0, 61, zeile, kennzahl);
             }
 
             // Spieler
@@ -458,6 +455,7 @@ void szene_daten()
                 const daten::spieler& s = gen::alle_spieler[spieler_nr];
                 bn::string<64> zeile;
                 bn::ostringstream z(zeile);
+                z.append("L/R ");
                 z.append(s.name);
                 z.append(": ");
                 z.append(int(s.tasche_anzahl));
@@ -467,8 +465,20 @@ void szene_daten()
                     z.append(", Liebling ");
                     z.append(s.tasche[s.lieblingsscheibe_index].name);
                 }
-                klein.generate(0, 70, zeile, texte);
+                klein.generate(0, 72, zeile, texte);
             }
+        }
+
+        // Übersicht in beide Seiten des Doppelpuffers zeichnen
+        if(hintergrund && noch_zeichnen > 0)
+        {
+            const bn::palette_bitmap_item& uebersicht = *gen::uebersichten[bahn_nr];
+            bn::palette_bitmap_bg_painter painter(*hintergrund);
+            painter.clear();
+            painter.unsafe_blit(0, oben, bn::palette_bitmap_roi(uebersicht.pixels_item(), 0, 0,
+                                gen::uebersicht_breite, gen::uebersicht_hoehe));
+            painter.flip_page_later();
+            --noch_zeichnen;
         }
 
         // A: echten Wurf mit dem Flugmodell (physik.bn_iwram.cpp) vom Abwurf Richtung Korb
@@ -488,7 +498,7 @@ void szene_daten()
                 void punkt(double x, double y, int frame)
                 {
                     if(flug->full()) { return; }
-                    bn::fixed kx = (bn::fixed(x) - mitte_x) * massstab, ky = (bn::fixed(y) - mitte_y) * massstab - 4;
+                    bn::fixed kx = (bn::fixed(x) - mitte_x) * massstab, ky = (bn::fixed(y) - mitte_y) * massstab;   // Bildmitte = Bildschirmmitte
                     bn::sprite_ptr sp = bn::sprite_items::karte.create_sprite(kx, ky, frame);
                     sp.set_z_order(0);
                     flug->push_back(bn::move(sp));
@@ -532,7 +542,7 @@ void szene_daten()
             zs.append("/");
             zs.append(ticks_zu_ms(f.max_am_stueck));
             zs.append(" ms");
-            klein.generate(0, 58, zeile, kennzahl);
+            klein.generate(0, 61, zeile, kennzahl);
         }
 
         bn::core::update();

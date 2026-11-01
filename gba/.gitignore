@@ -6,3 +6,5 @@ build/
 *.sa1
 graphics/bahn_*.bmp
 graphics/bahn_*.json
+graphics/uebersicht_*.bmp
+graphics/uebersicht_*.json

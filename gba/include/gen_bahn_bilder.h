@@ -5,21 +5,37 @@
 #define GEN_BAHN_BILDER_H
 
 #include "bn_palette_bitmap_items_bahn_00.h"
+#include "bn_palette_bitmap_items_uebersicht_00.h"
 #include "bn_palette_bitmap_items_bahn_01.h"
+#include "bn_palette_bitmap_items_uebersicht_01.h"
 #include "bn_palette_bitmap_items_bahn_02.h"
+#include "bn_palette_bitmap_items_uebersicht_02.h"
 #include "bn_palette_bitmap_items_bahn_03.h"
+#include "bn_palette_bitmap_items_uebersicht_03.h"
 #include "bn_palette_bitmap_items_bahn_04.h"
+#include "bn_palette_bitmap_items_uebersicht_04.h"
 #include "bn_palette_bitmap_items_bahn_05.h"
+#include "bn_palette_bitmap_items_uebersicht_05.h"
 #include "bn_palette_bitmap_items_bahn_06.h"
+#include "bn_palette_bitmap_items_uebersicht_06.h"
 #include "bn_palette_bitmap_items_bahn_07.h"
+#include "bn_palette_bitmap_items_uebersicht_07.h"
 #include "bn_palette_bitmap_items_bahn_08.h"
+#include "bn_palette_bitmap_items_uebersicht_08.h"
 #include "bn_palette_bitmap_items_bahn_09.h"
+#include "bn_palette_bitmap_items_uebersicht_09.h"
 #include "bn_palette_bitmap_items_bahn_10.h"
+#include "bn_palette_bitmap_items_uebersicht_10.h"
 #include "bn_palette_bitmap_items_bahn_11.h"
+#include "bn_palette_bitmap_items_uebersicht_11.h"
 #include "bn_palette_bitmap_items_bahn_12.h"
+#include "bn_palette_bitmap_items_uebersicht_12.h"
 #include "bn_palette_bitmap_items_bahn_13.h"
+#include "bn_palette_bitmap_items_uebersicht_13.h"
 #include "bn_palette_bitmap_items_bahn_14.h"
+#include "bn_palette_bitmap_items_uebersicht_14.h"
 #include "bn_palette_bitmap_items_bahn_15.h"
+#include "bn_palette_bitmap_items_uebersicht_15.h"
 
 namespace gen
 {
@@ -43,6 +59,27 @@ namespace gen
         &bn::palette_bitmap_items::bahn_13,
         &bn::palette_bitmap_items::bahn_14,
         &bn::palette_bitmap_items::bahn_15,
+    };
+
+    // ganze Bahn auf Bildschirmbreite (240 × 135) für die Bahnauswahl
+    constexpr int uebersicht_breite = 240, uebersicht_hoehe = 135;
+    constexpr const bn::palette_bitmap_item* uebersichten[] = {
+        &bn::palette_bitmap_items::uebersicht_00,
+        &bn::palette_bitmap_items::uebersicht_01,
+        &bn::palette_bitmap_items::uebersicht_02,
+        &bn::palette_bitmap_items::uebersicht_03,
+        &bn::palette_bitmap_items::uebersicht_04,
+        &bn::palette_bitmap_items::uebersicht_05,
+        &bn::palette_bitmap_items::uebersicht_06,
+        &bn::palette_bitmap_items::uebersicht_07,
+        &bn::palette_bitmap_items::uebersicht_08,
+        &bn::palette_bitmap_items::uebersicht_09,
+        &bn::palette_bitmap_items::uebersicht_10,
+        &bn::palette_bitmap_items::uebersicht_11,
+        &bn::palette_bitmap_items::uebersicht_12,
+        &bn::palette_bitmap_items::uebersicht_13,
+        &bn::palette_bitmap_items::uebersicht_14,
+        &bn::palette_bitmap_items::uebersicht_15,
     };
 }
 

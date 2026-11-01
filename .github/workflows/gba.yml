@@ -58,6 +58,8 @@ jobs:
           path: |
             gba/graphics/bahn_*.bmp
             gba/graphics/bahn_*.json
+            gba/graphics/uebersicht_*.bmp
+            gba/graphics/uebersicht_*.json
 
   rom:
     name: ROM bauen

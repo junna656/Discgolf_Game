@@ -1,5 +1,6 @@
 // Zeichnet alle Bahnen mit dem Code der Webversion (zeichneHintergrund in index.html)
-// und legt sie als Bilder für die GBA-Version ab: gba/graphics/bahn_NN.bmp (512 × 288, 8 Bit).
+// und legt sie als Bilder für die GBA-Version ab: gba/graphics/bahn_NN.bmp (512 × 288, 8 Bit)
+// und gba/graphics/uebersicht_NN.bmp (240 × 135) für die Bahnauswahl.
 //
 //   node werkzeuge/rendere_gba.mjs
 //
@@ -20,6 +21,7 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
 const TMP = join(WURZEL, "werkzeuge", ".bahnbilder");
 const ZIEL = join(WURZEL, "gba", "graphics");
 const BREITE = 512;   // Pixel; die Höhe ergibt sich aus 16:9 (288)
+const UEBERSICHT = 240;   // Übersicht: 240 × 135
 
 rmSync(TMP, { recursive: true, force: true });
 mkdirSync(TMP, { recursive: true });
@@ -33,11 +35,14 @@ await seite.waitForFunction(() => typeof bahnBild === "function" && typeof BAHNE
 
 const anzahl = await seite.evaluate(() => BAHNEN.length);
 for (let i = 0; i < anzahl; i++) {
-  const url = await seite.evaluate(([i, breite]) => {
-    setzeBahn(BAHNEN[i]);
-    return bahnBild(breite / W).toDataURL("image/png");
-  }, [i, BREITE]);
-  writeFileSync(join(TMP, `bahn_${String(i).padStart(2, "0")}.png`), Buffer.from(url.split(",")[1], "base64"));
+  // zum Spielen (512 × 288) und als Übersicht für die Bahnauswahl (240 × 135, ganzer Bildschirm breit)
+  for (const [name, breite] of [["bahn", BREITE], ["uebersicht", UEBERSICHT]]) {
+    const url = await seite.evaluate(([i, breite]) => {
+      setzeBahn(BAHNEN[i]);
+      return bahnBild(breite / W).toDataURL("image/png");
+    }, [i, breite]);
+    writeFileSync(join(TMP, `${name}_${String(i).padStart(2, "0")}.png`), Buffer.from(url.split(",")[1], "base64"));
+  }
 }
 await browser.close();
 if (fehler.length) {
@@ -48,4 +53,4 @@ if (fehler.length) {
 // Farben reduzieren (GBA: 15 Bit, 255 Farben + Index 0 frei) und als BMP für Butano speichern
 execFileSync("python3", [join(WURZEL, "werkzeuge", "bmp_fuer_gba.py"), TMP, ZIEL], { stdio: "inherit" });
 rmSync(TMP, { recursive: true, force: true });
-console.log(`${anzahl} Bahnbilder nach gba/graphics geschrieben.`);
+console.log(`${anzahl} Bahnbilder und Übersichten nach gba/graphics geschrieben.`);

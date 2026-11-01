@@ -268,7 +268,7 @@ ${zeilen.join("\n")}
 #ifndef GEN_BAHN_BILDER_H
 #define GEN_BAHN_BILDER_H
 
-${BAHNEN.map((b, i) => `#include "bn_palette_bitmap_items_bahn_${nn(i)}.h"`).join("\n")}
+${BAHNEN.map((b, i) => `#include "bn_palette_bitmap_items_bahn_${nn(i)}.h"\n#include "bn_palette_bitmap_items_uebersicht_${nn(i)}.h"`).join("\n")}
 
 namespace gen
 {
@@ -277,6 +277,12 @@ namespace gen
     // in derselben Reihenfolge wie bahnen[]
     constexpr const bn::palette_bitmap_item* bahn_bilder[] = {
 ${BAHNEN.map((b, i) => `        &bn::palette_bitmap_items::bahn_${nn(i)},`).join("\n")}
+    };
+
+    // ganze Bahn auf Bildschirmbreite (240 × 135) für die Bahnauswahl
+    constexpr int uebersicht_breite = 240, uebersicht_hoehe = 135;
+    constexpr const bn::palette_bitmap_item* uebersichten[] = {
+${BAHNEN.map((b, i) => `        &bn::palette_bitmap_items::uebersicht_${nn(i)},`).join("\n")}
     };
 }
 
