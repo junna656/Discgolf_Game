@@ -1323,36 +1323,44 @@ function flugPosition() {
   return { p: { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, z: a.z + (b.z - a.z) * f }, i, fertig: false };
 }
 
+// Putt-Nahansicht ohne Text, Fadenkreuz und Scheibe: Himmel, Baumreihe, Wiese, Korb von der Seite.
+// wx: Wackeln der Ketten. Wird auch für die GBA-Version gerendert (werkzeuge/rendere_gba.mjs).
+function zeichnePuttHintergrund(c, wx = 0) {
+  const bx = 86, by = 14, bw = 148, bh = 146;
+  c.fillStyle = PAL.schwarz; c.fillRect(bx - 3, by - 3, bw + 6, bh + 6);
+  // Himmel mit Dither, Baumreihe, Wiese
+  for (let y = 0; y < 100; y++) {
+    c.fillStyle = y < 40 ? "#5ab0e8" : y < 70 ? ((y % 2) ? "#6cc0f0" : "#5ab0e8") : "#7ccaf2";
+    c.fillRect(bx, by + y, bw, 1);
+  }
+  for (let i = 0; i < bw; i += 6) pixelKreis(c, bx + i + 3, by + 92 - ((i * 7) % 9), 6, PAL.baum1);
+  c.fillStyle = PAL.fair1; c.fillRect(bx, by + 100, bw, bh - 100);
+  for (let y = by + 104; y < by + bh; y += 4) { c.fillStyle = PAL.fair2; c.fillRect(bx, y, bw, 2); }
+
+  // Korb in Seitenansicht
+  const K = KETTEN;
+  c.fillStyle = "#606468"; c.fillRect(K.x - 1, K.y - 12, 3, 52);
+  c.fillStyle = "#f0c020"; c.fillRect(K.x - 14, K.y - 13, 29, 4);
+  c.fillStyle = "#b08a10"; c.fillRect(K.x - 14, K.y - 10, 29, 1);
+  for (let i = -12; i <= 12; i += 3) {
+    c.fillStyle = (i / 3) % 2 ? "#d8dce0" : "#9098a0";
+    const krumm = Math.abs(i) > 6 ? 1 : 0;
+    c.fillRect(K.x + i + wx * (i % 2 ? 1 : -1), K.y - 9, 1, 9);
+    c.fillRect(K.x + i - (i > 0 ? krumm : -krumm) + wx, K.y, 1, 9);
+  }
+  c.fillStyle = "#8a9096"; c.fillRect(K.x - 15, K.y + 9, 31, 2);
+  c.fillStyle = "#b0b6bc"; c.fillRect(K.x - 13, K.y + 11, 27, 6);
+  c.fillStyle = "#f0c020"; c.fillRect(K.x - 13, K.y + 13, 27, 2);
+  c.fillStyle = "#6a7076"; c.fillRect(K.x - 11, K.y + 17, 23, 1);
+  c.fillStyle = PAL.schatten; c.fillRect(K.x - 8, K.y + 40, 18, 2);
+}
+
 function zeichnePuttAnsicht() {
   const s = ich(), d = abstand(s.lie, bahn.korb);
   const bx = 86, by = 14, bw = 148, bh = 146;
-  ctx.fillStyle = PAL.schwarz; ctx.fillRect(bx - 3, by - 3, bw + 6, bh + 6);
-  // Himmel mit Dither, Baumreihe, Wiese
-  for (let y = 0; y < 100; y++) {
-    ctx.fillStyle = y < 40 ? "#5ab0e8" : y < 70 ? ((y % 2) ? "#6cc0f0" : "#5ab0e8") : "#7ccaf2";
-    ctx.fillRect(bx, by + y, bw, 1);
-  }
-  for (let i = 0; i < bw; i += 6) pixelKreis(ctx, bx + i + 3, by + 92 - ((i * 7) % 9), 6, PAL.baum1);
-  ctx.fillStyle = PAL.fair1; ctx.fillRect(bx, by + 100, bw, bh - 100);
-  for (let y = by + 104; y < by + bh; y += 4) { ctx.fillStyle = PAL.fair2; ctx.fillRect(bx, y, bw, 2); }
-
-  // Korb in Seitenansicht
   const K = KETTEN, sh = putt.flug && putt.flug.ergebnis !== "kurz" && uhr - putt.flug.t0 > 0.45 && uhr - putt.flug.t0 < 1.1;
   const wx = sh ? Math.round(Math.sin(uhr * 50)) : 0;
-  ctx.fillStyle = "#606468"; ctx.fillRect(K.x - 1, K.y - 12, 3, 52);
-  ctx.fillStyle = "#f0c020"; ctx.fillRect(K.x - 14, K.y - 13, 29, 4);
-  ctx.fillStyle = "#b08a10"; ctx.fillRect(K.x - 14, K.y - 10, 29, 1);
-  for (let i = -12; i <= 12; i += 3) {
-    ctx.fillStyle = (i / 3) % 2 ? "#d8dce0" : "#9098a0";
-    const krumm = Math.abs(i) > 6 ? 1 : 0;
-    ctx.fillRect(K.x + i + wx * (i % 2 ? 1 : -1), K.y - 9, 1, 9);
-    ctx.fillRect(K.x + i - (i > 0 ? krumm : -krumm) + wx, K.y, 1, 9);
-  }
-  ctx.fillStyle = "#8a9096"; ctx.fillRect(K.x - 15, K.y + 9, 31, 2);
-  ctx.fillStyle = "#b0b6bc"; ctx.fillRect(K.x - 13, K.y + 11, 27, 6);
-  ctx.fillStyle = "#f0c020"; ctx.fillRect(K.x - 13, K.y + 13, 27, 2);
-  ctx.fillStyle = "#6a7076"; ctx.fillRect(K.x - 11, K.y + 17, 23, 1);
-  ctx.fillStyle = PAL.schatten; ctx.fillRect(K.x - 8, K.y + 40, 18, 2);
+  zeichnePuttHintergrund(ctx, wx);
 
   text("PUTT " + d.toFixed(1) + " M", bx + 4, by + 3, PAL.weiss);
   text(puttStil === "push" ? "PUSH" : "SPIN", bx + bw - 4, by + 3, "#ffe08a", "right");

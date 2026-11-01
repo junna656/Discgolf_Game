@@ -269,6 +269,7 @@ ${zeilen.join("\n")}
 #define GEN_BAHN_BILDER_H
 
 ${BAHNEN.map((b, i) => `#include "bn_palette_bitmap_items_bahn_${nn(i)}.h"\n#include "bn_palette_bitmap_items_uebersicht_${nn(i)}.h"`).join("\n")}
+#include "bn_palette_bitmap_items_putt_ansicht.h"
 
 namespace gen
 {
@@ -278,6 +279,11 @@ namespace gen
     constexpr const bn::palette_bitmap_item* bahn_bilder[] = {
 ${BAHNEN.map((b, i) => `        &bn::palette_bitmap_items::bahn_${nn(i)},`).join("\n")}
     };
+
+    // Putt-Nahansicht aus der Webversion (zeichnePuttHintergrund), 154 × 152;
+    // die Ketten-Mitte (KETTEN in index.html) liegt im Bild bei putt_ketten_x/y
+    constexpr const bn::palette_bitmap_item& putt_ansicht = bn::palette_bitmap_items::putt_ansicht;
+    constexpr int putt_breite = 154, putt_hoehe = 152, putt_ketten_x = 160 - 83, putt_ketten_y = 75 - 11;
 
     // ganze Bahn auf Bildschirmbreite (240 × 135) für die Bahnauswahl
     constexpr int uebersicht_breite = 240, uebersicht_hoehe = 135;

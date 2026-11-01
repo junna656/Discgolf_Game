@@ -36,6 +36,7 @@
 #include "bn_palette_bitmap_items_uebersicht_14.h"
 #include "bn_palette_bitmap_items_bahn_15.h"
 #include "bn_palette_bitmap_items_uebersicht_15.h"
+#include "bn_palette_bitmap_items_putt_ansicht.h"
 
 namespace gen
 {
@@ -60,6 +61,11 @@ namespace gen
         &bn::palette_bitmap_items::bahn_14,
         &bn::palette_bitmap_items::bahn_15,
     };
+
+    // Putt-Nahansicht aus der Webversion (zeichnePuttHintergrund), 154 × 152;
+    // die Ketten-Mitte (KETTEN in index.html) liegt im Bild bei putt_ketten_x/y
+    constexpr const bn::palette_bitmap_item& putt_ansicht = bn::palette_bitmap_items::putt_ansicht;
+    constexpr int putt_breite = 154, putt_hoehe = 152, putt_ketten_x = 160 - 83, putt_ketten_y = 75 - 11;
 
     // ganze Bahn auf Bildschirmbreite (240 × 135) für die Bahnauswahl
     constexpr int uebersicht_breite = 240, uebersicht_hoehe = 135;

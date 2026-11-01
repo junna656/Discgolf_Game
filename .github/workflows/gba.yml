@@ -65,6 +65,8 @@ jobs:
             gba/graphics/bahn_*.json
             gba/graphics/uebersicht_*.bmp
             gba/graphics/uebersicht_*.json
+            gba/graphics/putt_ansicht.bmp
+            gba/graphics/putt_ansicht.json
 
   rom:
     name: ROM bauen

@@ -40,7 +40,14 @@
 namespace
 {
     // Bilder der Figuren (gba/graphics/figuren.bmp)
-    enum figur { f_scheibe, f_schatten, f_punkt, f_punkt_gelb, f_spieler, f_fadenkreuz, f_korb, f_marke };
+    enum figur { f_scheibe, f_schatten, f_punkt, f_punkt_gelb, f_spieler, f_fadenkreuz, f_korb, f_marke,
+                 f_fadenkreuz_rot, f_putt_scheibe };
+
+    // Putt-Nahansicht (gba/graphics/putt_ansicht.bmp aus zeichnePuttHintergrund in index.html):
+    // Lage auf dem Bildschirm und Umrechnung der Web-Koordinaten (320 × 180, KETTEN = 160, 75)
+    constexpr int putt_bild_x = (240 - gen::putt_breite) / 2, putt_bild_y = 4;
+    constexpr int ketten_sx = putt_bild_x + gen::putt_ketten_x - 120, ketten_sy = putt_bild_y + gen::putt_ketten_y - 80;
+    constexpr double web_kx = 160, web_ky = 75;
 
     constexpr int bild_breite = gen::bahn_bild_breite, bild_hoehe = gen::bahn_bild_hoehe;
     constexpr int schirm_breite = 240, schirm_hoehe = 160;
@@ -138,7 +145,25 @@ namespace
             }
             if(_zustand == zustand::flug) { flug_weiter(); }
 
-            if(_uebersicht)
+            const bool putt_bild = _zustand == zustand::putt;
+            if(putt_bild != _zeigt_putt)
+            {
+                _zeigt_putt = putt_bild;
+                _bg.set_palette(putt_bild ? gen::putt_ansicht.palette_item() : _item.palette_item());
+                _blit = 2;
+            }
+            if(_zeigt_putt)
+            {
+                if(_blit > 0)
+                {
+                    _painter.clear();
+                    _painter.unsafe_blit(putt_bild_x, putt_bild_y, bn::palette_bitmap_roi(gen::putt_ansicht.pixels_item(), 0, 0,
+                                         gen::putt_breite, gen::putt_hoehe));
+                    _painter.flip_page_later();
+                    --_blit;
+                }
+            }
+            else if(_uebersicht)
             {
                 // ganze Bahn (Übersichtsbild 240 × 135), etwas nach unten gerückt
                 if(_blit > 0)
@@ -190,7 +215,8 @@ namespace
         bn::sprite_ptr _schatten, _scheibe, _spieler, _korb;
         bn::vector<bn::sprite_ptr, ziel_punkte> _ziel;
         bn::vector<bn::sprite_ptr, 20> _zeile_oben, _zeile_unten, _zeile_mitte;
-        bn::optional<bn::sprite_ptr> _putt_korb, _fadenkreuz;
+        bn::optional<bn::sprite_ptr> _fadenkreuz, _putt_scheibe;
+        bool _zeigt_putt = false, _kreuz_gruen = true;
         bn::string<64> _text_oben, _text_unten, _text_mitte;
 
         zustand _zustand = zustand::zielen;
@@ -218,6 +244,8 @@ namespace
         int _putt_start = 0;
         physik::punkt _putt_lie = { 0, 0 };
         const char* _putt_ergebnis = nullptr;
+        double _putt_ox = 0, _putt_oy = 0;   // Fadenkreuz beim Putten (Web-Pixel um die Ketten)
+        int _putt_flug_start = 0;
 
         double zahl01() { return _zz.naechste() / 4294967296.0; }
 
@@ -543,6 +571,9 @@ namespace
         void putten()
         {
             const versatz o = putt_wackel(putt_zeit());
+            _putt_ox = o.x;
+            _putt_oy = o.y;
+            _putt_flug_start = _uhr_bilder;
             ++_wuerfe;
             const double ax = mathe::betrag(o.x), ay = mathe::betrag(o.y);
             constexpr double bx = 12, by = 9;   // KETTEN in index.html
@@ -629,25 +660,64 @@ namespace
                 _ziel[i].set_visible(zielen);
             }
 
-            // Putt-Ansicht: großer Korb in der Mitte, Fadenkreuz wackelt
+            // Putt-Nahansicht: Fadenkreuz wackelt um die Ketten, nach dem Putt fliegt die Scheibe
+            // (wie zeichnePuttAnsicht in index.html; Koordinaten in Web-Pixeln, 1:1 auf dem GBA)
             if(im_putt)
             {
-                if(! _putt_korb)
+                if(! _fadenkreuz)
                 {
-                    _putt_korb = bn::sprite_items::korb.create_sprite(0, 0);
-                    _putt_korb->set_scale(2);
                     _fadenkreuz = bn::sprite_items::figuren.create_sprite(0, 0, f_fadenkreuz);
                     _fadenkreuz->set_z_order(0);
+                    _kreuz_gruen = true;
+                    _putt_scheibe = bn::sprite_items::figuren.create_sprite(0, 0, f_putt_scheibe);
+                    _putt_scheibe->set_z_order(0);
                 }
-                // Ketten des Korb-Bildes (32 × 32) liegen bei y ≈ 6..16 → doppelt so groß
-                const versatz o = _putt_ergebnis ? versatz{ 0, 0 } : putt_wackel(putt_zeit());
-                _fadenkreuz->set_position(bn::fixed(float(o.x * 1.6)) - 1, bn::fixed(float(o.y * 1.6)) - 14);
-                _fadenkreuz->set_visible(! _putt_ergebnis);
+                auto setze = [](bn::sprite_ptr& sp, double wx, double wy)
+                {
+                    sp.set_position(bn::fixed(float(wx - web_kx)) + ketten_sx, bn::fixed(float(wy - web_ky)) + ketten_sy);
+                };
+                if(! _putt_ergebnis)
+                {
+                    const versatz o = putt_wackel(putt_zeit());
+                    const bool auf_ketten = mathe::betrag(o.x) <= 12 && mathe::betrag(o.y) <= 9;
+                    if(auf_ketten != _kreuz_gruen)
+                    {
+                        _kreuz_gruen = auf_ketten;
+                        _fadenkreuz->set_tiles(bn::sprite_items::figuren.tiles_item(), auf_ketten ? f_fadenkreuz : f_fadenkreuz_rot);
+                    }
+                    setze(*_fadenkreuz, web_kx + o.x, web_ky + o.y);
+                    _fadenkreuz->set_visible(true);
+                    _putt_scheibe->set_visible(false);
+                }
+                else
+                {
+                    _fadenkreuz->set_visible(false);
+                    const double t = double(_uhr_bilder - _putt_flug_start) / 60 / 0.45;
+                    const double zx = web_kx + _putt_ox, zy = web_ky + _putt_oy;
+                    constexpr double start_y = 14 + 146 - 10;   // by + bh - 10
+                    double x, y;
+                    if(t < 1)
+                    {
+                        x = 160 + (zx - 160) * t;
+                        y = start_y + (zy - start_y) * t - mathe::sin(mathe::pi * t) * 10;
+                    }
+                    else
+                    {
+                        const double t2 = mathe::min(1, (t - 1) * 1.6);
+                        const bn::string_view erg(_putt_ergebnis);
+                        x = zx;
+                        const double boden = (erg == "drin" || (erg == "kurz" && mathe::betrag(_putt_ox) < 13)) ? web_ky + 12 : 14 + 104;
+                        y = zy + (boden - zy) * t2;
+                        if(erg == "hoch") { x = zx + t2 * 10; y = zy + (14 + 98 - zy) * t2; }
+                    }
+                    setze(*_putt_scheibe, x, y);
+                    _putt_scheibe->set_visible(true);
+                }
             }
             else
             {
-                _putt_korb.reset();
                 _fadenkreuz.reset();
+                _putt_scheibe.reset();
             }
         }
 
