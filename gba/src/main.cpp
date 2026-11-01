@@ -348,6 +348,12 @@ void benchmark()
                    ", Typ ", int(testergebnis.art), ", ", int(testergebnis.distanz), " m");
         }
     }
+    // Läuft das Spiel in Echtzeit? 120 Bilder (bn::core::update) sollten ~2 s dauern
+    {
+        bn::timer uhr;
+        for(int i = 0; i < 120; ++i) { bn::core::update(); }
+        BN_LOG("BENCH 120 Bilder: ", ticks_zu_ms(uhr.elapsed_ticks()), " ms (Soll ~2009 ms)");
+    }
     BN_LOG("BENCH ENDE");
 }
 #endif
