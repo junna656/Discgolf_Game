@@ -39,8 +39,8 @@
 #include "gen_version.h"
 
 // Kennung des Builds (git-Commit), vom Makefile gesetzt
-#ifndef BG_BUILD
-    #define BG_BUILD "lokal"
+#ifndef BG_KENNUNG
+    #define BG_KENNUNG "lokal"
 #endif
 #include "gen_bahnen.h"
 #include "gen_taschen.h"
@@ -129,7 +129,7 @@ void szene_wurf(int starts, bool zufall_gleich)
 
     bn::vector<bn::sprite_ptr, 40> feste_texte;
     gross.generate(0, -68, "BOOGIE GARANTEN", feste_texte);
-    klein.generate(0, -52, "Retro-Edition  v" BG_VERSION "  (" BG_BUILD ")", feste_texte);
+    klein.generate(0, -52, "Retro-Edition  v" BG_VERSION "  (" BG_KENNUNG ")", feste_texte);
 
     {
         bn::string<48> zeile;
