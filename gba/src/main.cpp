@@ -7,6 +7,8 @@
 //  - Speichern (SRAM):   Anzahl der Starts bleibt nach dem Ausschalten erhalten
 //
 // Der Wurf hier ist nur eine einfache Animation – das echte Flugmodell kommt in Etappe 3.
+//
+// Etappe 2: SELECT zeigt alle Bahnen (Minikarte) und Spieler aus den erzeugten Daten.
 
 #include "bn_core.h"
 #include "bn_keypad.h"
@@ -23,7 +25,11 @@
 #include "common_variable_8x8_sprite_font.h"
 #include "common_variable_8x16_sprite_font.h"
 
+#include "bn_sprite_items_karte.h"
+
 #include "gen_version.h"
+#include "gen_bahnen.h"
+#include "gen_taschen.h"
 #include "gen_zufall_test.h"
 #include "zufall.h"
 
@@ -85,19 +91,22 @@ namespace
         return true;
     }
 
+    // Festkommazahl aus den erzeugten Daten (gleiches Format wie bn::fixed)
+    bn::fixed fx(daten::fk z)
+    {
+        return bn::fixed::from_data(z.roh);
+    }
+
     // Spielfeld in Bildschirmkoordinaten (Mitte = 0, 0)
     constexpr bn::fixed abwurf_x = -96;
     constexpr bn::fixed boden_y = 30;
     constexpr bn::fixed korb_x = 88;
 }
 
-int main()
+// Szene 1: Titel und Probewurf. Endet mit SELECT.
+void szene_wurf(int starts, bool zufall_gleich)
 {
-    bn::core::init();
     bn::bg_palettes::set_transparent_color(bn::color(7, 15, 6)); // Wiese
-
-    const int starts = zaehle_start();
-    const bool zufall_gleich = zufall_ok();
 
     bn::sprite_text_generator gross(common::variable_8x16_sprite_font);
     bn::sprite_text_generator klein(common::variable_8x8_sprite_font);
@@ -132,7 +141,7 @@ int main()
     bool neu_zeichnen = true;
     zufall wackel(uint32_t(starts) * 2654435761u);
 
-    while(true)
+    while(! bn::keypad::select_pressed())
     {
         switch(jetzt)
         {
@@ -202,6 +211,7 @@ int main()
             if(jetzt == zustand::zielen)
             {
                 klein.generate(0, -36, "Hoch/Runter: zielen   A halten: werfen", hinweis);
+                klein.generate(0, 56, "SELECT: Bahnen ansehen", hinweis);
             }
             else if(jetzt == zustand::laden)
             {
@@ -220,6 +230,130 @@ int main()
             }
         }
 
+        bn::core::update();
+    }
+}
+
+// Szene 2: Bahnen und Spieler aus den erzeugten Daten (bahnen.js, taschen.js) ansehen.
+// Links/Rechts: Bahn, L/R: Spieler, SELECT: zurück
+void szene_daten()
+{
+    bn::bg_palettes::set_transparent_color(bn::color(5, 12, 5));
+
+    bn::sprite_text_generator gross(common::variable_8x16_sprite_font);
+    bn::sprite_text_generator klein(common::variable_8x8_sprite_font);
+    gross.set_center_alignment();
+    klein.set_center_alignment();
+
+    int bahn_nr = 0, spieler_nr = 0;
+    bool neu = true;
+    bn::vector<bn::sprite_ptr, 24> texte;
+    bn::vector<bn::sprite_ptr, 64> karte;
+
+    while(! bn::keypad::select_pressed())
+    {
+        if(bn::keypad::left_pressed()) { bahn_nr = (bahn_nr + gen::bahnen_anzahl - 1) % gen::bahnen_anzahl; neu = true; }
+        if(bn::keypad::right_pressed()) { bahn_nr = (bahn_nr + 1) % gen::bahnen_anzahl; neu = true; }
+        if(bn::keypad::l_pressed()) { spieler_nr = (spieler_nr + gen::spieler_anzahl - 1) % gen::spieler_anzahl; neu = true; }
+        if(bn::keypad::r_pressed()) { spieler_nr = (spieler_nr + 1) % gen::spieler_anzahl; neu = true; }
+
+        if(neu)
+        {
+            neu = false;
+            texte.clear();
+            karte.clear();
+            const daten::bahn& b = gen::bahnen[bahn_nr];
+
+            // Überschrift
+            {
+                bn::string<48> zeile;
+                bn::ostringstream z(zeile);
+                if(bahn_nr == gen::freies_feld) { z.append(b.name); }
+                else
+                {
+                    z.append("Bahn ");
+                    z.append(int(b.nummer));
+                    if(b.name[0]) { z.append("  "); z.append(b.name); }
+                }
+                z.append("   Par ");
+                z.append(int(b.par));
+                gross.generate(0, -70, zeile, texte);
+            }
+
+            // Minikarte: Spielfläche 192 Pixel breit, in der Mitte bei y = -4
+            const bn::fixed massstab = bn::fixed(192) / fx(b.breite);
+            const bn::fixed mitte_x = fx(b.breite) / 2, mitte_y = fx(b.hoehe) / 2;
+            auto bild = [&](daten::punkt p, int frame)
+            {
+                bn::fixed x = (fx(p.x) - mitte_x) * massstab, y = (fx(p.y) - mitte_y) * massstab - 4;
+                if(! karte.full())
+                {
+                    bn::sprite_ptr s = bn::sprite_items::karte.create_sprite(x, y, frame);
+                    s.set_z_order(frame >= 3 ? 0 : 1);   // Abwurf und Korb vor den Bäumen
+                    karte.push_back(bn::move(s));
+                }
+            };
+            bild(b.abwurf, 3);
+            bild(b.korb, 4);
+            for(int i = 0; i < b.baeume_anzahl; ++i)
+            {
+                bn::fixed r = fx(b.baeume[i].r) * massstab;
+                bild(b.baeume[i].p, r < 4 ? 0 : r < 6 ? 1 : 2);
+            }
+
+            // Kennzahlen der Bahn
+            {
+                int dx = (b.korb.x.roh - b.abwurf.x.roh) >> 12, dy = (b.korb.y.roh - b.abwurf.y.roh) >> 12;
+                bn::string<64> zeile;
+                bn::ostringstream z(zeile);
+                z.append(bn::sqrt(dx * dx + dy * dy));
+                z.append(" m   ");
+                z.append(int(b.baeume_anzahl));
+                z.append(" Baeume   ");
+                z.append(int(b.ob_anzahl));
+                z.append(" OB");
+                if(b.hat_bowlingbahn) { z.append("   Bowlingbahn"); }
+                if(b.mauern_anzahl) { z.append("   Mauer"); }
+                if(b.hat_mando) { z.append("   Mando"); }
+                if(b.hat_dropzone) { z.append("   Dropzone"); }
+                klein.generate(0, 58, zeile, texte);
+            }
+
+            // Spieler
+            {
+                const daten::spieler& s = gen::alle_spieler[spieler_nr];
+                bn::string<64> zeile;
+                bn::ostringstream z(zeile);
+                z.append(s.name);
+                z.append(": ");
+                z.append(int(s.tasche_anzahl));
+                z.append(" Scheiben");
+                if(s.lieblingsscheibe_index >= 0)
+                {
+                    z.append(", Liebling ");
+                    z.append(s.tasche[s.lieblingsscheibe_index].name);
+                }
+                klein.generate(0, 70, zeile, texte);
+            }
+        }
+
+        bn::core::update();
+    }
+}
+
+int main()
+{
+    bn::core::init();
+
+    const int starts = zaehle_start();
+    const bool zufall_gleich = zufall_ok();
+
+    while(true)
+    {
+        // nach jeder Szene ein Bild weiter, sonst zählt der SELECT-Druck gleich für die nächste Szene
+        szene_wurf(starts, zufall_gleich);
+        bn::core::update();
+        szene_daten();
         bn::core::update();
     }
 }

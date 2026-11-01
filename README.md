@@ -22,7 +22,7 @@ weitere Kurse folgen.
 | `rufe/` | Ruf-Aufnahmen („Achtung, zweite Scheibe!“) |
 | `werkzeuge/referenzwuerfe.mjs` | erzeugt `tests/referenz.json`: 600 Würfe mit festem Zufall als Referenz für das Flugmodell |
 | `docs/GBA-PLAN.md` | Plan für eine Game-Boy-Advance-Version |
-| `gba/` | GBA-Version (C++/Butano); `gba/include/gen_*.h` erzeugt `werkzeuge/exportiere_gba.mjs` |
+| `gba/` | GBA-Version (C++/Butano); `gba/include/gen_*.h` (Bahnen, Taschen, Stellschrauben, Version) erzeugt `werkzeuge/exportiere_gba.mjs` aus den JS-Dateien |
 
 Bahn 1, 9 und 15 sind nach Bahnschildern, Fotos und Luftbild nachgebaut, die übrigen
 Bahnen nach dem Übersichtsplan der Hyzernauts.

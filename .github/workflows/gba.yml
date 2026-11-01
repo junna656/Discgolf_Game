@@ -28,6 +28,10 @@ jobs:
         run: |
           g++ -std=c++17 -Wall -Wextra -Werror -I gba/include tests/gba/zufall_test.cpp -o zufall_test
           ./zufall_test
+      - name: Daten C++ = bahnen.js/taschen.js
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror -I gba/include tests/gba/daten_test.cpp -o daten_test
+          ./daten_test
 
   rom:
     name: ROM bauen
