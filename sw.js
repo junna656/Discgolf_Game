@@ -1,6 +1,6 @@
 // Offline-Unterstützung: erst Netzwerk (damit Updates sofort ankommen), sonst Cache
 const CACHE = "boogie-garanten-v2";
-const FILES = ["./", "index.html", "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png", "rufe/thomas.mp3", "fonts/schrift.css", "fonts/silkscreen-400.woff2", "fonts/silkscreen-700.woff2"];
+const FILES = ["./", "index.html", "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png", "rufe/thomas.mp3", "fonts/schrift.css", "fonts/silkscreen-400.woff2", "fonts/silkscreen-700.woff2", "mehrspieler.js", "impressum.html", "datenschutz.html", "rechtliches.css"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

@@ -1,0 +1,17 @@
+# Multiplayer-Server für Boogie Garanten (Cloudflare Worker + Durable Object pro Raum)
+name = "boogie-garanten-mp"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "RAUM"
+class_name = "Raum"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Raum"]
+
+[vars]
+# erlaubte Herkunft der Spielseite (Komma-getrennt); leer = alle
+ERLAUBT = "https://www.discgolf-game.de,https://discgolf-game.de,https://junna656.github.io,http://localhost:8765,http://127.0.0.1:8765"

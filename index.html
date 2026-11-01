@@ -191,7 +191,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.2.3</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.3.0</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <div class="kurswahl">
@@ -201,10 +201,12 @@
       </div>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
       <button class="gross" data-modus="vierer">Vierer Flight<small id="vierer-namen"></small></button>
+      <button class="gross" id="zu-online">Online spielen<small>Bis zu vier Handys live in einer Runde</small></button>
       <label class="klein" style="display:flex;gap:8px;align-items:center;justify-content:space-between">Flights spielen:
         <select id="rundenwahl"></select></label>
       <button class="gross" id="zu-doku" style="font-size:12px;padding:10px 16px;margin-top:8px">Anleitung<small>Steuerung, Regeln und Tipps</small></button>
       <button class="gross" id="zu-bags" style="font-size:12px;padding:10px 16px">Spieler & Bags<small>Spielerkarten ansehen, Scheiben im Bag bearbeiten</small></button>
+      <p class="klein" style="text-align:center;margin:10px 0 0"><a href="impressum.html" style="color:var(--leise)">Impressum</a> · <a href="datenschutz.html" style="color:var(--leise)">Datenschutz</a></p>
     </div>
     <div id="menue-doku" class="doku" hidden>
       <button class="doku-zurueck">← Zurück</button>
@@ -215,6 +217,7 @@
         <li><b>Freies Werfen:</b> Sportplatz mit Fußballfeld und Entfernungsmarken alle 25 m, Korb in 130 m. Jeder Wurf startet am Abwurf, es wird nicht gezählt. Kreuze zeigen, wo deine Scheiben gelandet sind; der weiteste Wurf ist gold.</li>
         <li><b>Single Flight:</b> eine Person spielt die Runde.</li>
         <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Für jede Person wählst du, ob ein Mensch spielt oder der Computer – <b>Locker</b>, <b>Solide</b> oder <b>Profi</b>. Mindestens eine Person muss ein Mensch sein. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat.</li>
+        <li><b>Online spielen:</b> Bis zu vier Handys spielen live zusammen. Eine Person tippt „Raum eröffnen“ und sagt den anderen den 4-Buchstaben-Code; die anderen geben ihn unter „Beitreten“ ein. Jeder wählt seine Figur (mit dem eigenen Bag), freie Figuren kann der Gastgeber vom Computer spielen lassen. Der Gastgeber wählt die Bahnen und startet. Alle sehen jeden Wurf live; wer dran ist, wirft auf seinem Handy. Bricht eine Verbindung ab, übernimmt der Computer, bis das Handy wieder da ist – nach dem Neuladen kommst du automatisch zurück in den Raum. Weiter zur nächsten Bahn und Bahn wählen kann nur der Gastgeber.</li>
         <li><b>Kurs:</b> Im Hauptmenü wählst du den Kurs für die Flights. Bisher gibt es den Hyzernauts Discgolfparcours im Volkspark Potsdam – weitere Kurse folgen.</li>
         <li>Unter „Flights spielen“ wählst du die ganze Runde oder eine einzelne Bahn des Kurses.</li>
         <li><b>Bahn wählen:</b> Im Spiel (Handy: unter „Menü“, Rechner: rechts) kannst du jederzeit direkt auf jede Bahn des Kurses springen. Die laufende Bahn wird dabei abgebrochen und zählt nicht.</li>
@@ -309,6 +312,34 @@
       <button class="gross" id="vierer-los" style="text-align:center">Los geht's</button>
       <button id="vierer-zurueck">← Zurück</button>
     </div>
+    <div id="menue-online" class="liste" style="gap:8px" hidden>
+      <h2 style="text-align:center;font-size:13px">Online spielen</h2>
+      <div id="mp-einstieg" class="liste" style="gap:8px">
+        <label class="klein">Dein Name<input id="mp-name" maxlength="20" autocomplete="nickname" style="width:100%;margin-top:4px"></label>
+        <button class="gross" id="mp-neu" style="text-align:center">Raum eröffnen</button>
+        <div class="kurswahl liste" style="gap:6px">
+          <label class="klein">Code eines Raums<input id="mp-code" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="ABCD" style="width:100%;margin-top:4px;font-size:22px;letter-spacing:8px;text-align:center;text-transform:uppercase"></label>
+          <button class="gross" id="mp-beitreten" style="text-align:center">Beitreten</button>
+        </div>
+      </div>
+      <div id="mp-lobby" class="liste" style="gap:8px" hidden>
+        <div class="kurswahl" style="text-align:center">
+          <p class="klein" style="margin:0">Code für die anderen</p>
+          <p id="mp-raumcode" style="font-size:34px;letter-spacing:10px;margin:6px 0;color:#ffe08a">----</p>
+        </div>
+        <div id="mp-mitglieder" class="liste" style="gap:4px"></div>
+        <p class="klein" style="margin:4px 0 0">Wähle deine Figur:</p>
+        <div id="mp-figuren" class="liste" style="gap:6px"></div>
+        <div id="mp-hostbox" class="liste" style="gap:6px">
+          <label class="klein" style="display:flex;gap:8px;align-items:center;justify-content:space-between">Bahnen:
+            <select id="mp-runde"></select></label>
+          <button class="gross" id="mp-start" style="text-align:center">Spiel starten</button>
+        </div>
+        <p id="mp-warte" class="klein" style="text-align:center;margin:0" hidden>Der Gastgeber startet das Spiel.</p>
+      </div>
+      <p id="mp-status" class="klein" style="text-align:center;margin:0"></p>
+      <button id="mp-raus">← Zurück</button>
+    </div>
     <div id="menue-karte" class="liste" style="gap:10px" hidden>
       <div class="spielerkarte" id="spielerkarte"></div>
       <button class="gross" id="karte-los" style="text-align:center">Los geht's</button>
@@ -401,10 +432,10 @@
   <button data-ansicht="bag">Menü</button>
 </nav>
 
-<script src="taschen.js?v=0.2.3"></script>
-<script src="bahnen.js?v=0.2.3"></script>
-<script src="physik.js?v=0.2.3"></script>
-<script src="portraets.js?v=0.2.3"></script>
+<script src="taschen.js?v=0.3.0"></script>
+<script src="bahnen.js?v=0.3.0"></script>
+<script src="physik.js?v=0.3.0"></script>
+<script src="portraets.js?v=0.3.0"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -732,6 +763,8 @@ let spieler, aktiv, zustand, wind, ziel, winkel, ladeZeit, kraft, flug, banner, 
 
 // Modus: "frei" (Weitwurf auf dem Feld), "single" (eine Person), "vierer" (alle)
 let modus = "vierer", teilnehmer = SPIELER.map((_, i) => i), marken = [], spielNr = 0;
+// Online-Multiplayer (mehrspieler.js): null, solange nicht verbunden
+let online = null;
 function spaeter(fn, ms) {
   const nr = spielNr;
   setTimeout(() => { if (nr === spielNr) fn(); }, ms);
@@ -748,6 +781,7 @@ function startScheibe(tasche) {
 let runde = [], rundenIndex = 0, startIndex = 0, nurEine = false;
 
 function neuesSpiel() {
+  if (modus === "online") { spieler = mpSpieler(); rundenIndex = startIndex; starteBahn(); return; }
   spieler = teilnehmer.map(i => SPIELER[i]).map(s => ({
     name: s.name, farbe: s.farbe, hand: s.hand || "rechts", tasche: s.tasche,
     wurfart: s.wurfart || "rueckhand",
@@ -776,7 +810,9 @@ function starteBahn() {
     s.mandoOk = false;
     s.scheibe = startScheibe(s.tasche);
   }
-  const st = 1 + Math.random() * 5, ri = Math.random() * Math.PI * 2;
+  // online würfeln alle Geräte denselben Wind aus (gemeinsamer Startwert)
+  const zz = modus === "online" ? mpWindZufall() : Math.random;
+  const st = 1 + zz() * 5, ri = zz() * Math.PI * 2;
   wind = { x: Math.cos(ri) * st, y: Math.sin(ri) * st };
   puttStil = "spin";
   banner = null;
@@ -886,6 +922,7 @@ window.addEventListener("pointermove", e => {
 });
 function loslassen() {
   if (zustand !== "laden") return;
+  const vorher = modus === "online" ? mpSchnappschuss() : null;
   const s = ich();
   const st = staerke(s);
   const wurf = streue({ x: s.lie.x, y: s.lie.y, richtung: ziel, kraft, winkel, scheibe: scheibe(), hand: s.hand, wurfart: s.wurfart, streuFaktor: st.streuung, weiteFaktor: st.weite });
@@ -896,10 +933,12 @@ function loslassen() {
   const verzogen = Math.abs(wurf.richtung - ziel) / DEG > E.rufAbStreuung
     || Math.abs(wurf.kraft - kraft) / Math.max(kraft, 0.1) > E.rufAbStreuung / 60
     || Math.abs(wurf.winkel - winkel) > E.rufAbStreuung * 1.6;
-  flug = { erg, t0: uhr, kraftAngezeigt: kraft, verzogen, start: { x: s.lie.x, y: s.lie.y } };
+  flug = { erg, t0: uhr, kraftAngezeigt: kraft, verzogen, start: { x: s.lie.x, y: s.lie.y }, lokal: true };
   zustand = "flug";
   sfx.wurf();
   aktualisierePanel();
+  if (vorher) online.zug++;
+  if (vorher) mpSende({ typ: "wurf", vorher, aktiv, erg, verzogen, kraft, ziel, winkel, scheibe: s.scheibe, wurfart: s.wurfart });
 }
 
 function flugEnde() {
@@ -944,6 +983,7 @@ function flugEnde() {
     zeigeBanner(Math.round(e.distanz) + " m", PAL.weiss, 0.9);
   }
   zustand = "pause";
+  if (modus === "online") mpSende({ typ: "stand", stand: mpSchnappschuss() }); // alle senden: falls der Werfer gerade neu lädt
   spaeter(naechster, 1300);
 }
 
@@ -1075,6 +1115,7 @@ function puttWackel(t) {
 
 function putten() {
   if (zustand !== "putt" || putt.flug) return;
+  const vorher = modus === "online" ? mpSchnappschuss() : null;
   const o = puttWackel(uhr - putt.t0);
   const s = ich();
   s.wuerfe++;
@@ -1086,34 +1127,45 @@ function putten() {
   } else if (o.y < -KETTEN.by) ergebnis = "hoch";
   else if (o.y > KETTEN.by && ax < 16) ergebnis = "kurz";
   else ergebnis = "seite";
-  putt.flug = { t0: uhr, o, ergebnis };
+  putt.flug = { t0: uhr, o, ergebnis, lie: puttLage(o, ergebnis), lokal: true };
   zustand = "puttflug";
   sfx.wurf();
   aktualisierePanel();
+  if (vorher) online.zug++;
+  if (vorher) mpSende({ typ: "putt", vorher, aktiv, o, ergebnis, lie: putt.flug.lie, puttStil });
+}
+
+// Wo bleibt ein verpasster Putt liegen? (Spin fliegt schnell: daneben heißt weit vorbei; Push bleibt nah)
+function puttLage(o, ergebnis) {
+  if (ergebnis === "drin") return null;
+  const s = ich(), r = zumKorb(s.lie), dx = Math.cos(r), dy = Math.sin(r), qx = -dy, qy = dx;
+  const k = bahn.korb, z = Math.random, weit = puttStil === "spin" ? 1.5 : 0.55;
+  let p;
+  if (ergebnis === "hoch") { const a = (1 + z() * 3) * weit; p = { x: k.x + dx * a + qx * o.x * 0.08, y: k.y + dy * a + qy * o.x * 0.08 }; }
+  else if (ergebnis === "kurz") { const a = 0.4 + z() * 1.1; p = { x: k.x - dx * a, y: k.y - dy * a }; }
+  else if (ergebnis === "spit") { const a = z() * Math.PI * 2, d = (0.6 + z()) * weit; p = { x: k.x + Math.cos(a) * d, y: k.y + Math.sin(a) * d }; }
+  else { const sg = Math.sign(o.x) || 1, a = (0.8 + z() * 1.6) * weit, b = z() * 2 * weit; p = { x: k.x + qx * sg * a + dx * b, y: k.y + qy * sg * a + dy * b }; }
+  if (istOB(p, bahn)) p = { x: k.x - dx, y: k.y - dy };
+  return p;
 }
 
 function puttEnde() {
-  const s = ich(), { o, ergebnis } = putt.flug;
+  const s = ich(), { ergebnis, lie } = putt.flug, k = bahn.korb;
   if (ergebnis !== "drin") rufe(s);
-  const r = zumKorb(s.lie), dx = Math.cos(r), dy = Math.sin(r), qx = -dy, qy = dx;
-  const k = bahn.korb, z = Math.random;
-  // Spin-Putt fliegt schnell: daneben heißt weit vorbei. Push-Putt ist langsam: bleibt nah am Korb.
-  const weit = puttStil === "spin" ? 1.5 : 0.55;
   if (ergebnis === "drin") {
     s.lie = { x: k.x, y: k.y };
     s.fertig = true;
     zeigeErgebnis(s);
   } else {
-    let p;
-    if (ergebnis === "hoch") { const a = (1 + z() * 3) * weit; p = { x: k.x + dx * a + qx * o.x * 0.08, y: k.y + dy * a + qy * o.x * 0.08 }; zeigeBanner("DRÜBER", "#ff9a5a"); }
-    else if (ergebnis === "kurz") { const a = 0.4 + z() * 1.1; p = { x: k.x - dx * a, y: k.y - dy * a }; zeigeBanner("ZU KURZ", "#ff9a5a"); }
-    else if (ergebnis === "spit") { const a = z() * Math.PI * 2, d = (0.6 + z()) * weit; p = { x: k.x + Math.cos(a) * d, y: k.y + Math.sin(a) * d }; zeigeBanner("SPIT-OUT!", "#ff9a5a"); sfx.ketten(); }
-    else { const sg = Math.sign(o.x) || 1, a = (0.8 + z() * 1.6) * weit, b = z() * 2 * weit; p = { x: k.x + qx * sg * a + dx * b, y: k.y + qy * sg * a + dy * b }; zeigeBanner("DANEBEN", "#ff9a5a"); }
-    if (istOB(p, bahn)) p = { x: k.x - dx, y: k.y - dy };
-    s.lie = p;
+    if (ergebnis === "hoch") zeigeBanner("DRÜBER", "#ff9a5a");
+    else if (ergebnis === "kurz") zeigeBanner("ZU KURZ", "#ff9a5a");
+    else if (ergebnis === "spit") { zeigeBanner("SPIT-OUT!", "#ff9a5a"); sfx.ketten(); }
+    else zeigeBanner("DANEBEN", "#ff9a5a");
+    s.lie = { x: lie.x, y: lie.y };
     if (ergebnis !== "spit") sfx.landung();
   }
   zustand = "pause";
+  if (modus === "online") mpSende({ typ: "stand", stand: mpSchnappschuss() });
   spaeter(naechster, 1300);
 }
 
@@ -1349,8 +1401,19 @@ function zeichneEnde() {
       text(g.w + " (" + plusMinus(g.d) + ")", 240, y, PAL.weiss, "right");
     } else text(s.wuerfe + "  (" + plusMinus(s.wuerfe - bahn.par) + ")", 236, y, PAL.weiss, "right");
   });
-  text(letzte ? (hochkant ? "TIPPEN: NOCHMAL" : "R / KLICK: NOCHMAL") : (hochkant ? "TIPPEN: NÄCHSTE BAHN" : "KLICK: NÄCHSTE BAHN"), 160, 128, PAL.weiss, "center");
+  if (modus === "online" && !mpIchHost()) text("WARTEN AUF GASTGEBER …", 160, 128, PAL.weiss, "center");
+  else text(letzte ? (hochkant ? "TIPPEN: NOCHMAL" : "R / KLICK: NOCHMAL") : (hochkant ? "TIPPEN: NÄCHSTE BAHN" : "KLICK: NÄCHSTE BAHN"), 160, 128, PAL.weiss, "center");
   text(hochkant ? "HAUPTMENÜ: UNTER MENÜ" : "M: HAUPTMENÜ", 160, 140, "#d0d8e2", "center");
+}
+
+// Klick am Bahnende: online entscheidet der Gastgeber für alle
+function weiterKlick() {
+  if (modus === "online") { if (!mpIchHost()) return; mpSende({ typ: "weiter", vorher: mpSchnappschuss() }); }
+  weiter();
+}
+function hauptmenueKlick() {
+  if (modus === "online" && online) { mpMenue(); return; }
+  zeigeMenue();
 }
 
 // Nach dem Ende einer Bahn: nächste Bahn – wer am besten gespielt hat, wirft zuerst
@@ -1582,29 +1645,30 @@ function aktualisierePanel() {
   el("modus").textContent = puttModus ? "Normal werfen statt putten" : "Zurück zum Putten";
   el("werfen").textContent = puttModus ? "Putten (klick)" : "Werfen (halten)";
   el("werfen2").textContent = puttModus ? "Putten" : "Werfen";
-  el("werfen").disabled = el("werfen2").disabled = kiAmZug() || !(zustand === "zielen" || zustand === "laden" || zustand === "putt");
+  el("werfen").disabled = el("werfen2").disabled = gesperrt() || !(zustand === "zielen" || zustand === "laden" || zustand === "putt");
   if (kiAmZug()) el("werfen").textContent = el("werfen2").textContent = "CPU …";
+  else if (fernAmZug()) el("werfen").textContent = el("werfen2").textContent = ich().name + " …";
 }
 
 function setzeWinkel(w) {
-  if (kiAmZug() || (zustand !== "zielen" && zustand !== "laden")) return;
+  if (gesperrt() || (zustand !== "zielen" && zustand !== "laden")) return;
   winkel = Math.max(-30, Math.min(30, w));
   aktualisierePanel();
 }
 function setzeWurfart(a) {
-  if (kiAmZug() || zustand !== "zielen") return;
+  if (gesperrt() || zustand !== "zielen") return;
   ich().wurfart = a;
   aktualisierePanel();
 }
 function wechsleModus() {
-  if (kiAmZug() || (zustand !== "zielen" && zustand !== "putt")) return;
+  if (gesperrt() || (zustand !== "zielen" && zustand !== "putt")) return;
   if (abstand(ich().lie, bahn.korb) > 10) return;
   puttModus = !puttModus;
   if (!puttModus) ich().scheibe = Math.max(0, ich().tasche.indexOf(putter(ich())));
   starteZug();
 }
 function waehleScheibe(i) {
-  if (kiAmZug() || zustand !== "zielen") return;
+  if (gesperrt() || zustand !== "zielen") return;
   const n = ich().tasche.length;
   ich().scheibe = (i + n) % n;
   aktualisierePanel();
@@ -1638,18 +1702,18 @@ for (const k of [el("werfen"), el("werfen2")]) k.addEventListener("pointerdown",
   e.preventDefault();
   if (umsehen) setzeUmsehen(false); // Werfen beendet das Umsehen
   if (document.body.dataset.ansicht !== "feld") { zeigeAnsicht("feld"); return; }
-  if (kiAmZug()) return;
+  if (gesperrt()) return;
   if (zustand === "putt") putten(); else startLaden(e);
 });
-window.addEventListener("pointerup", () => { zieh = null; if (!kiAmZug()) loslassen(); });
-window.addEventListener("pointercancel", () => { if (!kiAmZug()) loslassen(); });
+window.addEventListener("pointerup", () => { zieh = null; if (!gesperrt()) loslassen(); });
+window.addEventListener("pointercancel", () => { if (!gesperrt()) loslassen(); });
 
 // Richtungsknöpfe (Handy): tippen dreht 1°, gedrückt halten dreht weiter
 let dreh = 0, drehStart = 0;
 document.querySelectorAll("[data-dreh]").forEach(b => {
   b.addEventListener("pointerdown", e => {
     e.preventDefault();
-    if (kiAmZug() || zustand !== "zielen") return;
+    if (gesperrt() || zustand !== "zielen") return;
     dreh = +b.dataset.dreh; drehStart = uhr;
     ziel += dreh * DEG;
   });
@@ -1687,7 +1751,7 @@ function weltPunkt(e) {
   return hochkant ? { x: (W * S / S0 - sy) / S, y: sx / S } : { x: sx / S, y: sy / S };
 }
 function zieleAuf(e) {
-  if (kiAmZug() || zustand !== "zielen") return;
+  if (gesperrt() || zustand !== "zielen") return;
   const p = weltPunkt(e), s = ich();
   if (abstand(p, s.lie) > 1) ziel = Math.atan2(p.y - s.lie.y, p.x - s.lie.x);
 }
@@ -1708,8 +1772,8 @@ cv.addEventListener("pointerdown", e => {
     try { cv.setPointerCapture(e.pointerId); } catch (err) { /* egal */ }
     return;
   }
-  if (zustand === "ende") { weiter(); return; }
-  if (kiAmZug()) return;
+  if (zustand === "ende") { weiterKlick(); return; }
+  if (gesperrt()) return;
   if (zustand === "putt") { putten(); return; }
   zieleAuf(e);
   startLaden(e);
@@ -1718,16 +1782,16 @@ cv.addEventListener("pointerdown", e => {
 window.addEventListener("keydown", e => {
   const k = e.key;
   if (!el("menue").hidden || !spieler) return;
-  if (k === "m" || k === "M") { zeigeMenue(); return; }
+  if (k === "m" || k === "M") { hauptmenueKlick(); return; }
   if (k === "+" || k === "=") { zoomSchritt(1); return; }
   if (k === "-") { zoomSchritt(-1); return; }
   if (k === "0") { setzeZoom(null); setzeUmsehen(false); return; }
   if (k === "u" || k === "U") { setzeUmsehen(!umsehen); return; }
-  if (kiAmZug() && k !== "r" && k !== "R") return;
+  if (gesperrt() && k !== "r" && k !== "R") return;
   if (k === " ") {
     e.preventDefault();
     if (e.repeat) return;
-    if (zustand === "putt") putten(); else if (zustand === "ende") weiter(); else startLaden();
+    if (zustand === "putt") putten(); else if (zustand === "ende") weiterKlick(); else startLaden();
   } else if (k === "ArrowLeft" || k === "ArrowRight") {
     e.preventDefault();
     if (zustand === "zielen") ziel += (k === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 0.2 : 1) * DEG;
@@ -1740,9 +1804,9 @@ window.addEventListener("keydown", e => {
   else if (k === "p" || k === "P") wechsleModus();
   else if (k === "f" || k === "F") { if (zustand === "zielen") setzeWurfart(ich().wurfart === "vorhand" ? "rueckhand" : "vorhand"); }
   else if (k === "s" || k === "S") { if (zustand === "putt") { puttStil = puttStil === "spin" ? "push" : "spin"; aktualisierePanel(); } }
-  else if (k === "r" || k === "R") neuesSpiel();
+  else if ((k === "r" || k === "R") && modus !== "online") neuesSpiel();
 });
-window.addEventListener("keyup", e => { if (e.key === " ") loslassen(); });
+window.addEventListener("keyup", e => { if (e.key === " " && !gesperrt()) loslassen(); });
 
 function setzeBahn(b) {
   bahn = b;
@@ -1791,7 +1855,14 @@ el("vierer-liste").addEventListener("click", e => {
 el("vierer-los").addEventListener("click", () => starteModus("vierer"));
 el("vierer-zurueck").addEventListener("click", () => { el("menue-vierer").hidden = true; el("menue-start").hidden = false; });
 
-const kiAmZug = () => !!(spieler && spieler[aktiv] && zustand !== "ende" && (spieler[aktiv].steuerung || "mensch") !== "mensch");
+// kiAmZug: dieses Gerät rechnet gerade für den Computer; fernAmZug: online ist jemand anders am Zug
+const kiAmZug = () => {
+  if (!(spieler && spieler[aktiv] && zustand !== "ende")) return false;
+  if (modus === "online") return mpKiFuer(spieler[aktiv]);
+  return (spieler[aktiv].steuerung || "mensch") !== "mensch";
+};
+const fernAmZug = () => modus === "online" && !!online && !!(spieler && spieler[aktiv]) && !kiAmZug() && spieler[aktiv].besitzer !== online.ich;
+const gesperrt = () => kiAmZug() || fernAmZug();
 
 // Computer plant einen Wurf: probiert Scheiben, Richtungen, Abwurfwinkel und Kräfte im Flugmodell durch.
 // Erst jeder Kandidat einmal grob, dann die besten mehrfach (so sieht der Profi auch das Risiko).
@@ -1837,7 +1908,8 @@ function kiPlane(s, k) {
 
 function kiZug() {
   if (!kiAmZug()) return;
-  const s = ich(), k = KI[s.steuerung];
+  if (modus === "online" && !mpKiDarf()) return; // online: jeden Zug nur einmal planen
+  const s = ich(), k = KI[modus === "online" ? mpKiStufe(s) : s.steuerung];
   if (zustand === "putt") {
     // Putt: wartet auf einen guten Moment des Fadenkreuzes (Profi wartet geduldiger)
     puttStil = Math.hypot(wind.x, wind.y) < 3 ? "push" : "spin";
@@ -1877,7 +1949,9 @@ function springeZu(i) {
 }
 el("bahnsprung").addEventListener("click", e => {
   const b = e.target.closest("[data-sprung]");
-  if (b) springeZu(+b.dataset.sprung);
+  if (!b) return;
+  if (modus === "online") { if (!mpIchHost()) { zeigeBanner("NUR DER GASTGEBER", "#ffd84a", 1.2, 8); zeigeAnsicht("feld"); return; } mpSende({ typ: "springe", i: +b.dataset.sprung }); }
+  springeZu(+b.dataset.sprung);
 });
 
 // ---------- Hauptbildschirm ----------
@@ -1903,6 +1977,7 @@ function zeigeMenue() {
   el("menue-doku").hidden = true;
   el("menue-karte").hidden = true;
   el("menue-vierer").hidden = true;
+  el("menue-online").hidden = true;
   el("menue").hidden = false;
 }
 
@@ -2082,7 +2157,7 @@ el("personen").addEventListener("click", e => {
   if (b) zeigeKarte(+b.dataset.person);
 });
 el("zurueck").addEventListener("click", () => { el("menue-start").hidden = false; el("menue-wahl").hidden = true; });
-el("zummenue").addEventListener("click", zeigeMenue);
+el("zummenue").addEventListener("click", hauptmenueKlick);
 
 // kleiner Pixel-Korb als Logo
 (function () {
@@ -2102,5 +2177,6 @@ requestAnimationFrame(schleife);
 // Als App installierbar / offline startbar
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => { /* egal */ });
 </script>
+<script src="mehrspieler.js?v=0.3.0"></script>
 </body>
 </html>
