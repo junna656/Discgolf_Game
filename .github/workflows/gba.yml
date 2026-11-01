@@ -1,0 +1,58 @@
+# Baut die GBA-Version (gba/) und prüft, dass sie zur Webversion passt.
+# Die fertige ROM liegt danach unter Actions → dieser Lauf → Artifacts → boogie-garanten-gba.
+name: GBA-ROM
+
+on:
+  push:
+    branches: [main, dev]
+    paths: ["gba/**", "tests/gba/**", "werkzeuge/exportiere_gba.mjs", "physik.js", "bahnen.js", "taschen.js", "index.html", ".github/workflows/gba.yml"]
+  pull_request:
+    paths: ["gba/**", "tests/gba/**", "werkzeuge/exportiere_gba.mjs", "physik.js", "bahnen.js", "taschen.js", "index.html", ".github/workflows/gba.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pruefen:
+    name: Header aktuell + C++-Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Erzeugte Header aktuell? (werkzeuge/exportiere_gba.mjs)
+        run: node werkzeuge/exportiere_gba.mjs --pruefen
+      - name: Zufall C++ = physik.js
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror -I gba/include tests/gba/zufall_test.cpp -o zufall_test
+          ./zufall_test
+
+  rom:
+    name: ROM bauen
+    needs: pruefen
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm:latest
+    steps:
+      - name: Werkzeuge
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq python3 git > /dev/null
+      - uses: actions/checkout@v4
+      - name: Butano laden
+        run: gba/hole_butano.sh
+      - name: Bauen
+        working-directory: gba
+        run: make -j"$(nproc)"
+      - name: Version im Dateinamen
+        id: version
+        run: |
+          v=$(sed -n 's/.*BG_VERSION "\(.*\)".*/\1/p' gba/include/gen_version.h)
+          echo "v=$v" >> "$GITHUB_OUTPUT"
+          cp gba/boogie-garanten.gba "boogie-garanten-$v.gba"
+          ls -l boogie-garanten-*.gba
+      - uses: actions/upload-artifact@v4
+        with:
+          name: boogie-garanten-gba-${{ steps.version.outputs.v }}
+          path: boogie-garanten-*.gba
