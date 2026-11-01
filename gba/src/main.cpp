@@ -225,7 +225,7 @@ void szene_wurf(int starts, bool zufall_gleich)
             if(jetzt == zustand::zielen)
             {
                 klein.generate(0, -36, "Hoch/Runter: zielen   A halten: werfen", hinweis);
-                klein.generate(0, 56, "SELECT: Bahnen  -  dort START: spielen", hinweis);
+                klein.generate(0, 56, "SELECT: Bahnen, dann START: spielen", hinweis);
             }
             else if(jetzt == zustand::laden)
             {
