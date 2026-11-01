@@ -27,6 +27,8 @@
 
 #include "bn_sprite_items_figuren.h"
 #include "bn_sprite_items_korb.h"
+#include "bn_sprite_items_balken.h"
+#include "bn_sprite_items_kraftmarke.h"
 #include "common_variable_8x8_sprite_font.h"
 
 #include "physik.h"
@@ -66,16 +68,19 @@ namespace
         return namen[(k + 8) % 8];
     }
 
-    const char* typ_kurz(daten::scheiben_typ t)
+    const char* typ_name(daten::scheiben_typ t)
     {
         switch(t)
         {
-        case daten::scheiben_typ::driver: return "D";
-        case daten::scheiben_typ::fairway: return "F";
-        case daten::scheiben_typ::midrange: return "M";
-        default: return "P";
+        case daten::scheiben_typ::driver: return "Driver";
+        case daten::scheiben_typ::fairway: return "Fairway";
+        case daten::scheiben_typ::midrange: return "Midrange";
+        default: return "Putter";
         }
     }
+
+    // Kraftbalken wie zeichneKraftbalken() in index.html: 12 Stücke à 8 Pixel, Mitte des Bildschirms
+    constexpr int balken_stuecke = 12, balken_y = 60;
 
     class spiel
     {
@@ -214,10 +219,16 @@ namespace
 
         bn::sprite_ptr _schatten, _scheibe, _spieler, _korb;
         bn::vector<bn::sprite_ptr, ziel_punkte> _ziel;
-        bn::vector<bn::sprite_ptr, 20> _zeile_oben, _zeile_unten, _zeile_mitte;
+        bn::vector<bn::sprite_ptr, 20> _zeile_oben, _zeile_zwei, _zeile_unten, _zeile_mitte;
+        bn::vector<bn::sprite_ptr, balken_stuecke> _balken;
+        bn::vector<bn::sprite_ptr, 6> _balken_text;
+        bn::optional<bn::sprite_ptr> _kraftmarke;
+        int _balken_stand[balken_stuecke] = {};
+        int _banner_bis = 0;
+        double _kraft_angezeigt = 0;   // Kraft des letzten Wurfs (für den Balken im Flug)
         bn::optional<bn::sprite_ptr> _fadenkreuz, _putt_scheibe;
         bool _zeigt_putt = false, _kreuz_gruen = true;
-        bn::string<64> _text_oben, _text_unten, _text_mitte;
+        bn::string<64> _text_oben, _text_zwei, _text_unten, _text_mitte;
 
         zustand _zustand = zustand::zielen;
         int _kam_x = 0, _kam_y = 0, _blit = 0;
@@ -312,9 +323,46 @@ namespace
             _kraft = 0;
             _putt_modus = abstand(_lie, korb()) <= 10;
             if(_putt_modus) { _scheibe_nr = putter(); }
+            else { passe_scheibe_an(); }
             _zustand = _putt_modus ? zustand::putt : zustand::zielen;
             _putt_start = _uhr_bilder;
             _putt_ergebnis = nullptr;
+        }
+
+        // Passt die gewählte Scheibe nicht zur Entfernung (viel zu weit oder zu kurz), automatisch eine
+        // passende nehmen – wie passeScheibeAn() in index.html
+        void passe_scheibe_an()
+        {
+            const double d = abstand(_lie, korb());
+            const double rw_akt = physik::reichweite(scheibe());
+            if(d <= rw_akt * 1.0 && d >= rw_akt * 0.6) { return; }
+            // am liebsten eine Scheibe, die die Strecke mit etwa 85 % Kraft schafft
+            int best = _scheibe_nr;
+            double note = 1e300;
+            for(int i = 0; i < _sp.tasche_anzahl; ++i)
+            {
+                const daten::scheibe& x = _sp.tasche[i];
+                const double r = physik::reichweite(x);
+                const double n = mathe::betrag(r * 0.85 - d) + (r < d ? 1000 : 0) - (x.standard ? 6 : 0);
+                if(n < note) { note = n; best = i; }
+            }
+            if(note >= 1000)
+            {
+                best = 0;
+                for(int i = 1; i < _sp.tasche_anzahl; ++i)
+                {
+                    if(physik::reichweite(_sp.tasche[i]) > physik::reichweite(_sp.tasche[best])) { best = i; }
+                }
+            }
+            if(best == _scheibe_nr) { return; }
+            _scheibe_nr = best;
+            bn::string<48> t;
+            bn::ostringstream z(t);
+            z.append(scheibe().name);
+            z.append(" (");
+            z.append(typ_name(scheibe().typ));
+            z.append(")");
+            melde(t, 96);   // 1,6 s
         }
 
         // Stärken wie staerke() in index.html (Wurfart, Hyzer/Anhyzer, S-Line, Lieblingsscheibe)
@@ -440,6 +488,7 @@ namespace
             w.y = _lie.y;
             w.richtung = _ziel_richtung;
             w.kraft = _kraft;
+            _kraft_angezeigt = _kraft;
             w.winkel = _winkel;
             w.scheibe = &scheibe();
             w.links = _sp.linkshaender;
@@ -518,8 +567,9 @@ namespace
             }
         }
 
-        void melde(const bn::string_view& t)
+        void melde(const bn::string_view& t, int bilder = 78)
         {
+            _banner_bis = _uhr_bilder + bilder;
             _text_mitte = t;
             _zeile_mitte.clear();
             _text.set_center_alignment();
@@ -721,6 +771,53 @@ namespace
             }
         }
 
+        // Kraftbalken wie zeichneKraftbalken(): grün/gelb/rot nach Streuung (kleiner bei Stärken),
+        // hell bis zur Kraft, weiße Marke; nicht im Putt-Modus
+        void kraftbalken()
+        {
+            const bool zeigen = ! _umsehen && (_zustand == zustand::zielen || _zustand == zustand::laden || _zustand == zustand::flug);
+            if(! zeigen)
+            {
+                _balken.clear();
+                _balken_text.clear();
+                _kraftmarke.reset();
+                return;
+            }
+            if(_balken.empty())
+            {
+                for(int i = 0; i < balken_stuecke; ++i)
+                {
+                    _balken.push_back(bn::sprite_items::balken.create_sprite(-balken_stuecke * 4 + i * 8 + 4, balken_y, 0));
+                    _balken_stand[i] = -1;
+                }
+                _text.set_right_alignment();
+                _text.generate(-balken_stuecke * 4 - 4, balken_y, "KRAFT", _balken_text);
+                _text.set_left_alignment();
+                _text.generate(balken_stuecke * 4 + 4, balken_y, "STREUUNG", _balken_text);
+                _kraftmarke = bn::sprite_items::kraftmarke.create_sprite(0, balken_y);
+            }
+            double streuung, weite;
+            staerke(streuung, weite);
+            const double sf = streuung * (_vorhand ? 1.2 : 1) * physik::E().streuung;
+            const double gelb = mathe::max(0.5, mathe::min(0.93, 1 - 0.3 * sf));
+            const double rot = mathe::max(0.75, mathe::min(0.97, 1 - 0.1 * sf));
+            const bool mit_kraft = _zustand == zustand::laden || _zustand == zustand::flug;
+            const double k = _zustand == zustand::laden ? _kraft : _kraft_angezeigt;
+            for(int i = 0; i < balken_stuecke; ++i)
+            {
+                const double p = (i + 0.5) / balken_stuecke;
+                int f = p < gelb ? 0 : p < rot ? 1 : 2;
+                if(mit_kraft && p < k) { f += 3; }   // hell bis zur Kraft
+                if(f != _balken_stand[i])
+                {
+                    _balken_stand[i] = f;
+                    _balken[i].set_tiles(bn::sprite_items::balken.tiles_item(), f);
+                }
+            }
+            _kraftmarke->set_visible(mit_kraft);
+            _kraftmarke->set_x(bn::fixed(float(-balken_stuecke * 4 + balken_stuecke * 8 * mathe::min(1, k))));
+        }
+
         void setze_text(bn::string<64>& alt, const bn::string<64>& neu, bn::vector<bn::sprite_ptr, 20>& sprites, int y)
         {
             if(alt == neu) { return; }
@@ -740,16 +837,29 @@ namespace
                 bn::ostringstream z(oben);
                 if(_b.name[0]) { z.append(_b.name); }
                 else { z.append("Bahn "); z.append(int(_b.nummer)); }
-                z.append("  Par ");
+                z.append("   Par ");
                 z.append(int(_b.par));
-                z.append("  Wurf ");
+                z.append("   Wurf ");
                 z.append(_wuerfe + 1);
-                z.append("  ");
+                z.append("   noch ");
                 z.append(int(abstand(_lie, k) + 0.5));
-                z.append(" m  Wind ");
+                z.append(" m");
+            }
+            bn::string<64> zwei;
+            {
+                bn::ostringstream z(zwei);
+                z.append("Wind ");
                 z.append(int(mathe::hypot(_wind.x, _wind.y) + 0.5));
-                z.append(" ");
+                z.append(" m/s ");
                 z.append(himmelsrichtung(_wind.x, _wind.y));
+                if(_zustand != zustand::putt)
+                {
+                    z.append("   ");
+                    z.append(_vorhand ? "Vorhand" : "Rueckhand");
+                    if(_winkel > 0) { z.append(", Hyzer "); z.append(_winkel); }
+                    else if(_winkel < 0) { z.append(", Anhyzer "); z.append(-_winkel); }
+                    else { z.append(", flach"); }
+                }
             }
             bn::string<64> unten;
             {
@@ -763,37 +873,32 @@ namespace
                     z.append(_push ? "PUTT Push" : "PUTT Spin");
                     z.append("  A: putten  B: Stil  SEL: werfen");
                 }
-                else if(_zustand == zustand::laden)
-                {
-                    z.append("Kraft ");
-                    z.append(int(_kraft * 100 + 0.5));
-                    z.append(" %   loslassen = werfen");
-                }
                 else
                 {
+                    // wie im Browser: Name (Typ) und Flugzahlen Speed | Glide | Turn | Fade
                     z.append(sc.name);
-                    z.append(" ");
-                    z.append(typ_kurz(sc.typ));
-                    z.append(" ");
+                    z.append(" (");
+                    z.append(typ_name(sc.typ));
+                    z.append(")   ");
                     z.append(int(physik::zahl(sc.speed)));
-                    z.append("|");
+                    z.append(" | ");
                     z.append(int(physik::zahl(sc.glide)));
-                    z.append("|");
+                    z.append(" | ");
                     z.append(int(physik::zahl(sc.turn)));
-                    z.append("|");
+                    z.append(" | ");
                     z.append(int(physik::zahl(sc.fade)));
-                    z.append(_vorhand ? "  VH" : "  RH");
-                    if(_winkel > 0) { z.append("  Hyzer "); z.append(_winkel); }
-                    else if(_winkel < 0) { z.append("  Anhyzer "); z.append(-_winkel); }
-                    else { z.append("  flach"); }
                 }
             }
             setze_text(_text_oben, oben, _zeile_oben, -74);
+            setze_text(_text_zwei, zwei, _zeile_zwei, -64);
             setze_text(_text_unten, unten, _zeile_unten, 72);
-            if(_zustand == zustand::zielen || _zustand == zustand::putt)
+            if(_text_mitte.size() && _uhr_bilder >= _banner_bis && (_zustand == zustand::zielen || _zustand == zustand::putt)
+               && ! (_zustand == zustand::putt && _putt_ergebnis))
             {
-                if(_text_mitte.size() && ! (_zustand == zustand::putt && _putt_ergebnis)) { _text_mitte.clear(); _zeile_mitte.clear(); }
+                _text_mitte.clear();
+                _zeile_mitte.clear();
             }
+            kraftbalken();
         }
     };
 }
