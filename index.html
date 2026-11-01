@@ -191,7 +191,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.3.1</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.3.2</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -443,10 +443,10 @@
   <button data-ansicht="bag">Menü</button>
 </nav>
 
-<script src="taschen.js?v=0.3.1"></script>
-<script src="bahnen.js?v=0.3.1"></script>
-<script src="physik.js?v=0.3.1"></script>
-<script src="portraets.js?v=0.3.1"></script>
+<script src="taschen.js?v=0.3.2"></script>
+<script src="bahnen.js?v=0.3.2"></script>
+<script src="physik.js?v=0.3.2"></script>
+<script src="portraets.js?v=0.3.2"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -2206,6 +2206,6 @@ requestAnimationFrame(schleife);
 // Als App installierbar / offline startbar
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => { /* egal */ });
 </script>
-<script src="mehrspieler.js?v=0.3.1"></script>
+<script src="mehrspieler.js?v=0.3.2"></script>
 </body>
 </html>
