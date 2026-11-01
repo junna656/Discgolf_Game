@@ -1,7 +1,7 @@
 // Zeichnet alle Bahnen mit dem Code der Webversion (zeichneHintergrund in index.html)
 // und legt sie als Bilder für die GBA-Version ab: gba/graphics/bahn_NN.bmp (512 × 288, 8 Bit)
 // und gba/graphics/uebersicht_NN.bmp (240 × 135) für die Bahnauswahl, dazu die Putt-Nahansicht
-// gba/graphics/putt_ansicht.bmp (154 × 152).
+// gba/graphics/putt_ansicht.bmp (156 × 152).
 //
 //   node werkzeuge/rendere_gba.mjs
 //
@@ -45,15 +45,15 @@ for (let i = 0; i < anzahl; i++) {
     writeFileSync(join(TMP, `${name}_${String(i).padStart(2, "0")}.png`), Buffer.from(url.split(",")[1], "base64"));
   }
 }
-// Putt-Nahansicht (zeichnePuttHintergrund in index.html), 154 × 152 mit schwarzem Rand
+// Putt-Nahansicht (zeichnePuttHintergrund in index.html), 156 × 152 mit schwarzem Rand
 {
   const url = await seite.evaluate(() => {
     const c = document.createElement("canvas");
     c.width = W; c.height = H;
     zeichnePuttHintergrund(c.getContext("2d"));
     const aus = document.createElement("canvas");
-    aus.width = 154; aus.height = 152;
-    aus.getContext("2d").drawImage(c, 83, 11, 154, 152, 0, 0, 154, 152);
+    aus.width = 156; aus.height = 152;   // Breite durch 4 teilbar (Butano)
+    aus.getContext("2d").drawImage(c, 82, 11, 156, 152, 0, 0, 156, 152);
     return aus.toDataURL("image/png");
   });
   writeFileSync(join(TMP, "putt_ansicht.png"), Buffer.from(url.split(",")[1], "base64"));

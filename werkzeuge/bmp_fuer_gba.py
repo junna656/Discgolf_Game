@@ -15,6 +15,8 @@ from PIL import Image
 
 def umwandeln(quelle, ziel):
     bild = Image.open(quelle).convert("RGB").point(lambda v: (v >> 3) << 3)
+    if bild.width % 4:
+        raise SystemExit(f"{quelle}: Breite {bild.width} ist nicht durch 4 teilbar (verlangt Butano für Bitmaps)")
     q = bild.quantize(255, dither=Image.Dither.NONE)
     palette = q.getpalette()[: 255 * 3]
     # Indizes um 1 verschieben: Index 0 = unbenutzt (schwarz)
