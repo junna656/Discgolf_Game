@@ -427,8 +427,10 @@ void szene_daten()
 
             // Übersicht: Bild der Bahn (240 Pixel breit) ab Zeile "oben"; der Korb als Markierung darüber
             const bn::palette_bitmap_item& uebersicht = *gen::uebersichten[bahn_nr];
-            hintergrund.reset();
-            hintergrund = bn::palette_bitmap_bg_ptr::create(uebersicht.palette_item());
+            // nur einmal anlegen: ein Bitmap-Hintergrund belegt den ganzen Grafikspeicher, und Butano gibt
+            // einen alten erst beim nächsten Bild frei – beim Blättern nur Farben und Bild tauschen
+            if(hintergrund) { hintergrund->set_palette(uebersicht.palette_item()); }
+            else { hintergrund = bn::palette_bitmap_bg_ptr::create(uebersicht.palette_item()); }
             noch_zeichnen = 2;
             massstab = bn::fixed(gen::uebersicht_breite) / fx(b.breite);
             mitte_x = fx(b.breite) / 2;
