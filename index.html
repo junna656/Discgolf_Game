@@ -1407,13 +1407,14 @@ function zeichneEnde() {
   const ganz = ganzeRunde(), letzte = rundeVorbei();
   ctx.fillStyle = "rgba(10,14,20,.88)"; ctx.fillRect(70, 26, 180, 128);
   text(letzte && ganz ? "RUNDE BEENDET" : (bahn.kurz || "BAHN " + bahn.nummer) + " GESPIELT", 160, 32, "#9be07a", "center", 8);
-  if (ganz) { text("BAHN", 176, 44, "#d0d8e2", "center"); text("GESAMT", 236, 44, "#d0d8e2", "right"); }
+  if (ganz) { text("WÜRFE", 176, 44, "#d0d8e2", "center"); text("GESAMT", 240, 44, "#d0d8e2", "right"); }
+  else text("WÜRFE", 236, 44, "#d0d8e2", "right");
   const sortiert = [...spieler].sort((a, b) => ganz ? gesamt(a).w - gesamt(b).w : a.wuerfe - b.wuerfe);
   sortiert.forEach((s, i) => {
     const y = 56 + i * 15, g = gesamt(s);
     text((i + 1) + ". " + s.name.toUpperCase(), 80, y, s.farbe);
     if (ganz) {
-      text(String(s.wuerfe), 176, y, PAL.weiss, "center");
+      text(s.wuerfe + " (" + plusMinus(s.wuerfe - bahn.par) + ")", 176, y, PAL.weiss, "center");
       text(g.w + " (" + plusMinus(g.d) + ")", 240, y, PAL.weiss, "right");
     } else text(s.wuerfe + "  (" + plusMinus(s.wuerfe - bahn.par) + ")", 236, y, PAL.weiss, "right");
   });
