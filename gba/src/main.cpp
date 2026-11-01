@@ -354,7 +354,7 @@ void szene_daten()
         // A: echten Wurf mit dem Flugmodell (physik.cpp) vom Abwurf Richtung Korb
         if(bn::keypad::a_pressed())
         {
-            static physik::ergebnis erg;   // groß – nicht auf den Stack
+            BN_DATA_EWRAM_BSS static physik::ergebnis erg;   // groß – nicht auf den Stack und nicht in den IWRAM
             static zufall z(1);
             z = zufall(bilder * 2654435761u + uint32_t(bahn_nr) * 40503u);
             physik::setze_zufall(z);

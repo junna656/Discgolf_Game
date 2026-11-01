@@ -10,6 +10,14 @@
 #include "mathe.h"
 #include "gen_einstellungen.h"
 
+// Große Tabellen auf dem GBA in den großen Arbeitsspeicher (EWRAM, 256 KB) statt in den
+// schnellen, aber kleinen IWRAM (32 KB) – wie BN_DATA_EWRAM_BSS in Butano.
+#if defined(__arm__) && ! defined(__linux__)
+    #define PHYSIK_EWRAM __attribute__((section(".sbss")))
+#else
+    #define PHYSIK_EWRAM
+#endif
+
 namespace physik
 {
     namespace
@@ -51,7 +59,7 @@ namespace physik
             bool am_abwurf;         // steht direkt am Abwurfpunkt (< 5 m): ganz ignorieren
         };
 
-        baum_cache baeume_cache[256];
+        PHYSIK_EWRAM baum_cache baeume_cache[256];
 
         int abrunden(double v)
         {
@@ -68,7 +76,7 @@ namespace physik
             double f[N + 1], wT[N + 1], wF[N + 1], sin_pi_u[N + 1];
         };
 
-        schritt_tabelle tab;
+        PHYSIK_EWRAM schritt_tabelle tab;
 
         void fuelle_tabelle()
         {
