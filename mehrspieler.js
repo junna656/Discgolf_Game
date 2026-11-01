@@ -5,7 +5,7 @@
 // gemeinsamen Startwert. Computer-Spieler (und Spieler ohne Verbindung) rechnet der Gastgeber.
 
 // Adresse des Servers (wird nach dem ersten Deploy eingetragen)
-const MP_SERVER_STANDARD = "";
+const MP_SERVER_STANDARD = "wss://boogie-garanten-mp.boogiegaranten.workers.dev";
 
 function mpServer() {
   // zum Testen: ?server=ws://localhost:8787 (nur lokale Adressen oder workers.dev)
