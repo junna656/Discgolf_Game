@@ -327,6 +327,7 @@ function mpZeigeLobby() {
   el("mp-hostbox").hidden = !host;
   el("mp-warte").hidden = host;
   if (host) {
+    el("mp-kurs").innerHTML = KURSE.map((k, i) => `<option value="${i}" ${k === kurs ? "selected" : ""}>${mpText(k.name)}</option>`).join("");
     const alt = el("mp-runde").value;
     el("mp-runde").innerHTML = `<option value="0">Ganze Runde (${kurs.bahnen.length} Bahnen)</option>` +
       kurs.bahnen.map((b, i) => `<option value="${i + 1}">Nur Bahn ${b.nummer}</option>`).join("");
@@ -373,6 +374,13 @@ el("mp-figuren").addEventListener("click", e => {
     online.ki[SPIELER[+b.dataset.mpKi].name] = b.dataset.k;
     mpZeigeLobby();
   }
+});
+el("mp-kurs").addEventListener("change", e => {
+  kurs = KURSE[+e.target.value] || KURSE[0];
+  try { localStorage.setItem("discgolf-kurs", kurs.id); } catch (err) { /* egal */ }
+  el("mp-runde").value = "0";
+  zeigeKurse();
+  mpZeigeLobby();
 });
 el("mp-start").addEventListener("click", () => {
   if (!mpIchHost()) return;

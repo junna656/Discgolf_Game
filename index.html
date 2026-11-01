@@ -194,16 +194,9 @@
     <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.3.0</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
-      <div class="kurswahl">
-        <h2>Kurs</h2>
-        <div id="kurse" class="liste" style="gap:8px"></div>
-        <p class="klein" style="margin:6px 0 0;text-align:center">Weitere Kurse folgen …</p>
-      </div>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
       <button class="gross" data-modus="vierer">Vierer Flight<small id="vierer-namen"></small></button>
       <button class="gross" id="zu-online">Online spielen<small>Bis zu vier Handys live in einer Runde</small></button>
-      <label class="klein" style="display:flex;gap:8px;align-items:center;justify-content:space-between">Flights spielen:
-        <select id="rundenwahl"></select></label>
       <button class="gross" id="zu-doku" style="font-size:12px;padding:10px 16px;margin-top:8px">Anleitung<small>Steuerung, Regeln und Tipps</small></button>
       <button class="gross" id="zu-bags" style="font-size:12px;padding:10px 16px">Spieler & Bags<small>Spielerkarten ansehen, Scheiben im Bag bearbeiten</small></button>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="impressum.html" style="color:var(--leise)">Impressum</a> · <a href="datenschutz.html" style="color:var(--leise)">Datenschutz</a></p>
@@ -218,8 +211,7 @@
         <li><b>Single Flight:</b> eine Person spielt die Runde.</li>
         <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Für jede Person wählst du, ob ein Mensch spielt oder der Computer – <b>Locker</b>, <b>Solide</b> oder <b>Profi</b>. Mindestens eine Person muss ein Mensch sein. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat.</li>
         <li><b>Online spielen:</b> Bis zu vier Handys spielen live zusammen. Eine Person tippt „Raum eröffnen“ und sagt den anderen den 4-Buchstaben-Code; die anderen geben ihn unter „Beitreten“ ein. Jeder wählt seine Figur (mit dem eigenen Bag), freie Figuren kann der Gastgeber vom Computer spielen lassen. Der Gastgeber wählt die Bahnen und startet. Alle sehen jeden Wurf live; wer dran ist, wirft auf seinem Handy. Bricht eine Verbindung ab, übernimmt der Computer, bis das Handy wieder da ist – nach dem Neuladen kommst du automatisch zurück in den Raum. Weiter zur nächsten Bahn und Bahn wählen kann nur der Gastgeber.</li>
-        <li><b>Kurs:</b> Im Hauptmenü wählst du den Kurs für die Flights. Bisher gibt es den Hyzernauts Discgolfparcours im Volkspark Potsdam – weitere Kurse folgen.</li>
-        <li>Unter „Flights spielen“ wählst du die ganze Runde oder eine einzelne Bahn des Kurses.</li>
+        <li><b>Kurs:</b> Nach Single oder Vierer Flight wählst du den Kurs und ob die ganze Runde oder eine einzelne Bahn gespielt wird (online macht das der Gastgeber in der Lobby). Bisher gibt es den Hyzernauts Discgolfparcours im Volkspark Potsdam – weitere Kurse folgen.</li>
         <li><b>Bahn wählen:</b> Im Spiel (Handy: unter „Menü“, Rechner: rechts) kannst du jederzeit direkt auf jede Bahn des Kurses springen. Die laufende Bahn wird dabei abgebrochen und zählt nicht.</li>
       </ul>
 
@@ -312,6 +304,17 @@
       <button class="gross" id="vierer-los" style="text-align:center">Los geht's</button>
       <button id="vierer-zurueck">← Zurück</button>
     </div>
+    <div id="menue-kurs" class="liste" style="gap:10px" hidden>
+      <div class="kurswahl">
+        <h2>Kurs wählen</h2>
+        <div id="kurse" class="liste" style="gap:8px"></div>
+        <p class="klein" style="margin:6px 0 0;text-align:center">Weitere Kurse folgen …</p>
+      </div>
+      <label class="klein" style="display:flex;gap:8px;align-items:center;justify-content:space-between">Bahnen:
+        <select id="rundenwahl"></select></label>
+      <button class="gross" id="kurs-weiter" style="text-align:center">Weiter</button>
+      <button id="kurs-zurueck">← Zurück</button>
+    </div>
     <div id="menue-online" class="liste" style="gap:8px" hidden>
       <h2 style="text-align:center;font-size:13px">Online spielen</h2>
       <div id="mp-einstieg" class="liste" style="gap:8px">
@@ -331,6 +334,8 @@
         <p class="klein" style="margin:4px 0 0">Wähle deine Figur:</p>
         <div id="mp-figuren" class="liste" style="gap:6px"></div>
         <div id="mp-hostbox" class="liste" style="gap:6px">
+          <label class="klein" style="display:flex;gap:8px;align-items:center;justify-content:space-between">Kurs:
+            <select id="mp-kurs"></select></label>
           <label class="klein" style="display:flex;gap:8px;align-items:center;justify-content:space-between">Bahnen:
             <select id="mp-runde"></select></label>
           <button class="gross" id="mp-start" style="text-align:center">Spiel starten</button>
@@ -1853,7 +1858,7 @@ el("vierer-liste").addEventListener("click", e => {
   pruefeAufstellung();
 });
 el("vierer-los").addEventListener("click", () => starteModus("vierer"));
-el("vierer-zurueck").addEventListener("click", () => { el("menue-vierer").hidden = true; el("menue-start").hidden = false; });
+el("vierer-zurueck").addEventListener("click", () => { el("menue-vierer").hidden = true; el("menue-kurs").hidden = false; });
 
 // kiAmZug: dieses Gerät rechnet gerade für den Computer; fernAmZug: online ist jemand anders am Zug
 const kiAmZug = () => {
@@ -1978,6 +1983,7 @@ function zeigeMenue() {
   el("menue-karte").hidden = true;
   el("menue-vierer").hidden = true;
   el("menue-online").hidden = true;
+  el("menue-kurs").hidden = true;
   el("menue").hidden = false;
 }
 
@@ -2146,17 +2152,26 @@ el("zu-bags").addEventListener("click", () => {
 document.querySelectorAll("[data-modus]").forEach(b => b.addEventListener("click", () => {
   const m = b.dataset.modus;
   weckeSprache();
-  if (m === "vierer") { zeigeViererAufstellung(); return; }
   gewaehlterModus = m;
-  el("wahl-titel").textContent = m === "frei" ? "Mit wessen Bag wirfst du?" : "Wer spielt?";
   el("menue-start").hidden = true;
+  // Flights: erst den Kurs wählen, dann die Spieler
+  if (m !== "frei") { el("menue-kurs").hidden = false; el("menue").scrollTop = 0; return; }
+  el("wahl-titel").textContent = "Mit wessen Bag wirfst du?";
   el("menue-wahl").hidden = false;
 }));
+el("kurs-weiter").addEventListener("click", () => {
+  el("menue-kurs").hidden = true;
+  if (gewaehlterModus === "vierer") { zeigeViererAufstellung(); return; }
+  el("wahl-titel").textContent = "Wer spielt?";
+  el("menue-wahl").hidden = false;
+  el("menue").scrollTop = 0;
+});
+el("kurs-zurueck").addEventListener("click", () => { el("menue-kurs").hidden = true; el("menue-start").hidden = false; });
 el("personen").addEventListener("click", e => {
   const b = e.target.closest("[data-person]");
   if (b) zeigeKarte(+b.dataset.person);
 });
-el("zurueck").addEventListener("click", () => { el("menue-start").hidden = false; el("menue-wahl").hidden = true; });
+el("zurueck").addEventListener("click", () => { el(gewaehlterModus === "single" ? "menue-kurs" : "menue-start").hidden = false; el("menue-wahl").hidden = true; });
 el("zummenue").addEventListener("click", hauptmenueKlick);
 
 // kleiner Pixel-Korb als Logo
