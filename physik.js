@@ -119,6 +119,26 @@
     return null;
   }
 
+  // Schneidet die Strecke a→b eine Mauer (unterhalb ihrer Höhe)? Liefert Treffpunkt (etwas davor) und Normale zur Seite von a
+  function mauerTreffer(bahn, a, b, z) {
+    let best = null;
+    for (const m of bahn.mauern || []) {
+      if (z !== undefined && z >= (m.h || 1.2)) continue;
+      for (let i = 0; i < m.punkte.length - 1; i++) {
+        const [cx, cy] = m.punkte[i], [dx, dy] = m.punkte[i + 1];
+        const rx = b.x - a.x, ry = b.y - a.y, sx = dx - cx, sy = dy - cy, nn = rx * sy - ry * sx;
+        if (Math.abs(nn) < 1e-9) continue;
+        const t = ((cx - a.x) * sy - (cy - a.y) * sx) / nn, u = ((cx - a.x) * ry - (cy - a.y) * rx) / nn;
+        if (t < 0 || t > 1 || u < 0 || u > 1 || (best && t >= best.t)) continue;
+        const l = Math.hypot(sx, sy);
+        let nx = -sy / l, ny = sx / l;
+        if (nx * (a.x - cx) + ny * (a.y - cy) < 0) { nx = -nx; ny = -ny; }
+        best = { t, x: a.x + rx * t + nx * 0.3, y: a.y + ry * t + ny * 0.3, normal: { x: nx, y: ny } };
+      }
+    }
+    return best;
+  }
+
   function simuliere(bahn, wurf, wind) {
     const s = wurf.scheibe, kraft = wurf.kraft, winkel = wurf.winkel;
     wind = { x: wind.x * E.wind, y: wind.y * E.wind };
@@ -170,6 +190,11 @@
       z = 1.3 * (1 - u) + H * Math.sin(Math.PI * u);
       pfad.push({ x: px, y: py, z, t: u * T });
 
+      // Mauer: unterhalb ihrer Höhe prallt die Scheibe ab, darüber fliegt sie hinweg
+      const vorher = pfad[pfad.length - 2];
+      const mauer = mauerTreffer(bahn, vorher, { x: px, y: py }, z);
+      if (mauer) { px = mauer.x; py = mauer.y; pfad[pfad.length - 1] = { x: px, y: py, z, t: u * T }; ereignis = { typ: "mauer", normal: mauer.normal }; break flug; }
+
       const p = { x: px, y: py };
       if (abstand(p, wurf) > 5) { // in den ersten 5 m ab Abwurfpunkt zählen Bäume nicht
         for (let b = 0; b < bahn.baeume.length; b++) {
@@ -209,18 +234,23 @@
     } else if (typ === "abpraller") {
       const a = Math.random() * Math.PI * 2, r = 1 + Math.random() * 2.5;
       fallen(bahn.korb.x + Math.cos(a) * r, bahn.korb.y + Math.sin(a) * r, 0.5);
-    } else if (typ === "baum") {
+    } else if (typ === "baum" || typ === "mauer") {
       // Kick: die Scheibe prallt wie von einer Wand ab (Einfallswinkel = Ausfallswinkel, plus Zufall)
       // und fliegt je nach Restgeschwindigkeit ein paar Meter weg, statt am Stamm liegen zu bleiben
-      const b = ereignis.baum, nl = Math.hypot(px - b.x, py - b.y) || 1;
+      const b = ereignis.baum || { x: px - ereignis.normal.x, y: py - ereignis.normal.y, r: 0 };
+      const nl = Math.hypot(px - b.x, py - b.y) || 1;
       const nx = (px - b.x) / nl, ny = (py - b.y) / nl;
       const vx = Math.cos(th), vy = Math.sin(th), dot = vx * nx + vy * ny;
-      const ab = Math.atan2(vy - 2 * dot * ny, vx - 2 * dot * nx) + gauss() * 0.6;
-      let weit = (1 + (1 - u) * D * 0.045) * (0.7 + Math.random() * 0.6) * E.kick;
+      let ab = Math.atan2(vy - 2 * dot * ny, vx - 2 * dot * nx) + gauss() * (typ === "mauer" ? 0.3 : 0.6);
+      // von der Mauer immer weg, nie hindurch
+      if (typ === "mauer" && Math.cos(ab) * nx + Math.sin(ab) * ny < 0.15) ab = Math.atan2(ny, nx) + gauss() * 0.4;
+      let weit = (1 + (1 - u) * D * 0.045) * (0.7 + Math.random() * 0.6) * E.kick * (typ === "mauer" ? 0.6 : 1);
       // mindestens ein Stück aus der Krone heraus
       const zx = px + Math.cos(ab) * weit, zy = py + Math.sin(ab) * weit;
       const raus = Math.hypot(zx - b.x, zy - b.y) < b.r * 0.8 ? b.r * 0.8 : 0;
-      const ex = zx + Math.cos(ab) * raus, ey = zy + Math.sin(ab) * raus;
+      let ex = zx + Math.cos(ab) * raus, ey = zy + Math.sin(ab) * raus;
+      const zweite = mauerTreffer(bahn, { x: px, y: py }, { x: ex, y: ey });
+      if (zweite) { ex = zweite.x; ey = zweite.y; }
       const start = pfad[pfad.length - 1], n = 14, dauer = 0.35 + weit * 0.05;
       for (let k = 1; k <= n; k++) {
         const a = k / n;
@@ -249,6 +279,7 @@
       let sx = ende.x, sy = ende.y;
       for (let k = 1; k <= schritte; k++) {
         const v = 1 - k / schritte;
+        if (mauerTreffer(bahn, { x: sx, y: sy }, { x: sx + dx * L / schritte, y: sy + dy * L / schritte })) break; // rutscht gegen die Mauer
         sx += dx * L / schritte;
         sy += dy * L / schritte;
         t += 0.015 + 0.05 * (1 - v);
@@ -296,5 +327,5 @@
     return { pfad, lie, drin, ob, obIndex, mando, mandoIndex, typ, bremsPunkte, dauer: t, distanz: abstand(lie, wurf) };
   }
 
-  g.Physik = { kraftFaktor, kraftFuer, simuliere, streue, gauss, abstand, istOB, obZone, imPolygon, seiteVonLinie, aufBowlingbahn, DEG, einstellungen: E, STANDARD, reichweite };
+  g.Physik = { mauerTreffer, kraftFaktor, kraftFuer, simuliere, streue, gauss, abstand, istOB, obZone, imPolygon, seiteVonLinie, aufBowlingbahn, DEG, einstellungen: E, STANDARD, reichweite };
 })(typeof window !== "undefined" ? window : globalThis);
