@@ -2,7 +2,7 @@
 // (zielen, Kraft laden, Flug, Landung, OB, Mando, Putten), Grafik aus der Webversion.
 //
 // Steuerung:
-//   ◀ ▶  zielen (gehalten schneller)        ▲ ▼  Scheibe wählen
+//   ▲ ▼  zielen (Ziellinie hoch/runter, gehalten schneller)   ◀ ▶  Scheibe wählen
 //   L / R  Abwurfwinkel Anhyzer / Hyzer     B    Vorhand / Rückhand (im Putt: Spin / Push)
 //   A halten  Kraft laden, loslassen werfen (im Putt: A putten, wenn das Fadenkreuz auf den Ketten ist)
 //   SELECT  Umsehen: Steuerkreuz schiebt die Kamera, A ganze Bahn, B/SELECT zurück
@@ -82,6 +82,10 @@ namespace
     // Kraftbalken wie zeichneKraftbalken() in index.html: 12 Stücke à 8 Pixel, Mitte des Bildschirms
     constexpr int balken_stuecke = 12, balken_y = 60;
 
+    // Tempo auf dem GBA: Flug und Kraftpendel langsamer als im Browser (dort 1,0); auf dem kleinen
+    // Bildschirm wirkte die Browser-Geschwindigkeit zu hektisch
+    constexpr double gba_tempo = 0.65;
+
     class spiel
     {
     public:
@@ -145,7 +149,7 @@ namespace
             if(_zustand == zustand::laden)
             {
                 // wie schleife() in index.html: Kraft pendelt in 1,1 s hoch und wieder herunter
-                const double ph = mathe_mod(double(_uhr_bilder - _lade_start) / 60 / 1.1, 2);
+                const double ph = mathe_mod(double(_uhr_bilder - _lade_start) / 60 * gba_tempo / 1.1, 2);
                 _kraft = ph < 1 ? ph : 2 - ph;
             }
             if(_zustand == zustand::flug) { flug_weiter(); }
@@ -401,13 +405,16 @@ namespace
             {
             case zustand::zielen:
             {
-                // ◀ ▶: erst fein, gehalten schneller
-                _halten_links = bn::keypad::left_held() ? _halten_links + 1 : 0;
-                _halten_rechts = bn::keypad::right_held() ? _halten_rechts + 1 : 0;
-                auto schritt = [](int h) { return h == 1 ? 0.5 : h > 12 ? (h > 40 ? 2.0 : 0.8) : 0.0; };
-                _ziel_richtung += (schritt(_halten_rechts) - schritt(_halten_links)) * physik::grad();
-                if(bn::keypad::up_pressed()) { _scheibe_nr = (_scheibe_nr + _sp.tasche_anzahl - 1) % _sp.tasche_anzahl; }
-                if(bn::keypad::down_pressed()) { _scheibe_nr = (_scheibe_nr + 1) % _sp.tasche_anzahl; }
+                // ▲ ▼: Ziellinie auf dem Bildschirm hoch/runter – erst fein (0,5°), gehalten 24°/s
+                // (wie im Browser ~25°/s), lange gehalten 60°/s
+                _halten_links = bn::keypad::up_held() ? _halten_links + 1 : 0;
+                _halten_rechts = bn::keypad::down_held() ? _halten_rechts + 1 : 0;
+                auto schritt = [](int h) { return h == 1 ? 0.5 : h > 18 ? (h > 75 ? 1.0 : 0.4) : 0.0; };
+                // nach rechts geworfen: hoch = gegen den Uhrzeigersinn; nach links geworfen umgekehrt
+                const double richtung = mathe::cos(_ziel_richtung) < 0 ? -1 : 1;
+                _ziel_richtung += (schritt(_halten_rechts) - schritt(_halten_links)) * richtung * physik::grad();
+                if(bn::keypad::left_pressed()) { _scheibe_nr = (_scheibe_nr + _sp.tasche_anzahl - 1) % _sp.tasche_anzahl; }
+                if(bn::keypad::right_pressed()) { _scheibe_nr = (_scheibe_nr + 1) % _sp.tasche_anzahl; }
                 if(bn::keypad::l_pressed()) { _winkel = bn::max(_winkel - 5, -30); }
                 if(bn::keypad::r_pressed()) { _winkel = bn::min(_winkel + 5, 30); }
                 if(bn::keypad::b_pressed()) { _vorhand = ! _vorhand; }
@@ -519,7 +526,7 @@ namespace
             const physik::ergebnis& e = flug_ergebnis;
             const int fertig_bis = _rechnet ? e.pfad_laenge - 1 : e.pfad_laenge;   // endgültige Punkte
             if(fertig_bis < 2) { return; }
-            const double t_neu = _flug_t + gen::einstellungen::tempo / 60;
+            const double t_neu = _flug_t + gen::einstellungen::tempo * gba_tempo / 60;
             // nicht über die schon gerechneten Punkte hinaus
             if(_rechnet && t_neu > e.pfad[fertig_bis - 1].t) { return; }
             _flug_t = t_neu;

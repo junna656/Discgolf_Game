@@ -9,8 +9,8 @@
 // Der Wurf hier ist nur eine einfache Animation – das echte Flugmodell kommt in Etappe 3.
 //
 // Etappe 2: SELECT zeigt alle Bahnen (Minikarte) und Spieler aus den erzeugten Daten.
-// Etappe 4: dort startet START das Spiel auf der gewählten Bahn (gba/src/spiel.cpp).
-// Etappe 3: dort wirft A einen echten Wurf mit dem Flugmodell (physik.bn_iwram.cpp) und misst die Rechenzeit.
+// Etappe 4: dort startet A (oder START) das Spiel auf der gewählten Bahn (gba/src/spiel.cpp).
+// Etappe 3: dort wirft B einen Testwurf mit dem Flugmodell (physik.bn_iwram.cpp) und misst die Rechenzeit.
 
 #include "bn_core.h"
 #include "bn_keypad.h"
@@ -230,7 +230,7 @@ void szene_wurf(int starts, bool zufall_gleich)
             if(jetzt == zustand::zielen)
             {
                 klein.generate(0, -36, "Hoch/Runter: zielen   A halten: werfen", hinweis);
-                klein.generate(0, 56, "SELECT: Bahnen, dann START: spielen", hinweis);
+                klein.generate(0, 56, "SELECT: Bahnen, dann A: spielen", hinweis);
             }
             else if(jetzt == zustand::laden)
             {
@@ -359,7 +359,7 @@ void benchmark()
 #endif
 
 // Szene 2: Bahnen und Spieler aus den erzeugten Daten (bahnen.js, taschen.js) ansehen.
-// Links/Rechts: Bahn, L/R: Spieler, SELECT: zurück
+// Links/Rechts: Bahn, L/R: Spieler, A/START: spielen, B: Testwurf, SELECT: zurück
 void szene_daten()
 {
     bn::bg_palettes::set_transparent_color(bn::color(0, 0, 0));
@@ -391,8 +391,8 @@ void szene_daten()
         if(bn::keypad::l_pressed()) { spieler_nr = (spieler_nr + gen::spieler_anzahl - 1) % gen::spieler_anzahl; neu = true; }
         if(bn::keypad::r_pressed()) { spieler_nr = (spieler_nr + 1) % gen::spieler_anzahl; neu = true; }
 
-        // START: diese Bahn mit diesem Spieler spielen (Etappe 4)
-        if(bn::keypad::start_pressed())
+        // A oder START: diese Bahn mit diesem Spieler spielen (Etappe 4)
+        if(bn::keypad::a_pressed() || bn::keypad::start_pressed())
         {
             texte.clear();
             kennzahl.clear();
@@ -454,7 +454,7 @@ void szene_daten()
                 bn::string<64> zeile;
                 bn::ostringstream z(zeile);
                 z.append(bn::sqrt(dx * dx + dy * dy));
-                z.append(" m   START: spielen   A: Testwurf");
+                z.append(" m     A: spielen     B: Testwurf");
                 klein.generate(0, 61, zeile, kennzahl);
             }
 
@@ -489,8 +489,8 @@ void szene_daten()
             --noch_zeichnen;
         }
 
-        // A: echten Wurf mit dem Flugmodell (physik.bn_iwram.cpp) vom Abwurf Richtung Korb
-        if(bn::keypad::a_pressed())
+        // B: Testwurf mit dem Flugmodell (physik.bn_iwram.cpp) vom Abwurf Richtung Korb
+        if(bn::keypad::b_pressed())
         {
             physik::ergebnis& erg = testergebnis;
             flug.clear();
