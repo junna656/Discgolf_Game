@@ -93,6 +93,14 @@ namespace physik
     // Streuung je nach Kraft (wie Physik.streue)
     wurf streue(const wurf& w);
 
+    // Rückmeldung während der Berechnung: wird nach jedem neuen Pfadpunkt aufgerufen.
+    // Alle Punkte außer dem letzten (e.pfad_laenge - 1) sind dann schon endgültig.
+    // Auf dem GBA zeichnet das Spiel darin weiter (bn::core::update), damit die Scheibe schon
+    // fliegt, während der Rest noch gerechnet wird. nullptr = keine Rückmeldung.
+    struct ergebnis;
+    using rueckruf = void (*)(const ergebnis& e, void* daten);
+    void setze_rueckruf(rueckruf r, void* daten);
+
     // Flug berechnen (wie Physik.simuliere). Das Ergebnis ist groß (~13 KB):
     // auf dem GBA nicht auf den Stack legen, sondern z. B. static.
     void simuliere(const daten::bahn& bahn, const wurf& w, wind wind_in, ergebnis& aus);

@@ -247,10 +247,43 @@ void szene_wurf(int starts, bool zufall_gleich)
 }
 
 // Ein Testwurf mit dem Flugmodell: Lieblingsscheibe (sonst Standardscheibe) vom Abwurf Richtung Korb,
-// Kraft passend zur Länge, flach, ohne Wind. Gibt die Rechenzeit in ms zurück.
+// Kraft passend zur Länge, flach, ohne Wind.
 BN_DATA_EWRAM_BSS physik::ergebnis testergebnis;   // groß – nicht auf den Stack und nicht in den IWRAM
 
-int testwurf(int bahn_nr, int spieler_nr, uint32_t startwert, const daten::scheibe*& scheibe_aus)
+// Während der Berechnung: spätestens nach einem halben Bild weiterzeichnen (bn::core::update),
+// damit das Spiel nicht stockt. Die Physik rechnet dabei unverändert weiter.
+struct fortschritt
+{
+    bn::timer seit_bild;
+    int max_am_stueck = 0;      // längste Rechenstrecke ohne neues Bild (Ticks)
+    int bild_ticks = 0;         // Zeit für das Zeichnen zwischendurch (Ticks)
+    int bilder = 0;
+    bool aktualisieren = true;  // false: nur messen (Benchmark)
+    void (*zeichne)(const physik::ergebnis& e, void* ctx) = nullptr;
+    void* ctx = nullptr;
+};
+
+void bei_schritt(const physik::ergebnis& e, void* daten)
+{
+    fortschritt& f = *static_cast<fortschritt*>(daten);
+    const int am_stueck = f.seit_bild.elapsed_ticks();
+    if(am_stueck < bn::timers::ticks_per_frame() / 2) { return; }
+    f.max_am_stueck = bn::max(f.max_am_stueck, am_stueck);
+    bn::timer zeichnen;
+    if(f.zeichne) { f.zeichne(e, f.ctx); }
+    if(f.aktualisieren) { bn::core::update(); }
+    ++f.bilder;
+    f.bild_ticks += zeichnen.elapsed_ticks();
+    f.seit_bild.restart();
+}
+
+int ticks_zu_ms(int ticks)
+{
+    return int(int64_t(ticks) * 1000 / bn::timers::ticks_per_second());
+}
+
+// Gibt die reine Rechenzeit in ms zurück (ohne das Zeichnen zwischendurch)
+int testwurf(int bahn_nr, int spieler_nr, uint32_t startwert, const daten::scheibe*& scheibe_aus, fortschritt& f)
 {
     static zufall z(1);
     z = zufall(startwert);
@@ -282,9 +315,13 @@ int testwurf(int bahn_nr, int spieler_nr, uint32_t startwert, const daten::schei
     w.weite_faktor = st.gesetzt ? physik::zahl(st.weite) : 1;
 
     bn::timer uhr;
+    f.seit_bild.restart();
+    physik::setze_rueckruf(bei_schritt, &f);
     physik::wurf g = physik::streue(w);
     physik::simuliere(b, g, { 0, 0 }, testergebnis);
-    return int(int64_t(uhr.elapsed_ticks()) * 1000 / bn::timers::ticks_per_second());
+    physik::setze_rueckruf(nullptr, nullptr);
+    f.max_am_stueck = bn::max(f.max_am_stueck, f.seit_bild.elapsed_ticks());
+    return ticks_zu_ms(uhr.elapsed_ticks() - f.bild_ticks);
 }
 
 #ifdef BG_BENCHMARK
@@ -297,8 +334,10 @@ void benchmark()
         for(int k = 0; k < 3; ++k)
         {
             const daten::scheibe* s = nullptr;
-            int ms = testwurf(b, 0, uint32_t(1000 + k), s);
-            BN_LOG("BENCH Bahn-Index ", b, " Wurf ", k, ": ", ms, " ms, Pfad ", testergebnis.pfad_laenge,
+            fortschritt f;
+            int ms = testwurf(b, 0, uint32_t(1000 + k), s, f);
+            BN_LOG("BENCH Bahn-Index ", b, " Wurf ", k, ": ", ms, " ms gerechnet, max. ", ticks_zu_ms(f.max_am_stueck),
+                   " ms am Stueck, ", f.bilder, " Bilder, Pfad ", testergebnis.pfad_laenge,
                    ", Typ ", int(testergebnis.art), ", ", int(testergebnis.distanz), " m");
         }
     }
@@ -421,26 +460,47 @@ void szene_daten()
         if(bn::keypad::a_pressed())
         {
             physik::ergebnis& erg = testergebnis;
-            const daten::scheibe* scheibe_p = nullptr;
-            const int ms = testwurf(bahn_nr, spieler_nr, bilder * 2654435761u + uint32_t(bahn_nr) * 40503u, scheibe_p);
-            const daten::scheibe& scheibe = *scheibe_p;
-
-            // Flugbahn als Punkte auf die Minikarte
             flug.clear();
-            auto auf_karte = [&](double x, double y, int frame)
+            kennzahl.clear();
+
+            // Flugbahn als Punkte auf die Minikarte – schon während der Berechnung (jeder 8. Punkt)
+            struct zeichner
             {
-                if(flug.full()) { return; }
-                bn::fixed kx = (bn::fixed(x) - mitte_x) * massstab, ky = (bn::fixed(y) - mitte_y) * massstab - 4;
-                bn::sprite_ptr s = bn::sprite_items::karte.create_sprite(kx, ky, frame);
-                s.set_z_order(0);
-                flug.push_back(bn::move(s));
+                bn::vector<bn::sprite_ptr, 26>* flug;
+                bn::fixed massstab, mitte_x, mitte_y;
+                int naechster = 0;
+
+                void punkt(double x, double y, int frame)
+                {
+                    if(flug->full()) { return; }
+                    bn::fixed kx = (bn::fixed(x) - mitte_x) * massstab, ky = (bn::fixed(y) - mitte_y) * massstab - 4;
+                    bn::sprite_ptr sp = bn::sprite_items::karte.create_sprite(kx, ky, frame);
+                    sp.set_z_order(0);
+                    flug->push_back(bn::move(sp));
+                }
+
+                static void bei_bild(const physik::ergebnis& e, void* ctx)
+                {
+                    zeichner& z = *static_cast<zeichner*>(ctx);
+                    while(z.naechster < e.pfad_laenge - 1)   // nur endgültige Punkte
+                    {
+                        z.punkt(e.pfad[z.naechster].x, e.pfad[z.naechster].y, 5);
+                        z.naechster += 8;
+                    }
+                }
             };
-            const int schritt = erg.pfad_laenge / 24 + 1;
-            for(int k = 0; k < erg.pfad_laenge; k += schritt) { auf_karte(erg.pfad[k].x, erg.pfad[k].y, 5); }
-            auf_karte(erg.lie.x, erg.lie.y, 6);
+            zeichner zz = { &flug, massstab, mitte_x, mitte_y };
+            fortschritt f;
+            f.zeichne = zeichner::bei_bild;
+            f.ctx = &zz;
+
+            const daten::scheibe* scheibe_p = nullptr;
+            const int ms = testwurf(bahn_nr, spieler_nr, bilder * 2654435761u + uint32_t(bahn_nr) * 40503u, scheibe_p, f);
+            const daten::scheibe& scheibe = *scheibe_p;
+            zeichner::bei_bild(erg, &zz);
+            zz.punkt(erg.lie.x, erg.lie.y, 6);
 
             // Ergebnis statt der Kennzahlen
-            kennzahl.clear();
             bn::string<64> zeile;
             bn::ostringstream zs(zeile);
             zs.append(scheibe.name);
@@ -451,9 +511,12 @@ void szene_daten()
             zs.append(namen[int(erg.art)]);
             if(erg.ob) { zs.append(", OB"); }
             if(erg.mando == physik::mando_ergebnis::verpasst) { zs.append(", Mando verpasst"); }
-            zs.append("   (");
+            // Rechenzeit gesamt / längstes Stück ohne neues Bild
+            zs.append("  ");
             zs.append(ms);
-            zs.append(" ms)");
+            zs.append("/");
+            zs.append(ticks_zu_ms(f.max_am_stueck));
+            zs.append(" ms");
             klein.generate(0, 58, zeile, kennzahl);
         }
 

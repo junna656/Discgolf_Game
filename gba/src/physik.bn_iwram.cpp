@@ -238,14 +238,19 @@ namespace physik
             return best;
         }
 
+        rueckruf aktueller_rueckruf = nullptr;
+        void* rueckruf_daten = nullptr;
+
         void anhaengen(ergebnis& e, double x, double y, double z, double t)
         {
             if(e.pfad_laenge < pfad_max) { e.pfad[e.pfad_laenge++] = { x, y, z, t }; }
+            if(aktueller_rueckruf) { aktueller_rueckruf(e, rueckruf_daten); }
         }
     }
 
     einstellungen& E() { return werte; }
     void setze_zufall(zufall& z) { aktueller_zufall = &z; }
+    void setze_rueckruf(rueckruf r, void* daten) { aktueller_rueckruf = r; rueckruf_daten = daten; }
     double grad() { return mathe::pi / 180; }
     double zahl(daten::fk f) { return f.roh / 4096.0; }
     punkt zu_punkt(const daten::punkt& p) { return { zahl(p.x), zahl(p.y) }; }
