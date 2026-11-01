@@ -23,3 +23,9 @@ weitere Kurse folgen.
 
 Bahn 1, 9 und 15 sind nach Bahnschildern, Fotos und Luftbild nachgebaut, die übrigen
 Bahnen nach dem Übersichtsplan der Hyzernauts.
+
+## Entwicklung und Releases
+
+- Entwickelt wird auf dem Branch `dev`, live ist der Branch `main` (GitHub Pages, www.discgolf-game.de).
+- Ein Release übernimmt `dev` nach `main` und erhöht die Versionsnummer (Menü und `?v=` an den Skripten).
+- `mehrspieler.js` und `server/` bilden den Online-Multiplayer; der Server wird per GitHub Action zu Cloudflare deployt.
