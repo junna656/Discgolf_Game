@@ -1,0 +1,58 @@
+name: 🐞 Fehler melden
+description: Etwas funktioniert nicht oder sieht falsch aus.
+title: "[Fehler] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: beschreibung
+    attributes:
+      label: Was ist passiert?
+      description: Beschreibe kurz, was falsch lief.
+      placeholder: "Auf Bahn 9 landet die Scheibe in der Box, wird aber als OB gezählt."
+    validations:
+      required: true
+  - type: textarea
+    id: schritte
+    attributes:
+      label: Wie kommt man dahin?
+      description: Schritt für Schritt, wenn möglich.
+      placeholder: |
+        1. Single Flight, Bahn 9
+        2. Mit der River leicht Hyzer werfen
+        3. …
+  - type: textarea
+    id: erwartet
+    attributes:
+      label: Was hättest du erwartet?
+  - type: dropdown
+    id: modus
+    attributes:
+      label: Spielmodus
+      options:
+        - Single Flight
+        - Vierer Flight
+        - Online spielen
+        - Freies Werfen
+        - Menü / Bags
+        - Weiß nicht
+  - type: input
+    id: bahn
+    attributes:
+      label: Bahn
+      placeholder: "z. B. 9"
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Steht im Hauptmenü unter dem Titel.
+      placeholder: "0.3.1"
+  - type: input
+    id: geraet
+    attributes:
+      label: Gerät / Browser
+      placeholder: "iPhone 15, Safari"
+  - type: textarea
+    id: bilder
+    attributes:
+      label: Screenshots
+      description: Bilder einfach hier hineinziehen oder einfügen.

@@ -1,0 +1,33 @@
+name: 💡 Idee / Wunsch
+description: Neue Funktion, neue Bahn, Änderung am Spiel.
+title: "[Wunsch] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idee
+    attributes:
+      label: Was wünschst du dir?
+      placeholder: "Ein Ranking über mehrere Runden."
+    validations:
+      required: true
+  - type: textarea
+    id: warum
+    attributes:
+      label: Warum wäre das gut?
+  - type: dropdown
+    id: bereich
+    attributes:
+      label: Bereich
+      options:
+        - Bahnen / Kurse
+        - Werfen / Physik
+        - Spieler / Bags
+        - Online spielen
+        - Grafik / Ton
+        - Menü / Bedienung
+        - Sonstiges
+  - type: textarea
+    id: bilder
+    attributes:
+      label: Skizzen, Fotos, Links
+      description: z. B. Bahnschild, UDisc-Screenshot oder eine Skizze.
