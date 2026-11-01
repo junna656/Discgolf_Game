@@ -22,6 +22,7 @@ weitere Kurse folgen.
 | `rufe/` | Ruf-Aufnahmen („Achtung, zweite Scheibe!“) |
 | `werkzeuge/referenzwuerfe.mjs` | erzeugt `tests/referenz.json`: 600 Würfe mit festem Zufall als Referenz für das Flugmodell |
 | `docs/GBA-PLAN.md` | Plan für eine Game-Boy-Advance-Version |
+| `gba/` | GBA-Version (C++/Butano); `gba/include/gen_*.h` erzeugt `werkzeuge/exportiere_gba.mjs` |
 
 Bahn 1, 9 und 15 sind nach Bahnschildern, Fotos und Luftbild nachgebaut, die übrigen
 Bahnen nach dem Übersichtsplan der Hyzernauts.
@@ -34,3 +35,15 @@ Bahnen nach dem Übersichtsplan der Hyzernauts.
 - Entwickelt wird auf dem Branch `dev`, live ist der Branch `main` (GitHub Pages, www.discgolf-game.de).
 - Ein Release übernimmt `dev` nach `main` und erhöht die Versionsnummer (Menü und `?v=` an den Skripten).
 - `mehrspieler.js` und `server/` bilden den Online-Multiplayer; der Server wird per GitHub Action zu Cloudflare deployt.
+
+## GBA-Version (Analogue Pocket)
+
+Die GitHub Action „GBA-ROM“ baut bei jedem Push die ROM: **Actions → GBA-ROM → letzter Lauf →
+Artifacts → boogie-garanten-gba-…** herunterladen und entpacken.
+
+- **Analogue Pocket:** `.gba`-Datei auf die SD-Karte nach `Assets/gba/common/` kopieren
+  (der openFPGA-GBA-Kern braucht dort auch die GBA-BIOS-Datei, siehe Anleitung des Kerns).
+- **Emulator:** z. B. mGBA.
+- **Selbst bauen:** devkitARM installieren, dann `gba/hole_butano.sh` und `make -C gba`.
+- Nach Änderungen an der Webversion `node werkzeuge/exportiere_gba.mjs` ausführen und die
+  Header mit committen (die Action prüft das).
