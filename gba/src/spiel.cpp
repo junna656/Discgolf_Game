@@ -15,6 +15,10 @@
 #include "bn_string.h"
 #include "bn_vector.h"
 #include "bn_optional.h"
+#include "bn_sprite_palette_item.h"
+#include "bn_sprite_palette_ptr.h"
+#include "bn_span.h"
+#include "bn_array.h"
 #include "bn_math.h"
 #include "bn_timer.h"
 #include "bn_timers.h"
@@ -89,10 +93,10 @@ namespace
     class spiel
     {
     public:
-        spiel(int bahn_nr, int spieler_nr, unsigned startwert) :
-            _b(gen::bahnen[bahn_nr]),
-            _sp(gen::alle_spieler[spieler_nr]),
-            _item(*gen::bahn_bilder[bahn_nr]),
+        spiel(runde_stand& r, unsigned startwert) :
+            _b(gen::bahnen[r.erste_bahn + r.index]),
+            _r(r),
+            _item(*gen::bahn_bilder[r.erste_bahn + r.index]),
             _bg(bn::palette_bitmap_bg_ptr::create(_item.palette_item())),
             _painter(_bg),
             _text(common::variable_8x8_sprite_font),
@@ -100,14 +104,12 @@ namespace
             _px_pro_m(double(bild_breite) / physik::zahl(_b.breite)),
             _schatten(bn::sprite_items::figuren.create_sprite(0, 0, f_schatten)),
             _scheibe(bn::sprite_items::figuren.create_sprite(0, 0, f_scheibe)),
-            _spieler(bn::sprite_items::figuren.create_sprite(0, 0, f_spieler)),
             _korb(bn::sprite_items::figuren.create_sprite(0, 0, f_korb))
         {
-            _bahn_nr = bahn_nr;
+            _bahn_nr = r.erste_bahn + r.index;
             bn::bg_palettes::set_transparent_color(bn::color(0, 0, 0));
             _schatten.set_z_order(2);
             _korb.set_z_order(1);
-            _spieler.set_z_order(1);
             _scheibe.set_z_order(0);
             for(int i = 0; i < ziel_punkte; ++i)
             {
@@ -120,10 +122,32 @@ namespace
             const double st = 1 + zahl01() * 5, ri = zahl01() * mathe::pi * 2;
             _wind = { mathe::cos(ri) * st, mathe::sin(ri) * st };
 
-            _lie = physik::zu_punkt(_b.abwurf);
-            _scheibe_nr = start_scheibe();
-            _vorhand = _sp.vorhand;
-            naechster_zug();
+            // Spieler in Wurfreihenfolge, alle am Abwurf; jede Figur in der Farbe des Spielers
+            _anzahl = r.anzahl;
+            const bn::span<const bn::color> grund = bn::sprite_items::figuren.palette_item().colors_ref();
+            for(int i = 0; i < _anzahl; ++i)
+            {
+                stand& s = _st[i];
+                s.platz = r.reihenfolge[i];
+                s.sp = &gen::alle_spieler[r.spieler[s.platz]];
+                s.lie = physik::zu_punkt(_b.abwurf);
+                _aktiv = i;
+                s.scheibe_nr = start_scheibe();
+                s.vorhand = s.sp->vorhand;
+
+                for(int k = 0; k < 16; ++k) { _farben[i][k] = grund[k]; }
+                const int f = s.sp->farbe, rot = f & 31, gruen = (f >> 5) & 31, blau = (f >> 10) & 31;
+                _farben[i][10] = bn::color(rot, gruen, blau);
+                _farben[i][11] = bn::color(rot / 2, gruen / 2, blau / 2);
+                bn::sprite_palette_item farbe(bn::span<const bn::color>(_farben[i].data(), 16), bn::bpp_mode::BPP_4);
+                _paletten.push_back(farbe.create_palette());
+                bn::sprite_ptr figur = bn::sprite_items::figuren.create_sprite(0, 0, f_spieler);
+                figur.set_palette(_paletten.back());
+                figur.set_z_order(1);
+                _figuren.push_back(bn::move(figur));
+            }
+            _aktiv = 0;
+            naechster();
 
             // Kamera sofort an die richtige Stelle
             kamera_ziel(_kam_x, _kam_y);
@@ -131,13 +155,18 @@ namespace
             _blit = 2;
         }
 
-        // Spielt die Bahn; true = fertig (im Korb), false = abgebrochen
+        // Spielt die Bahn; true = fertig, false = mit START abgebrochen
         bool spielen()
         {
             while(true)
             {
-                if(bn::keypad::start_pressed() && _zustand != zustand::flug) { return false; }
-                if(! eingabe()) { return true; }
+                if(bn::keypad::start_pressed() && _zustand != zustand::flug && _zustand != zustand::fertig)
+                {
+                    if(_uhr_bilder <= _abbruch_bis) { bn::bg_palettes::set_fade_intensity(0); return false; }
+                    _abbruch_bis = _uhr_bilder + 150;
+                    melde("Nochmal START: Runde beenden", 150);
+                }
+                if(! eingabe()) { bn::bg_palettes::set_fade_intensity(0); return true; }
                 bild();
             }
         }
@@ -212,7 +241,22 @@ namespace
         enum class zustand { zielen, laden, flug, pause, putt, fertig };
 
         const daten::bahn& _b;
-        const daten::spieler& _sp;
+        runde_stand& _r;
+
+        // Stand je Spieler auf dieser Bahn (wie die Felder von spieler[] in index.html)
+        struct stand
+        {
+            const daten::spieler* sp = nullptr;
+            int platz = 0;              // Platz in runde_stand
+            physik::punkt lie = { 0, 0 };
+            int wuerfe = 0, scheibe_nr = 0;
+            bool vorhand = false, mando_ok = false, fertig = false;
+        };
+        stand _st[max_spieler];
+        int _anzahl = 1, _aktiv = 0;
+        stand& st() { return _st[_aktiv]; }
+        const stand& st() const { return _st[_aktiv]; }
+        const daten::spieler& sp() const { return *_st[_aktiv].sp; }
         const bn::palette_bitmap_item& _item;
         bn::palette_bitmap_bg_ptr _bg;
         bn::palette_bitmap_bg_painter _painter;
@@ -221,7 +265,7 @@ namespace
         zufall _wurf_zufall = zufall(1);
         double _px_pro_m;
 
-        bn::sprite_ptr _schatten, _scheibe, _spieler, _korb;
+        bn::sprite_ptr _schatten, _scheibe, _korb;
         bn::vector<bn::sprite_ptr, ziel_punkte> _ziel;
         bn::vector<bn::sprite_ptr, 20> _zeile_oben, _zeile_zwei, _zeile_unten, _zeile_mitte;
         bn::vector<bn::sprite_ptr, balken_stuecke> _balken;
@@ -243,10 +287,14 @@ namespace
         bool _umsehen = false, _uebersicht = false;
         int _frei_x = 0, _frei_y = 0, _halten_umsehen = 0;
         int _uhr_bilder = 0, _lade_start = 0, _pause_bis = 0, _halten_links = 0, _halten_rechts = 0;
-        physik::punkt _lie;
         physik::wind _wind;
-        int _wuerfe = 0, _scheibe_nr = 0, _winkel = 0;
-        bool _vorhand = false, _mando_ok = false, _putt_modus = false, _push = false, _fertig_gemeldet = false;
+        int _winkel = 0;
+        bool _putt_modus = false, _push = false;
+        int _abbruch_bis = -1;      // START einmal gedrückt: bis hierhin zählt ein zweites START als Abbruch
+        bn::vector<bn::sprite_ptr, 64> _ende_texte;
+        bn::vector<bn::sprite_ptr, max_spieler> _figuren;           // Spieler auf der Bahn, in ihrer Farbe
+        bn::vector<bn::sprite_palette_ptr, max_spieler> _paletten;
+        bn::array<bn::color, 16> _farben[max_spieler];
         double _ziel_richtung = 0, _kraft = 0;
 
         // Flug
@@ -269,23 +317,23 @@ namespace
             return a - m * double(int(a / m));
         }
 
-        const daten::scheibe& scheibe() const { return _sp.tasche[_scheibe_nr]; }
+        const daten::scheibe& scheibe() const { return sp().tasche[st().scheibe_nr]; }
 
         int start_scheibe() const
         {
-            if(_sp.lieblingsscheibe_index >= 0) { return _sp.lieblingsscheibe_index; }
-            for(int k = 0; k < _sp.tasche_anzahl; ++k) { if(_sp.tasche[k].standard) { return k; } }
+            if(sp().lieblingsscheibe_index >= 0) { return sp().lieblingsscheibe_index; }
+            for(int k = 0; k < sp().tasche_anzahl; ++k) { if(sp().tasche[k].standard) { return k; } }
             return 0;
         }
 
         int putter() const
         {
-            for(int k = 0; k < _sp.tasche_anzahl; ++k) { if(_sp.tasche[k].typ == daten::scheiben_typ::putter) { return k; } }
+            for(int k = 0; k < sp().tasche_anzahl; ++k) { if(sp().tasche[k].typ == daten::scheiben_typ::putter) { return k; } }
             return 0;
         }
 
         physik::punkt korb() const { return physik::zu_punkt(_b.korb); }
-        double zum_korb() const { physik::punkt k = korb(); return mathe::atan2(k.y - _lie.y, k.x - _lie.x); }
+        double zum_korb() const { physik::punkt k = korb(); return mathe::atan2(k.y - st().lie.y, k.x - st().lie.x); }
 
         // Bildschirmposition (Butano: Mitte = 0, 0) eines Punktes in Metern
         // In der Übersicht ist das Bild kleiner (240 statt 512 Pixel breit) und beginnt bei Zeile uebersicht_oben
@@ -311,13 +359,46 @@ namespace
             else if(_zustand == zustand::zielen || _zustand == zustand::laden)
             {
                 // etwas in Wurfrichtung vorausschauen
-                const double vor = mathe::min(abstand(_lie, korb()), 40) * 0.45;
-                mx = _lie.x + mathe::cos(_ziel_richtung) * vor;
-                my = _lie.y + mathe::sin(_ziel_richtung) * vor;
+                const double vor = mathe::min(abstand(st().lie, korb()), 40) * 0.45;
+                mx = st().lie.x + mathe::cos(_ziel_richtung) * vor;
+                my = st().lie.y + mathe::sin(_ziel_richtung) * vor;
             }
-            else { mx = _lie.x; my = _lie.y; }
+            else { mx = st().lie.x; my = st().lie.y; }
             x = bn::max(0, bn::min(int(mx * _px_pro_m) - schirm_breite / 2, bild_breite - schirm_breite));
             y = bn::max(0, bn::min(int(my * _px_pro_m) - schirm_hoehe / 2, bild_hoehe - schirm_hoehe));
+        }
+
+        // Wer ist dran? Wie naechster() in index.html: erst alle vom Abwurf (in Reihenfolge),
+        // danach immer, wer am weitesten vom Korb weg ist. Alle im Korb: Bahn beendet.
+        void naechster()
+        {
+            int wahl = -1;
+            for(int i = 0; i < _anzahl && wahl < 0; ++i) { if(! _st[i].fertig && _st[i].wuerfe == 0) { wahl = i; } }
+            if(wahl < 0)
+            {
+                double weitester = -1;
+                for(int i = 0; i < _anzahl; ++i)
+                {
+                    if(_st[i].fertig) { continue; }
+                    const double d = abstand(_st[i].lie, korb());
+                    if(d > weitester) { weitester = d; wahl = i; }
+                }
+            }
+            if(wahl < 0) { ende(); return; }
+            const bool wechsel = _anzahl > 1 && (wahl != _aktiv || st().wuerfe == 0);
+            _aktiv = wahl;
+            _text_mitte.clear();
+            _zeile_mitte.clear();
+            naechster_zug();
+            if(wechsel)
+            {
+                bn::string<64> t;
+                bn::ostringstream z(t);
+                z.append(sp().name);
+                z.append(" ist dran");
+                if(_text_mitte.size()) { z.append(" - "); z.append(_text_mitte); }   // z. B. Scheibenwechsel
+                melde(t, 96);
+            }
         }
 
         void naechster_zug()
@@ -325,8 +406,8 @@ namespace
             _ziel_richtung = zum_korb();
             _winkel = 0;
             _kraft = 0;
-            _putt_modus = abstand(_lie, korb()) <= 10;
-            if(_putt_modus) { _scheibe_nr = putter(); }
+            _putt_modus = abstand(st().lie, korb()) <= 10;
+            if(_putt_modus) { st().scheibe_nr = putter(); }
             else { passe_scheibe_an(); }
             _zustand = _putt_modus ? zustand::putt : zustand::zielen;
             _putt_start = _uhr_bilder;
@@ -337,15 +418,15 @@ namespace
         // passende nehmen – wie passeScheibeAn() in index.html
         void passe_scheibe_an()
         {
-            const double d = abstand(_lie, korb());
+            const double d = abstand(st().lie, korb());
             const double rw_akt = physik::reichweite(scheibe());
             if(d <= rw_akt * 1.0 && d >= rw_akt * 0.6) { return; }
             // am liebsten eine Scheibe, die die Strecke mit etwa 85 % Kraft schafft
-            int best = _scheibe_nr;
+            int best = st().scheibe_nr;
             double note = 1e300;
-            for(int i = 0; i < _sp.tasche_anzahl; ++i)
+            for(int i = 0; i < sp().tasche_anzahl; ++i)
             {
-                const daten::scheibe& x = _sp.tasche[i];
+                const daten::scheibe& x = sp().tasche[i];
                 const double r = physik::reichweite(x);
                 const double n = mathe::betrag(r * 0.85 - d) + (r < d ? 1000 : 0) - (x.standard ? 6 : 0);
                 if(n < note) { note = n; best = i; }
@@ -353,13 +434,13 @@ namespace
             if(note >= 1000)
             {
                 best = 0;
-                for(int i = 1; i < _sp.tasche_anzahl; ++i)
+                for(int i = 1; i < sp().tasche_anzahl; ++i)
                 {
-                    if(physik::reichweite(_sp.tasche[i]) > physik::reichweite(_sp.tasche[best])) { best = i; }
+                    if(physik::reichweite(sp().tasche[i]) > physik::reichweite(sp().tasche[best])) { best = i; }
                 }
             }
-            if(best == _scheibe_nr) { return; }
-            _scheibe_nr = best;
+            if(best == st().scheibe_nr) { return; }
+            st().scheibe_nr = best;
             bn::string<48> t;
             bn::ostringstream z(t);
             z.append(scheibe().name);
@@ -378,11 +459,11 @@ namespace
             {
                 if(s.gesetzt) { streuung *= physik::zahl(s.streuung); weite *= physik::zahl(s.weite); }
             };
-            if(_scheibe_nr == _sp.lieblingsscheibe_index) { anwenden(_sp.lieblingsscheibe); }
-            anwenden(_vorhand ? _sp.vorhand_staerke : _sp.rueckhand);
-            if(_winkel < -2) { anwenden(_sp.anhyzer); }
-            if(_winkel > 2) { anwenden(_sp.hyzer); }
-            if(! _vorhand && (_winkel < -2 || (bn::abs(_winkel) <= 2 && physik::zahl(scheibe().turn) <= -2))) { anwenden(_sp.sline); }
+            if(st().scheibe_nr == sp().lieblingsscheibe_index) { anwenden(sp().lieblingsscheibe); }
+            anwenden(st().vorhand ? sp().vorhand_staerke : sp().rueckhand);
+            if(_winkel < -2) { anwenden(sp().anhyzer); }
+            if(_winkel > 2) { anwenden(sp().hyzer); }
+            if(! st().vorhand && (_winkel < -2 || (bn::abs(_winkel) <= 2 && physik::zahl(scheibe().turn) <= -2))) { anwenden(sp().sline); }
         }
 
         // Böe wie boe() in index.html
@@ -413,11 +494,11 @@ namespace
                 // nach rechts geworfen: hoch = gegen den Uhrzeigersinn; nach links geworfen umgekehrt
                 const double richtung = mathe::cos(_ziel_richtung) < 0 ? -1 : 1;
                 _ziel_richtung += (schritt(_halten_rechts) - schritt(_halten_links)) * richtung * physik::grad();
-                if(bn::keypad::left_pressed()) { _scheibe_nr = (_scheibe_nr + _sp.tasche_anzahl - 1) % _sp.tasche_anzahl; }
-                if(bn::keypad::right_pressed()) { _scheibe_nr = (_scheibe_nr + 1) % _sp.tasche_anzahl; }
+                if(bn::keypad::left_pressed()) { st().scheibe_nr = (st().scheibe_nr + sp().tasche_anzahl - 1) % sp().tasche_anzahl; }
+                if(bn::keypad::right_pressed()) { st().scheibe_nr = (st().scheibe_nr + 1) % sp().tasche_anzahl; }
                 if(bn::keypad::l_pressed()) { _winkel = bn::max(_winkel - 5, -30); }
                 if(bn::keypad::r_pressed()) { _winkel = bn::min(_winkel + 5, 30); }
-                if(bn::keypad::b_pressed()) { _vorhand = ! _vorhand; }
+                if(bn::keypad::b_pressed()) { st().vorhand = ! st().vorhand; }
                 if(bn::keypad::select_pressed()) { _umsehen = true; _frei_x = _kam_x; _frei_y = _kam_y; _halten_umsehen = 0; }
                 if(bn::keypad::a_pressed()) { _zustand = zustand::laden; _lade_start = _uhr_bilder; _kraft = 0; }
                 break;
@@ -432,16 +513,16 @@ namespace
                     break;
                 }
                 if(bn::keypad::b_pressed()) { _push = ! _push; }
-                if(bn::keypad::select_pressed()) { _putt_modus = false; _scheibe_nr = start_scheibe(); _zustand = zustand::zielen; }
+                if(bn::keypad::select_pressed()) { _putt_modus = false; st().scheibe_nr = start_scheibe(); _zustand = zustand::zielen; }
                 if(bn::keypad::a_pressed()) { putten(); }
                 break;
             case zustand::flug:
                 break;
             case zustand::pause:
-                if(_uhr_bilder >= _pause_bis) { naechster_zug(); }
+                if(_uhr_bilder >= _pause_bis) { naechster(); }
                 break;
             case zustand::fertig:
-                if(bn::keypad::a_pressed() || bn::keypad::start_pressed()) { return false; }
+                if(bn::keypad::a_pressed()) { return false; }
                 break;
             }
             return true;
@@ -491,23 +572,23 @@ namespace
             double streuung, weite;
             staerke(streuung, weite);
             physik::wurf w;
-            w.x = _lie.x;
-            w.y = _lie.y;
+            w.x = st().lie.x;
+            w.y = st().lie.y;
             w.richtung = _ziel_richtung;
             w.kraft = _kraft;
             _kraft_angezeigt = _kraft;
             w.winkel = _winkel;
             w.scheibe = &scheibe();
-            w.links = _sp.linkshaender;
-            w.vorhand = _vorhand;
+            w.links = sp().linkshaender;
+            w.vorhand = st().vorhand;
             w.streu_faktor = streuung;
             w.weite_faktor = weite;
-            w.mando_ok = _mando_ok;
-            ++_wuerfe;
+            w.mando_ok = st().mando_ok;
+            ++st().wuerfe;
 
             _zustand = zustand::flug;
             _flug_t = 0;
-            _flug_pos = _lie;
+            _flug_pos = st().lie;
             _flug_z = 1.3;
             _rechnet = true;
             _wurf_zufall = zufall(_zz.naechste());
@@ -551,17 +632,17 @@ namespace
         void landung()
         {
             const physik::ergebnis& e = flug_ergebnis;
-            if(e.mando == physik::mando_ergebnis::ok || (e.mando == physik::mando_ergebnis::verpasst && _b.m.hat_dropzone)) { _mando_ok = true; }
-            _lie = e.lie;
+            if(e.mando == physik::mando_ergebnis::ok || (e.mando == physik::mando_ergebnis::verpasst && _b.m.hat_dropzone)) { st().mando_ok = true; }
+            st().lie = e.lie;
             _pause_bis = _uhr_bilder + 78;   // 1,3 s
             _zustand = zustand::pause;
             if(e.drin)
             {
+                st().fertig = true;
                 melde(e.art == physik::typ::bowling ? "STRIKE!" : "TREFFER!");
-                bahn_geschafft();
             }
-            else if(e.mando == physik::mando_ergebnis::verpasst) { ++_wuerfe; melde("MANDO VERPASST! +1"); }
-            else if(e.ob) { ++_wuerfe; melde("OB! +1"); }
+            else if(e.mando == physik::mando_ergebnis::verpasst) { ++st().wuerfe; melde("MANDO VERPASST! +1"); }
+            else if(e.ob) { ++st().wuerfe; melde("OB! +1"); }
             else if(e.art == physik::typ::baum) { melde("BAUM!"); }
             else if(e.art == physik::typ::mauer) { melde("MAUER!"); }
             else
@@ -584,27 +665,113 @@ namespace
             _text.set_left_alignment();
         }
 
-        void bahn_geschafft()
+        static void plus_minus(bn::ostringstream& z, int d)
+        {
+            if(d == 0) { z.append("E"); return; }
+            if(d > 0) { z.append("+"); }
+            z.append(d);
+        }
+
+        // Bahn beendet: Würfe in die Scorekarte, Rangliste wie zeichneEnde() in index.html
+        void ende()
         {
             _zustand = zustand::fertig;
-            const int diff = _wuerfe - _b.par;
+            for(int i = 0; i < _anzahl; ++i) { _r.karte[_st[i].platz][_r.index] = _st[i].wuerfe; }
+            const bool ganz = _r.bahnen > 1, letzte = _r.index >= _r.bahnen - 1;
+
+            // Gesamt je Platz bis zu dieser Bahn
+            int gesamt[max_spieler] = {}, par = 0;
+            for(int k = 0; k <= _r.index; ++k)
+            {
+                par += gen::bahnen[_r.erste_bahn + k].par;
+                for(int i = 0; i < _anzahl; ++i) { gesamt[_st[i].platz] += _r.karte[_st[i].platz][k]; }
+            }
+
+            // sortiert: in der Runde nach Gesamt, sonst nach dieser Bahn
+            int folge[max_spieler];
+            for(int i = 0; i < _anzahl; ++i) { folge[i] = i; }
+            for(int i = 1; i < _anzahl; ++i)
+            {
+                for(int j = i; j > 0; --j)
+                {
+                    const stand& a = _st[folge[j - 1]];
+                    const stand& b = _st[folge[j]];
+                    const int wa = ganz ? gesamt[a.platz] : a.wuerfe, wb = ganz ? gesamt[b.platz] : b.wuerfe;
+                    if(wb < wa) { const int t = folge[j]; folge[j] = folge[j - 1]; folge[j - 1] = t; }
+                }
+            }
+
+            _zeile_oben.clear(); _zeile_zwei.clear(); _zeile_unten.clear(); _zeile_mitte.clear();
+            _text_oben.clear(); _text_zwei.clear(); _text_unten.clear(); _text_mitte.clear();
+            _ende_texte.clear();
+            _balken.clear();
+            _balken_text.clear();
+            _kraftmarke.reset();
+            bn::bg_palettes::set_fade(bn::color(1, 2, 3), 0.7);   // Bahn abdunkeln, Text darüber
+
             bn::string<48> t;
-            bn::ostringstream z(t);
-            z.append(_wuerfe == 1 ? "ASS!  1 Wurf" : "Im Korb!  ");
-            if(_wuerfe > 1) { z.append(_wuerfe); z.append(" Wuerfe"); }
-            z.append("  (");
-            if(diff == 0) { z.append("Par"); }
-            else if(diff == -1) { z.append("Birdie"); }
-            else if(diff == -2) { z.append("Eagle"); }
-            else if(diff == 1) { z.append("Bogey"); }
-            else { if(diff > 0) { z.append("+"); } z.append(diff); }
-            z.append(")");
-            _text_unten = t;
-            _zeile_unten.clear();
-            _text.generate(-114, 72, _text_unten, _zeile_unten);
-            _text_oben = "A: weiter";
-            _zeile_oben.clear();
-            _text.generate(-114, -74, _text_oben, _zeile_oben);
+            {
+                bn::ostringstream z(t);
+                if(letzte && ganz) { z.append("RUNDE BEENDET"); }
+                else
+                {
+                    if(_b.kurz[0]) { z.append(_b.kurz); }
+                    else { z.append("BAHN "); z.append(int(_b.nummer)); }
+                    z.append(" GESPIELT");
+                }
+            }
+            _text.set_center_alignment();
+            _text.generate(0, -60, t, _ende_texte);
+            _text.generate(ganz ? 18 : 70, -44, "WUERFE", _ende_texte);
+            if(ganz) { _text.generate(82, -44, "GESAMT", _ende_texte); }
+
+            for(int n = 0; n < _anzahl; ++n)
+            {
+                const stand& s = _st[folge[n]];
+                const int y = -30 + n * 14;
+                bn::string<32> name;
+                {
+                    bn::ostringstream z(name);
+                    z.append(n + 1);
+                    z.append(". ");
+                    z.append(s.sp->name);
+                }
+                _text.set_left_alignment();
+                _text.generate(-100, y, name, _ende_texte);
+                bn::string<24> bahn;
+                {
+                    bn::ostringstream z(bahn);
+                    z.append(s.wuerfe);
+                    z.append(" (");
+                    plus_minus(z, s.wuerfe - _b.par);
+                    z.append(")");
+                }
+                _text.set_center_alignment();
+                _text.generate(ganz ? 18 : 70, y, bahn, _ende_texte);
+                if(ganz)
+                {
+                    bn::string<24> ges;
+                    bn::ostringstream z(ges);
+                    z.append(gesamt[s.platz]);
+                    z.append(" (");
+                    plus_minus(z, gesamt[s.platz] - par);
+                    z.append(")");
+                    _text.generate(82, y, ges, _ende_texte);
+                }
+            }
+            _text.set_center_alignment();
+            _text.generate(0, 50, letzte ? "A: zum Menue" : "A: naechste Bahn", _ende_texte);
+            if(ganz)
+            {
+                bn::string<32> stand_text;
+                bn::ostringstream z(stand_text);
+                z.append("Bahn ");
+                z.append(_r.index + 1);
+                z.append(" von ");
+                z.append(_r.bahnen);
+                _text.generate(0, 62, stand_text, _ende_texte);
+            }
+            _text.set_left_alignment();
         }
 
         // ---------- Putt (wie puttWackel/putten/puttLage in index.html) ----------
@@ -612,8 +779,8 @@ namespace
 
         versatz putt_wackel(double t) const
         {
-            const double d = abstand(_lie, korb());
-            const double stil = _push ? 0.65 : 1, gut = physik::zahl(_sp.putten);
+            const double d = abstand(st().lie, korb());
+            const double stil = _push ? 0.65 : 1, gut = physik::zahl(sp().putten);
             const double A = (1.5 + d * 2.1 * gut) * stil * (0.7 + 0.3 * mathe::sin(t * 0.9));
             const double w = 1 + d * 0.1;
             const double r = zum_korb();
@@ -631,7 +798,7 @@ namespace
             _putt_ox = o.x;
             _putt_oy = o.y;
             _putt_flug_start = _uhr_bilder;
-            ++_wuerfe;
+            ++st().wuerfe;
             const double ax = mathe::betrag(o.x), ay = mathe::betrag(o.y);
             constexpr double bx = 12, by = 9;   // KETTEN in index.html
             if(ax <= bx && ay <= by)
@@ -666,10 +833,11 @@ namespace
         {
             const bool drin = bn::string_view(_putt_ergebnis) == "drin";
             _putt_ergebnis = nullptr;
-            if(drin) { _lie = korb(); bahn_geschafft(); return; }
-            _lie = _putt_lie;
             _zeile_mitte.clear();
-            naechster_zug();
+            _text_mitte.clear();
+            if(drin) { st().lie = korb(); st().fertig = true; }
+            else { st().lie = _putt_lie; }
+            naechster();
         }
 
         // ---------- Anzeige ----------
@@ -678,12 +846,17 @@ namespace
             const bool im_putt = _zustand == zustand::putt;
             const physik::punkt k = korb();
             _korb.set_position(sx(k.x), sy(k.y));
-            _spieler.set_position(sx(_lie.x) - 4, sy(_lie.y) - 4);
-            _spieler.set_visible(_zustand != zustand::fertig && ! im_putt);
-            _korb.set_visible(! im_putt);
+            // alle Spieler, die noch nicht im Korb sind, an ihrer Lage
+            for(int i = 0; i < _anzahl; ++i)
+            {
+                _figuren[i].set_position(sx(_st[i].lie.x) - 4, sy(_st[i].lie.y) - 4);
+                _figuren[i].set_visible(! _st[i].fertig && _zustand != zustand::fertig && ! im_putt);
+                _figuren[i].set_z_order(i == _aktiv ? 0 : 1);
+            }
+            _korb.set_visible(! im_putt && _zustand != zustand::fertig);
 
             // Scheibe: in der Hand, im Flug (mit Höhe), liegend
-            physik::punkt p = _zustand == zustand::flug ? _flug_pos : _lie;
+            physik::punkt p = _zustand == zustand::flug ? _flug_pos : st().lie;
             const double z = _zustand == zustand::flug ? _flug_z : 0;
             _schatten.set_position(sx(p.x), sy(p.y));
             _scheibe.set_position(sx(p.x), sy(p.y) - bn::fixed(float(z * _px_pro_m * zoom() * 0.6)) - 1);
@@ -693,9 +866,9 @@ namespace
 
             // Ziellinie wie zeichneZiellinie(): Punkte in Wurfrichtung, gelb gebogen je nach Winkel
             const bool zielen = _zustand == zustand::zielen || _zustand == zustand::laden;
-            const double x0 = _lie.x * _px_pro_m, y0 = _lie.y * _px_pro_m;
+            const double x0 = st().lie.x * _px_pro_m, y0 = st().lie.y * _px_pro_m;
             const double c = mathe::cos(_ziel_richtung), s = mathe::sin(_ziel_richtung);
-            const double hand = (_sp.linkshaender ? -1 : 1) * (_vorhand ? -1 : 1);
+            const double hand = (sp().linkshaender ? -1 : 1) * (st().vorhand ? -1 : 1);
             const double kurve = -_winkel * hand * 0.9;
             for(int i = 0; i < ziel_punkte; ++i)
             {
@@ -805,7 +978,7 @@ namespace
             }
             double streuung, weite;
             staerke(streuung, weite);
-            const double sf = streuung * (_vorhand ? 1.2 : 1) * physik::E().streuung;
+            const double sf = streuung * (st().vorhand ? 1.2 : 1) * physik::E().streuung;
             const double gelb = mathe::max(0.5, mathe::min(0.93, 1 - 0.3 * sf));
             const double rot = mathe::max(0.75, mathe::min(0.97, 1 - 0.1 * sf));
             const bool mit_kraft = _zustand == zustand::laden || _zustand == zustand::flug;
@@ -842,14 +1015,16 @@ namespace
             bn::string<64> oben;
             {
                 bn::ostringstream z(oben);
-                if(_b.name[0]) { z.append(_b.name); }
+                z.append(sp().name);
+                z.append("   ");
+                if(_b.kurz[0]) { z.append(_b.kurz); }
                 else { z.append("Bahn "); z.append(int(_b.nummer)); }
                 z.append("   Par ");
                 z.append(int(_b.par));
                 z.append("   Wurf ");
-                z.append(_wuerfe + 1);
-                z.append("   noch ");
-                z.append(int(abstand(_lie, k) + 0.5));
+                z.append(st().wuerfe + 1);
+                z.append("   ");
+                z.append(int(abstand(st().lie, k) + 0.5));
                 z.append(" m");
             }
             bn::string<64> zwei;
@@ -862,7 +1037,7 @@ namespace
                 if(_zustand != zustand::putt)
                 {
                     z.append("   ");
-                    z.append(_vorhand ? "Vorhand" : "Rueckhand");
+                    z.append(st().vorhand ? "Vorhand" : "Rueckhand");
                     if(_winkel > 0) { z.append(", Hyzer "); z.append(_winkel); }
                     else if(_winkel < 0) { z.append(", Anhyzer "); z.append(-_winkel); }
                     else { z.append(", flach"); }
@@ -910,9 +1085,39 @@ namespace
     };
 }
 
+bool szene_runde(runde_stand& r, unsigned startwert)
+{
+    for(r.index = 0; r.index < r.bahnen; ++r.index)
+    {
+        bool weiter;
+        {
+            spiel s(r, startwert + unsigned(r.index) * 7919u);
+            bn::core::update();   // damit der Tastendruck, der hierher geführt hat, nicht gleich weiterwirkt
+            weiter = s.spielen();
+        }
+        bn::core::update();       // Bitmap-Hintergrund freigeben, bevor die nächste Bahn ihn braucht
+        if(! weiter) { return false; }
+
+        // nächste Bahn: wer diese am besten gespielt hat, wirft zuerst (stabil, wie spieler.sort in weiter())
+        for(int i = 1; i < r.anzahl; ++i)
+        {
+            for(int j = i; j > 0; --j)
+            {
+                const int a = r.reihenfolge[j - 1], b = r.reihenfolge[j];
+                if(r.karte[b][r.index] < r.karte[a][r.index]) { r.reihenfolge[j - 1] = b; r.reihenfolge[j] = a; }
+            }
+        }
+    }
+    return true;
+}
+
 void szene_spiel(int bahn_nr, int spieler_nr, unsigned startwert)
 {
-    spiel s(bahn_nr, spieler_nr, startwert);
-    bn::core::update();   // damit der START-Druck, der hierher geführt hat, nicht sofort zurückführt
-    s.spielen();
+    runde_stand r;
+    r.anzahl = 1;
+    r.spieler[0] = spieler_nr;
+    r.reihenfolge[0] = 0;
+    r.erste_bahn = bahn_nr;
+    r.bahnen = 1;
+    szene_runde(r, startwert);
 }

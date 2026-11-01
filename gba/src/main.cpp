@@ -1,16 +1,10 @@
-// Boogie Garanten – GBA-Version, Etappe 1: „Hallo Welt“
+// Boogie Garanten – GBA-Version: Hauptmenü, Bahnauswahl, Start.
 //
-// Prüft auf dem echten Gerät (Analogue Pocket, GBA, mGBA):
-//  - Bild und Sprites:   Titel, Korb und Scheibe
-//  - Tasten:             ▲▼ zielen, A halten = Kraft laden, loslassen = werfen, B = zurück
-//  - Zufall:             mulberry32 liefert dieselben Zahlen wie physik.js
-//  - Speichern (SRAM):   Anzahl der Starts bleibt nach dem Ausschalten erhalten
-//
-// Der Wurf hier ist nur eine einfache Animation – das echte Flugmodell kommt in Etappe 3.
-//
-// Etappe 2: SELECT zeigt alle Bahnen (Minikarte) und Spieler aus den erzeugten Daten.
-// Etappe 4: dort startet A (oder START) das Spiel auf der gewählten Bahn (gba/src/spiel.cpp).
-// Etappe 3: dort wirft B einen Testwurf mit dem Flugmodell (physik.bn_iwram.cpp) und misst die Rechenzeit.
+//  - Hauptmenü:      Single Flight (Spieler mit ◀ ▶), Vierer Flight (Hot-Seat), Einzelne Bahn
+//  - Runde/Spiel:    gba/src/spiel.cpp (szene_runde)
+//  - Bahnauswahl:    Übersicht jeder Bahn, A spielt sie, B macht einen Testwurf (Flugbahn, Rechenzeit)
+//  - Selbsttests:    Zufall wie physik.js („Zufall: OK“), Speichern (Zähler „Starts“ im SRAM)
+//  - BG_BENCHMARK:   Messung der Wurfzeit für GitHub Actions (mGBA)
 
 #include "bn_core.h"
 #include "bn_keypad.h"
@@ -116,14 +110,12 @@ namespace
         return bn::fixed::from_data(z.roh);
     }
 
-    // Spielfeld in Bildschirmkoordinaten (Mitte = 0, 0)
-    constexpr bn::fixed abwurf_x = -96;
-    constexpr bn::fixed boden_y = 30;
-    constexpr bn::fixed korb_x = 88;
 }
 
-// Szene 1: Titel und Probewurf. Endet mit SELECT.
-void szene_wurf(int starts, bool zufall_gleich)
+// Hauptmenü: Single Flight (Spieler wählen), Vierer Flight, Einzelne Bahn (Bahnauswahl)
+enum class auswahl { single, vierer, bahn };
+
+auswahl szene_menue(int starts, bool zufall_gleich, int& spieler_nr, uint32_t& bilder)
 {
     bn::bg_palettes::set_transparent_color(bn::color(7, 15, 6)); // Wiese
 
@@ -133,122 +125,59 @@ void szene_wurf(int starts, bool zufall_gleich)
     klein.set_center_alignment();
 
     bn::vector<bn::sprite_ptr, 40> feste_texte;
-    gross.generate(0, -68, "BOOGIE GARANTEN", feste_texte);
-    klein.generate(0, -52, "Retro-Edition  v" BG_VERSION "  (" BG_KENNUNG ")", feste_texte);
-
+    gross.generate(0, -66, "BOOGIE GARANTEN", feste_texte);
+    klein.generate(0, -50, "Retro-Edition  v" BG_VERSION "  (" BG_KENNUNG ")", feste_texte);
     {
         bn::string<48> zeile;
         bn::ostringstream z(zeile);
         z.append(zufall_gleich ? "Zufall: OK" : "Zufall: FEHLER!");
         z.append("   Starts: ");
         z.append(starts);
-        klein.generate(0, 70, zeile, feste_texte);
+        klein.generate(0, 72, zeile, feste_texte);
     }
+    klein.generate(0, 56, "Hoch/Runter: waehlen   A: los", feste_texte);
 
-    bn::sprite_ptr korb = bn::sprite_items::korb.create_sprite(korb_x, boden_y - 12);
-    bn::sprite_ptr scheibe = bn::sprite_items::scheibe.create_sprite(abwurf_x, boden_y);
+    bn::sprite_ptr korb = bn::sprite_items::korb.create_sprite(96, 34);
+    bn::sprite_ptr scheibe = bn::sprite_items::scheibe.create_sprite(-96, 42);
 
-    bn::vector<bn::sprite_ptr, 16> hinweis;
-    bn::vector<bn::sprite_ptr, 16> anzeige;
+    int wahl = 0;
+    bool neu = true;
+    bn::vector<bn::sprite_ptr, 40> eintraege;
 
-    enum class zustand { zielen, laden, flug, liegt };
-    zustand jetzt = zustand::zielen;
-    bn::fixed ziel = 0;      // -1 .. 1: nach oben / unten zielen
-    bn::fixed kraft = 0;     // 0 .. 1
-    bn::fixed t = 0;         // Fortschritt des Flugs 0 .. 1
-    bn::fixed weite = 0;
-    bool neu_zeichnen = true;
-    zufall wackel(uint32_t(starts) * 2654435761u);
-
-    while(! bn::keypad::select_pressed())
+    while(true)
     {
-        switch(jetzt)
+        ++bilder;
+        if(bn::keypad::up_pressed()) { wahl = (wahl + 2) % 3; neu = true; }
+        if(bn::keypad::down_pressed()) { wahl = (wahl + 1) % 3; neu = true; }
+        if(wahl == 0 && bn::keypad::left_pressed()) { spieler_nr = (spieler_nr + gen::spieler_anzahl - 1) % gen::spieler_anzahl; neu = true; }
+        if(wahl == 0 && bn::keypad::right_pressed()) { spieler_nr = (spieler_nr + 1) % gen::spieler_anzahl; neu = true; }
+        if(bn::keypad::a_pressed() || bn::keypad::start_pressed()) { return auswahl(wahl); }
+
+        if(neu)
         {
-        case zustand::zielen:
-            if(bn::keypad::up_held()) { ziel = bn::max(ziel - bn::fixed(0.02), bn::fixed(-1)); }
-            if(bn::keypad::down_held()) { ziel = bn::min(ziel + bn::fixed(0.02), bn::fixed(1)); }
-            scheibe.set_position(abwurf_x, boden_y + ziel * 6);
-
-            if(bn::keypad::a_pressed())
+            neu = false;
+            eintraege.clear();
+            for(int i = 0; i < 3; ++i)
             {
-                jetzt = zustand::laden;
-                kraft = 0;
-                neu_zeichnen = true;
-            }
-            break;
-
-        case zustand::laden:
-            kraft = bn::min(kraft + bn::fixed(0.015), bn::fixed(1));
-            neu_zeichnen = true;
-
-            if(bn::keypad::a_released())
-            {
-                // etwas Streuung aus dem Zufallsgenerator, wie im Spiel
-                bn::fixed streu = bn::fixed(int(wackel.naechste() >> 24) - 128) / 1024;
-                weite = (kraft + streu) * (korb_x - abwurf_x) * bn::fixed(1.1);
-                t = 0;
-                jetzt = zustand::flug;
-            }
-            break;
-
-        case zustand::flug:
-        {
-            t += bn::fixed(0.02);
-
-            if(t >= 1)
-            {
-                t = 1;
-                jetzt = zustand::liegt;
-                neu_zeichnen = true;
-            }
-
-            // Bogen: x linear, Höhe als Parabel, leichte Kurve nach oben/unten durch das Zielen
-            bn::fixed x = abwurf_x + weite * t;
-            bn::fixed hoehe = 4 * t * (1 - t) * (24 + kraft * 30);
-            bn::fixed y = boden_y + ziel * 6 + ziel * 40 * t - hoehe;
-            scheibe.set_position(x, y);
-            scheibe.set_scale(1 + hoehe / 80);
-            break;
-        }
-
-        case zustand::liegt:
-            if(bn::keypad::b_pressed() || bn::keypad::a_pressed())
-            {
-                jetzt = zustand::zielen;
-                scheibe.set_scale(1);
-                neu_zeichnen = true;
-            }
-            break;
-        }
-
-        if(neu_zeichnen)
-        {
-            neu_zeichnen = false;
-            hinweis.clear();
-            anzeige.clear();
-
-            if(jetzt == zustand::zielen)
-            {
-                klein.generate(0, -36, "Hoch/Runter: zielen   A halten: werfen", hinweis);
-                klein.generate(0, 56, "SELECT: Bahnen, dann A: spielen", hinweis);
-            }
-            else if(jetzt == zustand::laden)
-            {
-                bn::string<24> zeile;
+                bn::string<48> zeile;
                 bn::ostringstream z(zeile);
-                z.append("Kraft: ");
-                z.append((kraft * 100).integer());
-                z.append(" %");
-                gross.generate(0, -36, zeile, anzeige);
-            }
-            else if(jetzt == zustand::liegt)
-            {
-                // Treffer nur, wenn die Scheibe waagerecht UND senkrecht beim Korb liegt
-                bool treffer = bn::abs(korb_x - scheibe.x()) < 10 && bn::abs(boden_y - scheibe.y()) < 8;
-                gross.generate(0, -36, treffer ? "Treffer!" : "A oder B: nochmal", anzeige);
+                z.append(i == wahl ? "> " : "  ");
+                if(i == 0)
+                {
+                    z.append("Single Flight:  ");
+                    if(wahl == 0) { z.append("< "); }
+                    z.append(gen::alle_spieler[spieler_nr].name);
+                    if(wahl == 0) { z.append(" >"); }
+                }
+                else if(i == 1) { z.append("Vierer Flight"); }
+                else { z.append("Einzelne Bahn"); }
+                z.append(i == wahl ? " <" : "  ");
+                gross.generate(0, -26 + i * 18, zeile, eintraege);
             }
         }
 
+        // die Scheibe schwebt ein wenig hin und her
+        scheibe.set_y(42 + bn::fixed(int((bilder / 8) % 6) - 3) / 2);
         bn::core::update();
     }
 }
@@ -569,12 +498,29 @@ int main()
     const int starts = zaehle_start();
     const bool zufall_gleich = zufall_ok();
 
+    int spieler_nr = 0;
+    uint32_t bilder = 0;
+
     while(true)
     {
-        // nach jeder Szene ein Bild weiter, sonst zählt der SELECT-Druck gleich für die nächste Szene
-        szene_wurf(starts, zufall_gleich);
-        bn::core::update();
-        szene_daten();
+        const auswahl w = szene_menue(starts, zufall_gleich, spieler_nr, bilder);
+        bn::core::update();   // nach jeder Szene ein Bild weiter, sonst zählt der Tastendruck gleich weiter
+
+        if(w == auswahl::bahn) { szene_daten(); }
+        else
+        {
+            // eine Runde über alle Bahnen des ersten Kurses (wie Single/Vierer Flight im Browser)
+            runde_stand r;
+            r.erste_bahn = gen::kurse[0].erste_bahn;
+            r.bahnen = gen::kurse[0].bahnen_anzahl;
+            r.anzahl = w == auswahl::single ? 1 : bn::min(gen::spieler_anzahl, max_spieler);
+            for(int i = 0; i < r.anzahl; ++i)
+            {
+                r.spieler[i] = w == auswahl::single ? spieler_nr : i;
+                r.reihenfolge[i] = i;
+            }
+            szene_runde(r, bilder);
+        }
         bn::core::update();
     }
 }
