@@ -163,8 +163,10 @@ Insgesamt grob **4–8 Wochen** nebenbei. Etappe 0 verbessert auch die Webversio
 
 ## 7. Risiken und offene Fragen
 
-- **Rechenzeit:** Die Physik rechnet in `double` ohne Hardware-Gleitkomma. Die ROM zeigt die Zeit je Wurf an;
-  ist sie zu lang, Festkomma oder Verteilen auf mehrere Bilder. (Früher: Festkomma-Genauigkeit –
+- **Rechenzeit (gemessen in mGBA, Action „GBA-ROM“):** ~0,4 s je Wurf (Gleitkomma in Software). Gelöst durch
+  Verteilen auf mehrere Bilder: die Physik meldet sich nach jedem Pfadpunkt (`physik::setze_rueckruf`), das Spiel
+  zeichnet spätestens alle ~20 ms weiter – der Flug läuft schon, während der Rest gerechnet wird.
+  Ursprünglich geplant: Festkomma oder Verteilen auf mehrere Bilder. (Früher: Festkomma-Genauigkeit –
   Lange Flüge mit vielen Schritten können sich leicht aufsummieren.)
   Gegenmittel sind mehr Nachkommabits für Geschwindigkeiten oder eine Toleranz im Golden-Test.
 - **Leistung:** Die Physik berechnet den ganzen Flug vorab (`simuliere`). Auf dem GBA (16 MHz)
