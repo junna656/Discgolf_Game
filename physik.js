@@ -3,10 +3,25 @@
   "use strict";
   const DEG = Math.PI / 180;
 
+  // Zufall: im Spiel Math.random; mit setzeZufall(erzeugeZufall(startwert)) wiederholbar
+  // (gleiche Würfe bei gleichem Startwert – für Tests, Multiplayer und die GBA-Version).
+  // erzeugeZufall ist mulberry32 und muss Bit für Bit mit der C++-Version übereinstimmen.
+  function erzeugeZufall(startwert) {
+    let a = startwert >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  let zufall = Math.random;
+  function setzeZufall(fn) { zufall = fn || Math.random; }
+
   function gauss() {
     let u = 0, v = 0;
-    while (!u) u = Math.random();
-    while (!v) v = Math.random();
+    while (!u) u = zufall();
+    while (!v) v = zufall();
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
   }
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -204,14 +219,14 @@
           if (abstand(p, baum) < baum.r && z < (baum.h || 9)) {
             gepruefteBaeume.add(b);
             // drei Möglichkeiten: abprallen, abbremsen (fliegt langsamer weiter) oder durch eine Lücke
-            const w = Math.random();
+            const w = zufall();
             if (w < E.baumAbprallen) { ereignis = { typ: "baum", baum }; break flug; }
-            if (w < E.baumAbprallen + E.baumBremsen) { brems *= 0.35 + Math.random() * 0.25; bremsPunkte.push(pfad.length - 1); }
+            if (w < E.baumAbprallen + E.baumBremsen) { brems *= 0.35 + zufall() * 0.25; bremsPunkte.push(pfad.length - 1); }
           }
         }
       }
       if (abstand(p, bahn.korb) < 0.45 && z < 1.7) {
-        ereignis = { typ: Math.random() < (u > 0.6 ? 0.8 : 0.35) ? "korb" : "abpraller" };
+        ereignis = { typ: zufall() < (u > 0.6 ? 0.8 : 0.35) ? "korb" : "abpraller" };
         break flug;
       }
     }
@@ -232,7 +247,7 @@
       fallen(bahn.korb.x, bahn.korb.y, 0.25);
       drin = true;
     } else if (typ === "abpraller") {
-      const a = Math.random() * Math.PI * 2, r = 1 + Math.random() * 2.5;
+      const a = zufall() * Math.PI * 2, r = 1 + zufall() * 2.5;
       fallen(bahn.korb.x + Math.cos(a) * r, bahn.korb.y + Math.sin(a) * r, 0.5);
     } else if (typ === "baum" || typ === "mauer") {
       // Kick: die Scheibe prallt wie von einer Wand ab (Einfallswinkel = Ausfallswinkel, plus Zufall)
@@ -244,7 +259,7 @@
       let ab = Math.atan2(vy - 2 * dot * ny, vx - 2 * dot * nx) + gauss() * (typ === "mauer" ? 0.3 : 0.6);
       // von der Mauer immer weg, nie hindurch
       if (typ === "mauer" && Math.cos(ab) * nx + Math.sin(ab) * ny < 0.15) ab = Math.atan2(ny, nx) + gauss() * 0.4;
-      let weit = (1 + (1 - u) * D * 0.045) * (0.7 + Math.random() * 0.6) * E.kick * (typ === "mauer" ? 0.6 : 1);
+      let weit = (1 + (1 - u) * D * 0.045) * (0.7 + zufall() * 0.6) * E.kick * (typ === "mauer" ? 0.6 : 1);
       // mindestens ein Stück aus der Krone heraus
       const zx = px + Math.cos(ab) * weit, zy = py + Math.sin(ab) * weit;
       const raus = Math.hypot(zx - b.x, zy - b.y) < b.r * 0.8 ? b.r * 0.8 : 0;
@@ -265,7 +280,7 @@
       ende.z = 0;
       let dx = Math.cos(th), dy = Math.sin(th);
       const bowling = aufBowlingbahn(ende, bahn);
-      let L = (0.5 + D * 0.025) * (0.5 + Math.random()) * (1 - clamp(winkel, -30, 30) / 60) * brems;
+      let L = (0.5 + D * 0.025) * (0.5 + zufall()) * (1 - clamp(winkel, -30, 30) / 60) * brems;
       if (bowling) {
         const l = bahn.bowlingbahn;
         let ax = l.x2 - l.x1, ay = l.y2 - l.y1;
@@ -273,7 +288,7 @@
         ax /= n; ay /= n;
         const vor = Math.sign(ax * dx + ay * dy) || 1;
         dx = ax * vor; dy = ay * vor;
-        L = (1 + D * 0.03) * 3 * (0.6 + Math.random() * 0.8);
+        L = (1 + D * 0.03) * 3 * (0.6 + zufall() * 0.8);
       }
       const schritte = Math.max(1, Math.round(L / 0.2));
       let sx = ende.x, sy = ende.y;
@@ -327,5 +342,5 @@
     return { pfad, lie, drin, ob, obIndex, mando, mandoIndex, typ, bremsPunkte, dauer: t, distanz: abstand(lie, wurf) };
   }
 
-  g.Physik = { mauerTreffer, kraftFaktor, kraftFuer, simuliere, streue, gauss, abstand, istOB, obZone, imPolygon, seiteVonLinie, aufBowlingbahn, DEG, einstellungen: E, STANDARD, reichweite };
+  g.Physik = { erzeugeZufall, setzeZufall, mauerTreffer, kraftFaktor, kraftFuer, simuliere, streue, gauss, abstand, istOB, obZone, imPolygon, seiteVonLinie, aufBowlingbahn, DEG, einstellungen: E, STANDARD, reichweite };
 })(typeof window !== "undefined" ? window : globalThis);

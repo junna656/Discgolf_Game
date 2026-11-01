@@ -37,7 +37,7 @@ jobs:
         run: |
           kopiere() {
             mkdir -p "$2"
-            for f in $(cd "$1" && ls -A | grep -vxE '\.git|\.github|server|CNAME|README\.md'); do cp -r "$1/$f" "$2/"; done
+            for f in $(cd "$1" && ls -A | grep -vxE '\.git|\.github|server|docs|werkzeuge|tests|gba|CNAME|README\.md'); do cp -r "$1/$f" "$2/"; done
           }
           kopiere main site
           kopiere dev site/dev

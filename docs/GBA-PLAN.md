@@ -145,7 +145,7 @@ aber nicht. Wer will, schließt sie aus oder legt sie nach `_gba/` (Jekyll ignor
 
 | # | Etappe | Ergebnis | Aufwand (grob) |
 |---|---|---|---|
-| 0 | **Vorbereitung in der Webversion:** Zufall mit Startwert, `referenzwuerfe.mjs` | Webspiel unverändert spielbar, Referenzdaten vorhanden | 1–2 Abende |
+| 0 ✅ | **Vorbereitung in der Webversion:** Zufall mit Startwert, `referenzwuerfe.mjs` | Webspiel unverändert spielbar, Referenzdaten vorhanden | 1–2 Abende |
 | 1 | **Werkzeugkette:** Butano + devkitARM in GitHub Actions, „Hallo Welt“-ROM | ROM läuft in mGBA und auf dem Pocket | 1 Abend |
 | 2 | **Daten-Generator** für Bahnen, Taschen, Stellschrauben | `gen_*.h` werden automatisch erzeugt | 1–2 Abende |
 | 3 | **Physik in C++** (Festkomma) + Golden-Tests grün | Würfe fliegen wie im Browser | 3–5 Abende |

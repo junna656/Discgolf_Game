@@ -20,12 +20,17 @@ weitere Kurse folgen.
 | `physik.js` | Flugmodell (Turn, Fade, Hyzer/Anhyzer, Wind, Streuung, Bäume, OB) |
 | `portraets.js` | 8-Bit-Porträts der Spieler |
 | `rufe/` | Ruf-Aufnahmen („Achtung, zweite Scheibe!“) |
+| `werkzeuge/referenzwuerfe.mjs` | erzeugt `tests/referenz.json`: 600 Würfe mit festem Zufall als Referenz für das Flugmodell |
+| `docs/GBA-PLAN.md` | Plan für eine Game-Boy-Advance-Version |
 
 Bahn 1, 9 und 15 sind nach Bahnschildern, Fotos und Luftbild nachgebaut, die übrigen
 Bahnen nach dem Übersichtsplan der Hyzernauts.
 
 ## Entwicklung und Releases
 
+- **Referenzwürfe:** Nach jeder gewollten Änderung an `physik.js`, `bahnen.js` oder `taschen.js`
+  `node werkzeuge/referenzwuerfe.mjs` ausführen und `tests/referenz.json` mit committen.
+  Die GitHub Action „Physik-Referenz“ prüft das (`--pruefen`).
 - Entwickelt wird auf dem Branch `dev`, live ist der Branch `main` (GitHub Pages, www.discgolf-game.de).
 - Ein Release übernimmt `dev` nach `main` und erhöht die Versionsnummer (Menü und `?v=` an den Skripten).
 - `mehrspieler.js` und `server/` bilden den Online-Multiplayer; der Server wird per GitHub Action zu Cloudflare deployt.
