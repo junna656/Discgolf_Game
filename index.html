@@ -150,7 +150,6 @@
   .feldrahmen.hoch { width: fit-content; max-width: 100%; margin: 0 auto; }
   .kamknoepfe { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 4px; opacity: .9; }
   .kamknoepfe button { background: rgba(14, 17, 22, .72); padding: 6px 4px; width: 62px; font-size: 10px !important; border-width: 2px; }
-  .kamknoepfe button:nth-child(-n+2) { font-size: 16px !important; padding: 2px 4px; }
   .kamknoepfe button.an { background: #35502f; border-color: var(--akzent); }
   canvas.zieht { cursor: grab; }
   canvas.hoch {
@@ -191,7 +190,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.3.3</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.3.4</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -239,7 +238,13 @@
 
       <h3>Wind, Bäume und OB</h3>
       <ul>
-        <li><b>Wind</b> (oben rechts): Gegenwind macht Scheiben kürzer und kurviger, Seitenwind trägt sie weg.</li>
+        <li><b>Wind</b> (oben rechts): Der Pfeil zeigt, wohin der Wind weht, die Zahl die Stärke in m/s. Jede Bahn bekommt neuen Wind (1–6 m/s), dazu kleine Böen bei jedem Wurf.
+          <ul>
+            <li><b>Gegenwind:</b> kürzer (bei 5 m/s etwa 15 %, höchstens 30 %) und instabiler – deutlich mehr Turn, am Ende auch etwas mehr Fade.</li>
+            <li><b>Rückenwind:</b> etwas weiter (höchstens 15 %) und stabiler – weniger Turn und weniger Fade, die Scheibe fliegt gerader.</li>
+            <li><b>Seitenwind:</b> versetzt die Scheibe während des ganzen Flugs zur Seite – je länger sie fliegt, desto mehr.</li>
+            <li><b>Putten:</b> Seitenwind lässt das Fadenkreuz driften; beim Push-Putt stärker als beim Spin-Putt.</li>
+          </ul></li>
         <li><b>Bäume:</b> Fliegt die Scheibe durch eine Krone, gibt es drei Möglichkeiten: Sie <b>prallt ab</b> (45 %, mit leichtem Kick), wird von den Ästen <b>abgebremst</b> und fliegt deutlich kürzer weiter (30 %), oder sie fliegt <b>durch eine Lücke</b> (25 %). In den ersten 5 m ab Abwurfpunkt zählen Bäume nicht.</li>
         <li><b>OB</b> (weiße Linie mit roten Pflöcken, Zaun, dunkleres Gras): Strafwurf, weiter geht es dort, wo die Scheibe ins Aus geflogen ist. Der Rand des Spielfelds ist immer OB.</li>
         <li><b>Bahn 1 „Bowling“:</b> Auf dem Holzdeck rutscht die Scheibe weit – und kann direkt in den Korb rutschen (STRIKE!).</li>
@@ -255,11 +260,10 @@
         <li>„Normal werfen statt putten“ schaltet auf einen normalen Wurf um, z. B. wenn ein Baum im Weg steht.</li>
       </ul>
 
-      <h3>Zoom und Umsehen</h3>
+      <h3>Kamera und Umsehen</h3>
       <ul>
-        <li>Die Kamera wählt automatisch eine von drei Stufen (Übersicht, mittel, nah). Am Abwurf immer Übersicht. Im Flug bleibt die Stufe fest.</li>
-        <li><b>+</b> / <b>−</b> am Spielfeldrand (Rechner auch Mausrad oder <kbd>+</kbd> <kbd>−</kbd>) stellen den Zoom selbst ein, <b>Auto</b> (<kbd>0</kbd>) schaltet zurück.</li>
-        <li><b>Umsehen</b> (<kbd>U</kbd>): Die Bahn durch Ziehen verschieben. Werfen ist dann aus – nochmal tippen oder „Auto“ beendet das Umsehen.</li>
+        <li>Die Kamera zoomt automatisch (Übersicht, mittel, nah): am Abwurf immer Übersicht, näher am Korb näher dran. Im Flug bleibt die Stufe fest.</li>
+        <li><b>Umsehen</b> (<kbd>U</kbd>): Die Bahn durch Ziehen verschieben. Werfen ist dann aus – nochmal tippen beendet das Umsehen.</li>
       </ul>
 
       <h3>Stärken der Spieler</h3>
@@ -369,9 +373,6 @@
     <div class="feldrahmen" id="feldrahmen">
       <canvas id="c" width="320" height="180"></canvas>
       <div class="kamknoepfe">
-        <button id="zoomrein" title="Reinzoomen (+)">+</button>
-        <button id="zoomraus" title="Rauszoomen (−)">−</button>
-        <button id="zoomauto" title="Zoom automatisch (0)">Auto</button>
         <button id="umsehen" title="Bahn durch Ziehen ansehen (U)">Umsehen</button>
       </div>
     </div>
@@ -381,7 +382,7 @@
       <b>Winkel:</b> <kbd>Q</kbd> Hyzer, <kbd>W</kbd> flach, <kbd>E</kbd> Anhyzer · <kbd>F</kbd> Rückhand/Vorhand ·
       <b>Scheibe:</b> <kbd>↑</kbd><kbd>↓</kbd> ·
       <b>Putten</b> (unter 10 m): Klick / <kbd>Leertaste</kbd>, wenn das Fadenkreuz auf den Ketten ist · <kbd>P</kbd> Putt/Wurf · <kbd>S</kbd> Putt-Stil ·
-      <b>Zoom:</b> <kbd>+</kbd><kbd>−</kbd> oder Mausrad, <kbd>0</kbd> automatisch · <kbd>U</kbd> Umsehen (ziehen)
+      <kbd>U</kbd> Umsehen (ziehen)
     </p>
   </div>
   <div class="seite">
@@ -443,10 +444,10 @@
   <button data-ansicht="bag">Menü</button>
 </nav>
 
-<script src="taschen.js?v=0.3.3"></script>
-<script src="bahnen.js?v=0.3.3"></script>
-<script src="physik.js?v=0.3.3"></script>
-<script src="portraets.js?v=0.3.3"></script>
+<script src="taschen.js?v=0.3.4"></script>
+<script src="bahnen.js?v=0.3.4"></script>
+<script src="physik.js?v=0.3.4"></script>
+<script src="portraets.js?v=0.3.4"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -882,6 +883,7 @@ function starteZug() {
 
 const ich = () => spieler[aktiv];
 const scheibe = () => ich().tasche[ich().scheibe];
+const flugzahlen = d => [d.speed, d.glide, d.turn, d.fade].join(" | ");
 const putter = s => s.tasche.find(d => d.typ === "Putter") || s.tasche[s.tasche.length - 1];
 
 // Wind: kleine Böen pro Wurf
@@ -1354,7 +1356,10 @@ function zeichnePuttAnsicht() {
 
   text("PUTT " + d.toFixed(1) + " M", bx + 4, by + 3, PAL.weiss);
   text(puttStil === "push" ? "PUSH" : "SPIN", bx + bw - 4, by + 3, "#ffe08a", "right");
-  text(putter(s).name.toUpperCase(), bx + 4, by + 12, TYPFARBE.Putter);
+  const pn = putter(s).name.toUpperCase();
+  text(pn, bx + 4, by + 12, TYPFARBE.Putter);
+  ctx.font = "8px Silkscreen";
+  text(flugzahlen(putter(s)), bx + 4 + ctx.measureText(pn).width + 6, by + 12, "#cdd6e2");
 
   if (!putt.flug) {
     const o = puttWackel(uhr - putt.t0);
@@ -1402,13 +1407,14 @@ function zeichneEnde() {
   const ganz = ganzeRunde(), letzte = rundeVorbei();
   ctx.fillStyle = "rgba(10,14,20,.88)"; ctx.fillRect(70, 26, 180, 128);
   text(letzte && ganz ? "RUNDE BEENDET" : (bahn.kurz || "BAHN " + bahn.nummer) + " GESPIELT", 160, 32, "#9be07a", "center", 8);
-  if (ganz) { text("BAHN", 176, 44, "#d0d8e2", "center"); text("GESAMT", 236, 44, "#d0d8e2", "right"); }
+  if (ganz) { text("WÜRFE", 176, 44, "#d0d8e2", "center"); text("GESAMT", 240, 44, "#d0d8e2", "right"); }
+  else text("WÜRFE", 236, 44, "#d0d8e2", "right");
   const sortiert = [...spieler].sort((a, b) => ganz ? gesamt(a).w - gesamt(b).w : a.wuerfe - b.wuerfe);
   sortiert.forEach((s, i) => {
     const y = 56 + i * 15, g = gesamt(s);
     text((i + 1) + ". " + s.name.toUpperCase(), 80, y, s.farbe);
     if (ganz) {
-      text(String(s.wuerfe), 176, y, PAL.weiss, "center");
+      text(s.wuerfe + " (" + plusMinus(s.wuerfe - bahn.par) + ")", 176, y, PAL.weiss, "center");
       text(g.w + " (" + plusMinus(g.d) + ")", 240, y, PAL.weiss, "right");
     } else text(s.wuerfe + "  (" + plusMinus(s.wuerfe - bahn.par) + ")", 236, y, PAL.weiss, "right");
   });
@@ -1574,9 +1580,14 @@ function schleife(jetzt) {
     }
     if (!puttModus) {
       const w = Math.round(winkel);
-      const unten = hochkant ? SH - 46 : SH - 28;
+      const unten = hochkant ? SH - 46 : SH - 37; // quer: drei Zeilen links neben dem Kraftbalken
       text((s.wurfart === "vorhand" ? "VORHAND · " : "RÜCKHAND · ") + (w > 0 ? "HYZER " + w + "°" : w < 0 ? "ANHYZER " + -w + "°" : "FLACH") + (staerke(s).sterne ? " " + "★".repeat(staerke(s).sterne) : ""), 4, unten, "#ffe08a");
-      text(scheibe().name.toUpperCase(), 4, unten + 9, TYPFARBE[scheibe().typ]);
+      // Scheibe mit Flugzahlen (Speed | Glide | Turn | Fade)
+      const sc = scheibe(), nm = sc.name.toUpperCase();
+      text(nm, 4, unten + 9, TYPFARBE[sc.typ]);
+      ctx.font = "8px Silkscreen";
+      if (hochkant) text(flugzahlen(sc), 4 + ctx.measureText(nm).width + 6, unten + 9, "#cdd6e2");
+      else text(flugzahlen(sc), 4, unten + 18, "#cdd6e2");
     }
     if (!puttModus || zustand === "flug") zeichneKraftbalken();
   }
@@ -1606,6 +1617,9 @@ function schleife(jetzt) {
 // ---------- Panel ----------
 const el = id => document.getElementById(id);
 function aktualisierePanel() {
+  // Umsehen am Bahnende ausblenden, damit nichts die Ergebnisse verdeckt
+  el("umsehen").hidden = zustand === "ende";
+  if (zustand === "ende" && umsehen) setzeUmsehen(false);
   el("bahninfo").innerHTML =
     `${bahn.distanzmarken ? bahn.ort || "" : kurs.name + " · " + kurs.ort}<br>${bahn.kurz ? "" : "Bahn " + bahn.nummer + " "}${bahn.name ? "„" + bahn.name + "“ " : ""}· Par ${bahn.par} · ${Math.round(abstand(bahn.abwurf, bahn.korb))} m`
     + (ganzeRunde() ? `<br>Runde: Bahn ${rundenIndex + 1} von ${runde.length}` : "");
@@ -1734,8 +1748,6 @@ document.querySelectorAll("[data-dreh]").forEach(b => {
 // Kamera-Knöpfe: Zoom manuell (+/−), automatisch, Umsehen
 function setzeZoom(z) {
   zoomManuell = z;
-  el("zoomauto").classList.toggle("an", z === null);
-  el("zoomauto").textContent = z === null ? "Auto" : String(z).replace(".", ",") + "×";
 }
 function zoomSchritt(r) {
   const akt = zoomManuell ?? (kamera ? kamera.z : 1), i = STUFEN.indexOf(akt);
@@ -1747,11 +1759,7 @@ function setzeUmsehen(an) {
   el("umsehen").classList.toggle("an", an);
   cv.classList.toggle("zieht", an);
 }
-el("zoomrein").addEventListener("click", () => zoomSchritt(1));
-el("zoomraus").addEventListener("click", () => zoomSchritt(-1));
-el("zoomauto").addEventListener("click", () => { setzeZoom(null); setzeUmsehen(false); });
 el("umsehen").addEventListener("click", () => setzeUmsehen(!umsehen));
-cv.addEventListener("wheel", e => { e.preventDefault(); zoomSchritt(e.deltaY < 0 ? 1 : -1); }, { passive: false });
 setzeZoom(null);
 
 // Zielen mit der Maus, Werfen durch Halten auf dem Spielfeld
@@ -1794,8 +1802,6 @@ window.addEventListener("keydown", e => {
   const k = e.key;
   if (!el("menue").hidden || !spieler) return;
   if (k === "m" || k === "M") { hauptmenueKlick(); return; }
-  if (k === "+" || k === "=") { zoomSchritt(1); return; }
-  if (k === "-") { zoomSchritt(-1); return; }
   if (k === "0") { setzeZoom(null); setzeUmsehen(false); return; }
   if (k === "u" || k === "U") { setzeUmsehen(!umsehen); return; }
   if (gesperrt() && k !== "r" && k !== "R") return;
@@ -2211,6 +2217,6 @@ requestAnimationFrame(schleife);
 // Als App installierbar / offline startbar
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => { /* egal */ });
 </script>
-<script src="mehrspieler.js?v=0.3.3"></script>
+<script src="mehrspieler.js?v=0.3.4"></script>
 </body>
 </html>
