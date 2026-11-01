@@ -17,7 +17,9 @@ DMGAUDIO    	:=  dmg_audio
 DMGAUDIOBACKEND	:=  default
 ROMTITLE    	:=  BOOGIEGARANT
 ROMCODE     	:=  2BGD
-USERFLAGS   	:=
+# Kennung des Builds (git-Commit) für die Titelzeile; BG_EXTRA z. B. -DBG_BENCHMARK
+BG_BUILD    	?=  $(shell git rev-parse --short HEAD 2>/dev/null || echo lokal)
+USERFLAGS   	:=  -DBG_BUILD=\"$(BG_BUILD)\" $(BG_EXTRA)
 USERCXXFLAGS	:=
 USERASFLAGS 	:=
 USERLDFLAGS 	:=

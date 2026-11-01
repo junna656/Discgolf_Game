@@ -30,10 +30,16 @@
 
 #include "bn_timer.h"
 #include "bn_timers.h"
+#include "bn_log.h"
 
 #include "physik.h"
 #include "mathe.h"
 #include "gen_version.h"
+
+// Kennung des Builds (git-Commit), vom Makefile gesetzt
+#ifndef BG_BUILD
+    #define BG_BUILD "lokal"
+#endif
 #include "gen_bahnen.h"
 #include "gen_taschen.h"
 #include "gen_zufall_test.h"
@@ -121,7 +127,7 @@ void szene_wurf(int starts, bool zufall_gleich)
 
     bn::vector<bn::sprite_ptr, 40> feste_texte;
     gross.generate(0, -68, "BOOGIE GARANTEN", feste_texte);
-    klein.generate(0, -52, "Retro-Edition  v" BG_VERSION, feste_texte);
+    klein.generate(0, -52, "Retro-Edition  v" BG_VERSION "  (" BG_BUILD ")", feste_texte);
 
     {
         bn::string<48> zeile;
@@ -240,6 +246,66 @@ void szene_wurf(int starts, bool zufall_gleich)
     }
 }
 
+// Ein Testwurf mit dem Flugmodell: Lieblingsscheibe (sonst Standardscheibe) vom Abwurf Richtung Korb,
+// Kraft passend zur Länge, flach, ohne Wind. Gibt die Rechenzeit in ms zurück.
+BN_DATA_EWRAM_BSS physik::ergebnis testergebnis;   // groß – nicht auf den Stack und nicht in den IWRAM
+
+int testwurf(int bahn_nr, int spieler_nr, uint32_t startwert, const daten::scheibe*& scheibe_aus)
+{
+    static zufall z(1);
+    z = zufall(startwert);
+    physik::setze_zufall(z);
+
+    const daten::bahn& b = gen::bahnen[bahn_nr];
+    const daten::spieler& sp = gen::alle_spieler[spieler_nr];
+    int si = sp.lieblingsscheibe_index;
+    if(si < 0)
+    {
+        si = 0;
+        for(int k = 0; k < sp.tasche_anzahl; ++k) { if(sp.tasche[k].standard) { si = k; } }
+    }
+    const daten::scheibe& scheibe = sp.tasche[si];
+    scheibe_aus = &scheibe;
+    const physik::punkt ab = physik::zu_punkt(b.abwurf), ko = physik::zu_punkt(b.korb);
+    const daten::staerke& st = sp.vorhand ? sp.vorhand_staerke : sp.rueckhand;
+
+    physik::wurf w;
+    w.x = ab.x;
+    w.y = ab.y;
+    w.richtung = mathe::atan2(ko.y - ab.y, ko.x - ab.x);
+    w.kraft = physik::kraft_fuer(scheibe, mathe::hypot(ko.x - ab.x, ko.y - ab.y));
+    w.winkel = 0;
+    w.scheibe = &scheibe;
+    w.links = sp.linkshaender;
+    w.vorhand = sp.vorhand;
+    w.streu_faktor = st.gesetzt ? physik::zahl(st.streuung) : 1;
+    w.weite_faktor = st.gesetzt ? physik::zahl(st.weite) : 1;
+
+    bn::timer uhr;
+    physik::wurf g = physik::streue(w);
+    physik::simuliere(b, g, { 0, 0 }, testergebnis);
+    return int(int64_t(uhr.elapsed_ticks()) * 1000 / bn::timers::ticks_per_second());
+}
+
+#ifdef BG_BENCHMARK
+// Messung für GitHub Actions: rechnet einige Würfe und schreibt die Zeiten ins mGBA-Log
+void benchmark()
+{
+    const int bahnen[] = { 0, 8, gen::freies_feld };
+    for(int b : bahnen)
+    {
+        for(int k = 0; k < 3; ++k)
+        {
+            const daten::scheibe* s = nullptr;
+            int ms = testwurf(b, 0, uint32_t(1000 + k), s);
+            BN_LOG("BENCH Bahn-Index ", b, " Wurf ", k, ": ", ms, " ms, Pfad ", testergebnis.pfad_laenge,
+                   ", Typ ", int(testergebnis.art), ", ", int(testergebnis.distanz), " m");
+        }
+    }
+    BN_LOG("BENCH ENDE");
+}
+#endif
+
 // Szene 2: Bahnen und Spieler aus den erzeugten Daten (bahnen.js, taschen.js) ansehen.
 // Links/Rechts: Bahn, L/R: Spieler, SELECT: zurück
 void szene_daten()
@@ -354,39 +420,10 @@ void szene_daten()
         // A: echten Wurf mit dem Flugmodell (physik.cpp) vom Abwurf Richtung Korb
         if(bn::keypad::a_pressed())
         {
-            BN_DATA_EWRAM_BSS static physik::ergebnis erg;   // groß – nicht auf den Stack und nicht in den IWRAM
-            static zufall z(1);
-            z = zufall(bilder * 2654435761u + uint32_t(bahn_nr) * 40503u);
-            physik::setze_zufall(z);
-
-            const daten::bahn& b = gen::bahnen[bahn_nr];
-            const daten::spieler& sp = gen::alle_spieler[spieler_nr];
-            int si = sp.lieblingsscheibe_index;
-            if(si < 0)
-            {
-                si = 0;
-                for(int k = 0; k < sp.tasche_anzahl; ++k) { if(sp.tasche[k].standard) { si = k; } }
-            }
-            const daten::scheibe& scheibe = sp.tasche[si];
-            const physik::punkt ab = physik::zu_punkt(b.abwurf), ko = physik::zu_punkt(b.korb);
-            const daten::staerke& st = sp.vorhand ? sp.vorhand_staerke : sp.rueckhand;
-
-            physik::wurf w;
-            w.x = ab.x;
-            w.y = ab.y;
-            w.richtung = mathe::atan2(ko.y - ab.y, ko.x - ab.x);
-            w.kraft = physik::kraft_fuer(scheibe, mathe::hypot(ko.x - ab.x, ko.y - ab.y));
-            w.winkel = 0;
-            w.scheibe = &scheibe;
-            w.links = sp.linkshaender;
-            w.vorhand = sp.vorhand;
-            w.streu_faktor = st.gesetzt ? physik::zahl(st.streuung) : 1;
-            w.weite_faktor = st.gesetzt ? physik::zahl(st.weite) : 1;
-
-            bn::timer uhr;
-            physik::wurf g = physik::streue(w);
-            physik::simuliere(b, g, { 0, 0 }, erg);
-            const int ms = int(int64_t(uhr.elapsed_ticks()) * 1000 / bn::timers::ticks_per_second());
+            physik::ergebnis& erg = testergebnis;
+            const daten::scheibe* scheibe_p = nullptr;
+            const int ms = testwurf(bahn_nr, spieler_nr, bilder * 2654435761u + uint32_t(bahn_nr) * 40503u, scheibe_p);
+            const daten::scheibe& scheibe = *scheibe_p;
 
             // Flugbahn als Punkte auf die Minikarte
             flug.clear();
@@ -427,6 +464,10 @@ void szene_daten()
 int main()
 {
     bn::core::init();
+
+#ifdef BG_BENCHMARK
+    benchmark();
+#endif
 
     const int starts = zaehle_start();
     const bool zufall_gleich = zufall_ok();
