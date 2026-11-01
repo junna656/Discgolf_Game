@@ -1,0 +1,30 @@
+# Deployt den Multiplayer-Server (server/) zu Cloudflare Workers.
+# Benötigt die Repository-Secrets CLOUDFLARE_API_TOKEN und CLOUDFLARE_ACCOUNT_ID.
+name: Multiplayer-Server deployen
+
+on:
+  push:
+    branches: [main, dev]
+    paths: ["server/**", ".github/workflows/server.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: server-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy zu Cloudflare
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: server
+      - name: Adresse anzeigen
+        run: echo "Server-Adresse: ${{ steps.deploy.outputs.deployment-url }}" >> "$GITHUB_STEP_SUMMARY"
