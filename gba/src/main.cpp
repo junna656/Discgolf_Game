@@ -214,8 +214,9 @@ int main()
             }
             else if(jetzt == zustand::liegt)
             {
-                bn::fixed rest = bn::abs(korb_x - scheibe.x());
-                gross.generate(0, -36, rest < 10 ? "Treffer!" : "A oder B: nochmal", anzeige);
+                // Treffer nur, wenn die Scheibe waagerecht UND senkrecht beim Korb liegt
+                bool treffer = bn::abs(korb_x - scheibe.x()) < 10 && bn::abs(boden_y - scheibe.y()) < 8;
+                gross.generate(0, -36, treffer ? "Treffer!" : "A oder B: nochmal", anzeige);
             }
         }
 
