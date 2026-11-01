@@ -282,7 +282,7 @@ ${BAHNEN.map((b, i) => `        &bn::palette_bitmap_items::bahn_${nn(i)},`).join
 
     // Putt-Nahansicht aus der Webversion (zeichnePuttHintergrund), 156 × 152;
     // die Ketten-Mitte (KETTEN in index.html) liegt im Bild bei putt_ketten_x/y
-    constexpr const bn::palette_bitmap_item& putt_ansicht = bn::palette_bitmap_items::putt_ansicht;
+    inline constexpr const bn::palette_bitmap_item& putt_ansicht = bn::palette_bitmap_items::putt_ansicht;
     constexpr int putt_breite = 156, putt_hoehe = 152, putt_ketten_x = 160 - 82, putt_ketten_y = 75 - 11;
 
     // ganze Bahn auf Bildschirmbreite (240 × 135) für die Bahnauswahl
