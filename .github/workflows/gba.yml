@@ -34,7 +34,7 @@ jobs:
           ./daten_test
       - name: Physik C++ = physik.js (600 Referenzwürfe)
         run: |
-          g++ -std=c++17 -O2 -Wall -Wextra -Werror -I gba/include -I tests/gba tests/gba/physik_test.cpp gba/src/physik.cpp -o physik_test
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -I gba/include -I tests/gba tests/gba/physik_test.cpp gba/src/physik.bn_iwram.cpp -o physik_test
           ./physik_test
 
   rom:

@@ -1,6 +1,6 @@
-// Nativer Test (g++ auf dem PC): rechnet die C++-Physik (gba/src/physik.cpp) dieselben Würfe
+// Nativer Test (g++ auf dem PC): rechnet die C++-Physik (gba/src/physik.bn_iwram.cpp) dieselben Würfe
 // wie physik.js? Grundlage sind die 600 Referenzwürfe aus werkzeuge/referenzwuerfe.mjs.
-//   g++ -std=c++17 -O2 -I gba/include -I tests/gba tests/gba/physik_test.cpp gba/src/physik.cpp -o /tmp/physik_test && /tmp/physik_test
+//   g++ -std=c++17 -O2 -I gba/include -I tests/gba tests/gba/physik_test.cpp gba/src/physik.bn_iwram.cpp -o /tmp/physik_test && /tmp/physik_test
 //
 // Erlaubt sind nur winzige Abweichungen: die Bahndaten liegen in C++ als Festkomma vor
 // (auf 1/4096 m gerundet), und die Mathefunktionen weichen in der letzten Stelle ab.

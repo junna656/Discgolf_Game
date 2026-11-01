@@ -1,4 +1,5 @@
 // Flugmodell – Zeile für Zeile aus physik.js übersetzt (Kommentare und Reihenfolge wie dort).
+// Dateiname .bn_iwram.cpp: Butano übersetzt die Datei als ARM-Code in den schnellen IWRAM.
 // Wichtig: Die Reihenfolge der Zufallsaufrufe muss genau wie in physik.js bleiben,
 // sonst weichen die Würfe von den Referenzwürfen ab.
 
@@ -377,7 +378,8 @@ namespace physik
             th += seite * (turnK * wT - fadeK * wF + winkK * (1 - 0.5 * u)) / N;
             // höchstens 80° von der Abwurfrichtung weg: die Scheibe fliegt nie rückwärts
             th = w.richtung + clamp(th - w.richtung, -80 * DEG, 80 * DEG);
-            const double sin_th = mathe::sin(th), cos_th = mathe::cos(th);
+            double sin_th, cos_th;
+            mathe::sincos(th, sin_th, cos_th);
             const double qx = -sin_th, qy = cos_th;
             const double quer = wi.x * qx + wi.y * qy;
             // Fade-Haken quer zur Abwurfrichtung (nie nach hinten); wF wächst, je langsamer die Scheibe wird

@@ -9,7 +9,7 @@
 // Der Wurf hier ist nur eine einfache Animation – das echte Flugmodell kommt in Etappe 3.
 //
 // Etappe 2: SELECT zeigt alle Bahnen (Minikarte) und Spieler aus den erzeugten Daten.
-// Etappe 3: dort wirft A einen echten Wurf mit dem Flugmodell (physik.cpp) und misst die Rechenzeit.
+// Etappe 3: dort wirft A einen echten Wurf mit dem Flugmodell (physik.bn_iwram.cpp) und misst die Rechenzeit.
 
 #include "bn_core.h"
 #include "bn_keypad.h"
@@ -417,7 +417,7 @@ void szene_daten()
             }
         }
 
-        // A: echten Wurf mit dem Flugmodell (physik.cpp) vom Abwurf Richtung Korb
+        // A: echten Wurf mit dem Flugmodell (physik.bn_iwram.cpp) vom Abwurf Richtung Korb
         if(bn::keypad::a_pressed())
         {
             physik::ergebnis& erg = testergebnis;

@@ -98,6 +98,21 @@ namespace mathe
         }
     }
 
+    // sin und cos zusammen: nur eine Reduktion (gleiche Ergebnisse wie sin(x) und cos(x) einzeln)
+    inline void sincos(double x, double& s, double& c)
+    {
+        int k;
+        double r = detail::reduziere(x, k);
+        double sk = detail::sin_kern(r), ck = detail::cos_kern(r);
+        switch(k)
+        {
+        case 0: s = sk; c = ck; break;
+        case 1: s = ck; c = -sk; break;
+        case 2: s = -sk; c = -ck; break;
+        default: s = -ck; c = sk; break;
+        }
+    }
+
     // Arkustangens für x >= 0
     inline double atan_positiv(double x)
     {
