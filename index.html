@@ -199,6 +199,7 @@
       <button class="gross" id="zu-online">Online spielen<small>Bis zu vier Handys live in einer Runde</small></button>
       <button class="gross" id="zu-doku" style="font-size:12px;padding:10px 16px;margin-top:8px">Anleitung<small>Steuerung, Regeln und Tipps</small></button>
       <button class="gross" id="zu-bags" style="font-size:12px;padding:10px 16px">Spieler & Bags<small>Spielerkarten ansehen, Scheiben im Bag bearbeiten</small></button>
+      <p class="klein" style="text-align:center;margin:10px 0 0"><a href="#" id="melde-fehler" style="color:var(--leise)">Fehler melden</a> · <a href="#" id="melde-wunsch" style="color:var(--leise)">Idee vorschlagen</a></p>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="impressum.html" style="color:var(--leise)">Impressum</a> · <a href="datenschutz.html" style="color:var(--leise)">Datenschutz</a></p>
     </div>
     <div id="menue-doku" class="doku" hidden>
@@ -273,6 +274,11 @@
 
       <h3>Thomas</h3>
       <p>Wenn ein Wurf schiefgeht (Baum, OB, stark verzogen) oder ein Putt danebengeht, ruft Thomas: „Achtung, zweite Scheibe!“</p>
+
+      <h3>Fehler und Ideen</h3>
+      <ul>
+        <li>Unten im Hauptmenü: <b>Fehler melden</b> oder <b>Idee vorschlagen</b>. Es öffnet sich ein Formular auf GitHub (Version und Gerät sind schon eingetragen). Dafür braucht man ein kostenloses GitHub-Konto – ohne Konto einfach eine E-Mail an <a href="mailto:junna@gmx.net">junna@gmx.net</a>.</li>
+      </ul>
 
       <h3>Als App installieren</h3>
       <ul>
@@ -2173,6 +2179,14 @@ el("personen").addEventListener("click", e => {
 });
 el("zurueck").addEventListener("click", () => { el(gewaehlterModus === "single" ? "menue-kurs" : "menue-start").hidden = false; el("menue-wahl").hidden = true; });
 el("zummenue").addEventListener("click", hauptmenueKlick);
+// Rückmeldung: GitHub-Formular mit Version und Gerät vorausgefüllt
+function meldeLink(vorlage) {
+  const version = (document.querySelector(".untertitel span") || {}).textContent || "";
+  const q = new URLSearchParams({ template: vorlage, version: version.replace(/^Version\s*/i, ""), geraet: navigator.userAgent.slice(0, 200) });
+  return "https://github.com/junna656/Discgolf_Game/issues/new?" + q;
+}
+el("melde-fehler").addEventListener("click", e => { e.preventDefault(); window.open(meldeLink("fehler.yml"), "_blank", "noopener"); });
+el("melde-wunsch").addEventListener("click", e => { e.preventDefault(); window.open(meldeLink("wunsch.yml"), "_blank", "noopener"); });
 
 // kleiner Pixel-Korb als Logo
 (function () {
