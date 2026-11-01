@@ -151,6 +151,22 @@ namespace
             _aktiv = 0;
             naechster();
 
+            // Einblendung zu Beginn: Bahn, Par, Länge (und wer anfängt)
+            {
+                bn::string<64> t;
+                bn::ostringstream z(t);
+                if(_b.kurz[0]) { z.append(_b.kurz); }
+                else { z.append("Bahn "); z.append(int(_b.nummer)); }
+                if(_b.name[0] && ! _b.kurz[0]) { z.append(" \""); z.append(_b.name); z.append("\""); }
+                z.append(" - Par ");
+                z.append(int(_b.par));
+                z.append(" - ");
+                z.append(int(abstand(physik::zu_punkt(_b.abwurf), korb()) + 0.5));
+                z.append(" m");
+                if(_anzahl > 1) { z.append(" - "); z.append(sp().name); z.append(" beginnt"); }
+                melde(t, 150);
+            }
+
             // Kamera sofort an die richtige Stelle
             kamera_ziel(_kam_x, _kam_y);
             _kam_x &= ~1;
@@ -403,6 +419,21 @@ namespace
             }
         }
 
+        // Ganze Bahn auf dem Bildschirm (Übersichtsbild) an/aus – Palette und Bild wechseln mit
+        void setze_uebersicht(bool an)
+        {
+            if(an == _uebersicht) { return; }
+            _uebersicht = an;
+            if(! _zeigt_putt) { _bg.set_palette(an ? gen::uebersichten[_bahn_nr]->palette_item() : _item.palette_item()); }
+            _blit = 2;
+        }
+
+        // Wie im Browser (passendeStufe): am Abwurf immer die ganze Bahn zeigen
+        bool ganze_bahn_am_abwurf() const
+        {
+            return ! _putt_modus && st().wuerfe == 0 && (_zustand == zustand::zielen || _zustand == zustand::laden);
+        }
+
         void naechster_zug()
         {
             _ziel_richtung = zum_korb();
@@ -414,6 +445,7 @@ namespace
             _zustand = _putt_modus ? zustand::putt : zustand::zielen;
             _putt_start = _uhr_bilder;
             _putt_ergebnis = nullptr;
+            setze_uebersicht(ganze_bahn_am_abwurf());
         }
 
         // Passt die gewählte Scheibe nicht zur Entfernung (viel zu weit oder zu kurz), automatisch eine
@@ -501,7 +533,18 @@ namespace
                 if(bn::keypad::l_pressed()) { _winkel = bn::max(_winkel - 5, -30); }
                 if(bn::keypad::r_pressed()) { _winkel = bn::min(_winkel + 5, 30); }
                 if(bn::keypad::b_pressed()) { st().vorhand = ! st().vorhand; }
-                if(bn::keypad::select_pressed()) { _umsehen = true; _frei_x = _kam_x; _frei_y = _kam_y; _halten_umsehen = 0; }
+                if(bn::keypad::select_pressed())
+                {
+                    _halten_umsehen = 0;
+                    if(_uebersicht)
+                    {
+                        // aus der ganzen Bahn: Nahansicht am Spieler beginnen
+                        setze_uebersicht(false);
+                        kamera_ziel(_frei_x, _frei_y);   // vor _umsehen = true, sonst liefert es _frei_x/_frei_y
+                    }
+                    else { _frei_x = _kam_x; _frei_y = _kam_y; }
+                    _umsehen = true;
+                }
                 if(bn::keypad::a_pressed()) { _zustand = zustand::laden; _lade_start = _uhr_bilder; _kraft = 0; }
                 break;
             }
@@ -536,15 +579,13 @@ namespace
             if(bn::keypad::b_pressed() || bn::keypad::select_pressed())
             {
                 _umsehen = false;
-                if(_uebersicht) { _uebersicht = false; _bg.set_palette(_item.palette_item()); }
+                setze_uebersicht(ganze_bahn_am_abwurf());
                 _blit = 2;
                 return;
             }
             if(bn::keypad::a_pressed())
             {
-                _uebersicht = ! _uebersicht;
-                _bg.set_palette(_uebersicht ? gen::uebersichten[_bahn_nr]->palette_item() : _item.palette_item());
-                _blit = 2;
+                setze_uebersicht(! _uebersicht);
                 return;
             }
             if(_uebersicht) { return; }
