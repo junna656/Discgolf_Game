@@ -4,3 +4,5 @@ build/
 *.elf
 *.sav
 *.sa1
+graphics/bahn_*.bmp
+graphics/bahn_*.json

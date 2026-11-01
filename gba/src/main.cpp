@@ -9,6 +9,7 @@
 // Der Wurf hier ist nur eine einfache Animation – das echte Flugmodell kommt in Etappe 3.
 //
 // Etappe 2: SELECT zeigt alle Bahnen (Minikarte) und Spieler aus den erzeugten Daten.
+// Etappe 4: dort startet START das Spiel auf der gewählten Bahn (gba/src/spiel.cpp).
 // Etappe 3: dort wirft A einen echten Wurf mit dem Flugmodell (physik.bn_iwram.cpp) und misst die Rechenzeit.
 
 #include "bn_core.h"
@@ -34,6 +35,7 @@
 
 #include "physik.h"
 #include "mathe.h"
+#include "spiel.h"
 #include "gen_version.h"
 
 // Kennung des Builds (git-Commit), vom Makefile gesetzt
@@ -223,7 +225,7 @@ void szene_wurf(int starts, bool zufall_gleich)
             if(jetzt == zustand::zielen)
             {
                 klein.generate(0, -36, "Hoch/Runter: zielen   A halten: werfen", hinweis);
-                klein.generate(0, 56, "SELECT: Bahnen ansehen", hinweis);
+                klein.generate(0, 56, "SELECT: Bahnen  -  dort START: spielen", hinweis);
             }
             else if(jetzt == zustand::laden)
             {
@@ -372,6 +374,19 @@ void szene_daten()
         if(bn::keypad::right_pressed()) { bahn_nr = (bahn_nr + 1) % gen::bahnen_anzahl; neu = true; }
         if(bn::keypad::l_pressed()) { spieler_nr = (spieler_nr + gen::spieler_anzahl - 1) % gen::spieler_anzahl; neu = true; }
         if(bn::keypad::r_pressed()) { spieler_nr = (spieler_nr + 1) % gen::spieler_anzahl; neu = true; }
+
+        // START: diese Bahn mit diesem Spieler spielen (Etappe 4)
+        if(bn::keypad::start_pressed())
+        {
+            texte.clear();
+            kennzahl.clear();
+            karte.clear();
+            flug.clear();
+            szene_spiel(bahn_nr, spieler_nr, bilder);
+            bn::bg_palettes::set_transparent_color(bn::color(5, 12, 5));
+            bn::core::update();
+            neu = true;
+        }
 
         if(neu)
         {

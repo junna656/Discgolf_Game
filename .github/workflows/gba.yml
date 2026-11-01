@@ -5,9 +5,9 @@ name: GBA-ROM
 on:
   push:
     branches: [main, dev]
-    paths: ["gba/**", "tests/**", "werkzeuge/**", "physik.js", "bahnen.js", "taschen.js", "index.html", ".github/workflows/gba.yml"]
+    paths: ["gba/**", "tests/**", "werkzeuge/**", "portraets.js", "physik.js", "bahnen.js", "taschen.js", "index.html", ".github/workflows/gba.yml"]
   pull_request:
-    paths: ["gba/**", "tests/**", "werkzeuge/**", "physik.js", "bahnen.js", "taschen.js", "index.html", ".github/workflows/gba.yml"]
+    paths: ["gba/**", "tests/**", "werkzeuge/**", "portraets.js", "physik.js", "bahnen.js", "taschen.js", "index.html", ".github/workflows/gba.yml"]
   workflow_dispatch:
 
 permissions:
@@ -37,9 +37,31 @@ jobs:
           g++ -std=c++17 -O2 -Wall -Wextra -Werror -I gba/include -I tests/gba tests/gba/physik_test.cpp gba/src/physik.bn_iwram.cpp -o physik_test
           ./physik_test
 
+  grafik:
+    name: Bahnbilder aus der Webversion rendern
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Playwright und Pillow
+        run: |
+          npm install --no-save --no-package-lock playwright@1
+          npx playwright install --with-deps chromium
+          python3 -m pip install --quiet pillow
+      - name: Rendern (werkzeuge/rendere_gba.mjs)
+        run: node werkzeuge/rendere_gba.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bahnbilder
+          path: |
+            gba/graphics/bahn_*.bmp
+            gba/graphics/bahn_*.json
+
   rom:
     name: ROM bauen
-    needs: pruefen
+    needs: [pruefen, grafik]
     runs-on: ubuntu-latest
     container: devkitpro/devkitarm:latest
     steps:
@@ -48,6 +70,10 @@ jobs:
           apt-get update -qq
           apt-get install -y -qq python3 git > /dev/null
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: bahnbilder
+          path: gba/graphics
       - name: Butano laden
         run: gba/hole_butano.sh
       - name: Bauen

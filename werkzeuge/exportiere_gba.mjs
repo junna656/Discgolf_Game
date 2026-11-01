@@ -259,6 +259,32 @@ ${zeilen.join("\n")}
 }
 
 // ============================================================
+//  Bahnbilder  →  gen_bahn_bilder.h  (die Bilder selbst: werkzeuge/rendere_gba.mjs)
+// ============================================================
+{
+  const nn = i => String(i).padStart(2, "0");
+  dateien["gen_bahn_bilder.h"] = `${KOPF}// Bahnbilder aus der Webversion (gba/graphics/bahn_NN.bmp, erzeugt von werkzeuge/rendere_gba.mjs)
+// Nur für den GBA-Build (braucht Butano).
+#ifndef GEN_BAHN_BILDER_H
+#define GEN_BAHN_BILDER_H
+
+${BAHNEN.map((b, i) => `#include "bn_palette_bitmap_items_bahn_${nn(i)}.h"`).join("\n")}
+
+namespace gen
+{
+    constexpr int bahn_bild_breite = 512, bahn_bild_hoehe = 288;
+
+    // in derselben Reihenfolge wie bahnen[]
+    constexpr const bn::palette_bitmap_item* bahn_bilder[] = {
+${BAHNEN.map((b, i) => `        &bn::palette_bitmap_items::bahn_${nn(i)},`).join("\n")}
+    };
+}
+
+#endif
+`;
+}
+
+// ============================================================
 //  Prüfwerte für tests/gba/daten_test.cpp (aus den JS-Daten berechnet)
 // ============================================================
 {

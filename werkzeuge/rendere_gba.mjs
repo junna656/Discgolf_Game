@@ -1,0 +1,51 @@
+// Zeichnet alle Bahnen mit dem Code der Webversion (zeichneHintergrund in index.html)
+// und legt sie als Bilder für die GBA-Version ab: gba/graphics/bahn_NN.bmp (512 × 288, 8 Bit).
+//
+//   node werkzeuge/rendere_gba.mjs
+//
+// Braucht Playwright (Chromium) und Python mit Pillow (für die Farbreduktion).
+// Die Bilder werden nicht eingecheckt – GitHub Actions erzeugt sie vor jedem ROM-Build neu,
+// damit die GBA-Bahnen immer genau wie im Browser aussehen.
+
+import { mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { createRequire } from "node:module";
+import { execFileSync } from "node:child_process";
+
+const require = createRequire(import.meta.url);
+const { chromium } = require("playwright");
+
+const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
+const TMP = join(WURZEL, "werkzeuge", ".bahnbilder");
+const ZIEL = join(WURZEL, "gba", "graphics");
+const BREITE = 512;   // Pixel; die Höhe ergibt sich aus 16:9 (288)
+
+rmSync(TMP, { recursive: true, force: true });
+mkdirSync(TMP, { recursive: true });
+
+const browser = await chromium.launch();
+const seite = await browser.newPage();
+const fehler = [];
+seite.on("pageerror", e => fehler.push(e.message));
+await seite.goto(pathToFileURL(join(WURZEL, "index.html")).href);
+await seite.waitForFunction(() => typeof bahnBild === "function" && typeof BAHNEN !== "undefined");
+
+const anzahl = await seite.evaluate(() => BAHNEN.length);
+for (let i = 0; i < anzahl; i++) {
+  const url = await seite.evaluate(([i, breite]) => {
+    setzeBahn(BAHNEN[i]);
+    return bahnBild(breite / W).toDataURL("image/png");
+  }, [i, BREITE]);
+  writeFileSync(join(TMP, `bahn_${String(i).padStart(2, "0")}.png`), Buffer.from(url.split(",")[1], "base64"));
+}
+await browser.close();
+if (fehler.length) {
+  console.error("Fehler auf der Seite:\n" + fehler.join("\n"));
+  process.exit(1);
+}
+
+// Farben reduzieren (GBA: 15 Bit, 255 Farben + Index 0 frei) und als BMP für Butano speichern
+execFileSync("python3", [join(WURZEL, "werkzeuge", "bmp_fuer_gba.py"), TMP, ZIEL], { stdio: "inherit" });
+rmSync(TMP, { recursive: true, force: true });
+console.log(`${anzahl} Bahnbilder nach gba/graphics geschrieben.`);
