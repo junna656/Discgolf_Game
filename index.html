@@ -145,6 +145,11 @@
   .tabs .dreh { flex: 0.7; font-size: 20px; padding: 8px 2px; user-select: none; -webkit-user-select: none; touch-action: none; }
   .tabs #werfen2 { flex: 1.6; background: #35502f; border-color: var(--akzent); user-select: none; -webkit-user-select: none; touch-action: none; }
   .tabs #werfen2:disabled { opacity: .4; }
+  /* Spielfeld: Richtung, Werfen, Menü – im Menü nur „Zurück zum Spiel“; beim Putten keine Richtungspfeile */
+  body[data-ansicht="feld"] .tabs .zum-spiel,
+  body[data-ansicht="bag"] .tabs .dreh, body[data-ansicht="bag"] .tabs #werfen2, body[data-ansicht="bag"] .tabs .zum-menue,
+  body.putt .tabs .dreh { display: none; }
+  .tabs .zum-spiel { background: #35502f; border-color: var(--akzent); }
   /* Hochkant: Bahn steht senkrecht, Abwurf unten */
   .feldrahmen { position: relative; }
   .feldrahmen.hoch { width: fit-content; max-width: 100%; margin: 0 auto; }
@@ -437,11 +442,11 @@
   </div>
 </div>
 <nav class="tabs">
-  <button data-ansicht="feld">Spiel</button>
   <button class="dreh" data-dreh="-1" title="Richtung nach links">&lt;</button>
   <button id="werfen2">Werfen</button>
   <button class="dreh" data-dreh="1" title="Richtung nach rechts">&gt;</button>
-  <button data-ansicht="bag">Menü</button>
+  <button data-ansicht="bag" class="zum-menue">Menü</button>
+  <button data-ansicht="feld" class="zum-spiel">← Zurück zum Spiel</button>
 </nav>
 
 <script src="taschen.js?v=0.3.4"></script>
@@ -1678,6 +1683,7 @@ function aktualisierePanel() {
   el("modus").textContent = puttModus ? "Normal werfen statt putten" : "Zurück zum Putten";
   el("werfen").textContent = puttModus ? "Putten (klick)" : "Werfen (halten)";
   el("werfen2").textContent = puttModus ? "Putten" : "Werfen";
+  document.body.classList.toggle("putt", !!puttModus);
   el("werfen").disabled = el("werfen2").disabled = gesperrt() || !(zustand === "zielen" || zustand === "laden" || zustand === "putt");
   if (kiAmZug()) el("werfen").textContent = el("werfen2").textContent = "CPU …";
   else if (fernAmZug()) el("werfen").textContent = el("werfen2").textContent = ich().name + " …";
