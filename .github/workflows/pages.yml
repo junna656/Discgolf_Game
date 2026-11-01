@@ -1,0 +1,58 @@
+# Veröffentlicht die Seite auf GitHub Pages:
+#   main -> https://www.discgolf-game.de/        (live)
+#   dev  -> https://www.discgolf-game.de/dev/    (Vorschau zum Testen vor dem Release)
+# Voraussetzung: Settings -> Pages -> Source "GitHub Actions" und unter
+# Settings -> Environments -> github-pages ist auch der Branch "dev" erlaubt.
+name: Pages (live + Vorschau)
+
+on:
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: main auschecken
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+      - name: dev auschecken
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          path: dev
+      - name: Seite zusammenstellen
+        run: |
+          kopiere() {
+            mkdir -p "$2"
+            for f in $(cd "$1" && ls -A | grep -vxE '\.git|\.github|server|CNAME|README\.md'); do cp -r "$1/$f" "$2/"; done
+          }
+          kopiere main site
+          kopiere dev site/dev
+          # Vorschau nicht in Suchmaschinen
+          sed -i 's#<head>#<head>\n<meta name="robots" content="noindex, nofollow">#' site/dev/*.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
