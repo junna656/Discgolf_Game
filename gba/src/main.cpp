@@ -527,6 +527,7 @@ void szene_daten()
 int main()
 {
     bn::core::init();
+    physik::vorbereiten();   // Tabellen des Flugmodells füllen (~0,3 s, sonst beim ersten Wurf)
 
 #ifdef BG_BENCHMARK
     benchmark();

@@ -246,10 +246,17 @@ namespace physik
             if(e.pfad_laenge < pfad_max) { e.pfad[e.pfad_laenge++] = { x, y, z, t }; }
             if(aktueller_rueckruf) { aktueller_rueckruf(e, rueckruf_daten); }
         }
+
+        // Rückmeldung ohne neuen Pfadpunkt (bei längeren Schleifen nach dem Flug)
+        void zwischendurch(const ergebnis& e)
+        {
+            if(aktueller_rueckruf) { aktueller_rueckruf(e, rueckruf_daten); }
+        }
     }
 
     einstellungen& E() { return werte; }
     void setze_zufall(zufall& z) { aktueller_zufall = &z; }
+    void vorbereiten() { fuelle_tabelle(); }
     void setze_rueckruf(rueckruf r, void* daten) { aktueller_rueckruf = r; rueckruf_daten = daten; }
     double grad() { return mathe::pi / 180; }
     double zahl(daten::fk f) { return f.roh / 4096.0; }
@@ -567,6 +574,7 @@ namespace physik
             // dort weiterspielen, wo die Scheibe zuletzt im Spiel war
             for(int k = e.pfad_laenge - 1; k >= 0; k--)
             {
+                zwischendurch(e);
                 if(! ist_ob({ e.pfad[k].x, e.pfad[k].y }, bahn)) { lie = { e.pfad[k].x, e.pfad[k].y }; ob_index = k + 1; break; }
             }
             // OB zählt erst, wenn die Scheibe im Aus aufkommt: Anzeige beim ersten Bodenkontakt danach

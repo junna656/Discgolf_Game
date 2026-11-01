@@ -21,6 +21,7 @@ namespace physik
 
     einstellungen& E();                     // aktuelle Werte, anfangs wie STANDARD
     void setze_zufall(zufall& z);           // statt Math.random (muss vor dem ersten Wurf gesetzt sein)
+    void vorbereiten();                     // Tabellen füllen (einmal beim Start, sonst beim ersten Wurf)
 
     double grad();                          // DEG = PI / 180
     double gauss();
