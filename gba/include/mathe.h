@@ -30,7 +30,7 @@ namespace mathe
     {
         if(x <= 0) { return 0; }
         double y = aus_bits((bits(x) >> 1) + (uint64_t(1023) << 51));
-        for(int i = 0; i < 6; ++i) { y = 0.5 * (y + x / y); }
+        for(int i = 0; i < 5; ++i) { y = 0.5 * (y + x / y); }
         // y ist jetzt bis auf eine Einheit genau; die nähere der Nachbarzahlen wählen
         double unten = aus_bits(bits(y) - 1), oben = aus_bits(bits(y) + 1);
         double fehler = betrag(y * y - x);

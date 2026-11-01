@@ -35,6 +35,61 @@ namespace physik
             return mathe::hypot(a.x - b.x, a.y - b.y);
         }
 
+        // Quadrat des Abstands. Für Vergleiche "Abstand < r" genügt  d² < r²  – gleiches Ergebnis wie
+        // in physik.js, aber ohne Wurzel (auf dem GBA ohne Gleitkomma-Hardware sehr teuer).
+        double abstand2(punkt a, punkt b)
+        {
+            double dx = a.x - b.x, dy = a.y - b.y;
+            return dx * dx + dy * dy;
+        }
+
+        // Bäume einer Bahn als double, einmal je Wurf umgerechnet (statt in jedem Flugschritt)
+        struct baum_cache
+        {
+            double x, y, r2, h;
+            int x0, x1, y0, y1;     // ganze Meter um die Krone: schneller Ausschluss ohne Gleitkomma
+            bool am_abwurf;         // steht direkt am Abwurfpunkt (< 5 m): ganz ignorieren
+        };
+
+        baum_cache baeume_cache[256];
+
+        int abrunden(double v)
+        {
+            int i = int(v);
+            return (double(i) > v) ? i - 1 : i;
+        }
+
+        // Werte, die nur vom Flugschritt i abhängen (für alle Würfe gleich): einmal berechnet
+        constexpr int N = 160;
+
+        struct schritt_tabelle
+        {
+            bool fertig = false;
+            double f[N + 1], wT[N + 1], wF[N + 1], sin_pi_u[N + 1];
+        };
+
+        schritt_tabelle tab;
+
+        void fuelle_tabelle()
+        {
+            if(tab.fertig) { return; }
+            for(int i = 0; i <= N; ++i)
+            {
+                const double u = double(i) / N;
+                tab.f[i] = 2 * u - u * u;   // zurückgelegter Anteil bei linearer Abbremsung
+                tab.wT[i] = u < 0.75 ? mathe::sin(mathe::pi * u / 0.75) : 0;
+                double wF = 0;
+                if(u > 0.45)
+                {
+                    double q = (u - 0.45) / 0.55;
+                    wF = q * mathe::wurzel(q);   // Math.pow(q, 1.5)
+                }
+                tab.wF[i] = wF;
+                tab.sin_pi_u[i] = mathe::sin(mathe::pi * u);
+            }
+            tab.fertig = true;
+        }
+
         bool im_rechteck(punkt p, const daten::ob_zone& r)
         {
             double x = zahl(r.x), y = zahl(r.y);
@@ -67,7 +122,8 @@ namespace physik
                 double nenner = dx * dx + dy * dy;
                 if(nenner == 0) { nenner = 1; }
                 double t = clamp(((p.x - ax) * dx + (p.y - ay) * dy) / nenner, 0, 1);
-                double d = mathe::hypot(p.x - ax - t * dx, p.y - ay - t * dy);
+                double ex = p.x - ax - t * dx, ey = p.y - ay - t * dy;
+                double d = ex * ex + ey * ey;   // Quadrat genügt zum Vergleichen
                 bool am_ende = (i == 0 && t == 0) || (i == n - 2 && t == 1);
                 if(d < best) { best = d; seite = am_ende ? keine_seite : int(mathe::vorzeichen(dx * (p.y - ay) - dy * (p.x - ax))); }
             }
@@ -203,7 +259,8 @@ namespace physik
         double t = ((p.x - x1) * dx + (p.y - y1) * dy) / len2;
         if(t < 0 || t > 1.03) { return false; }
         double qx = x1 + t * dx, qy = y1 + t * dy;
-        return mathe::hypot(p.x - qx, p.y - qy) <= zahl(l.breite) / 2;
+        const double halb = zahl(l.breite) / 2, ex = p.x - qx, ey = p.y - qy;
+        return ex * ex + ey * ey <= halb * halb;
     }
 
     bool ist_ob(punkt p, const daten::bahn& bahn)
@@ -271,8 +328,7 @@ namespace physik
         const double haken = fade * D * 0.03 * werte.fade * (1.2 - 0.4 * kraft) / 0.8 * clamp(1 + 0.08 * gegen, 0.5, 1.6);
         const double H = 1.5 + 6 * kraft * (1 - winkel / 80);
         const double T = 1.2 + 2.6 * kraft + 0.15 * glide;
-        const int N = 160;
-        auto f = [](double u) { return 2 * u - u * u; };   // zurückgelegter Anteil bei linearer Abbremsung
+        fuelle_tabelle();
         const double sin_r = mathe::sin(w.richtung), cos_r = mathe::cos(w.richtung);
 
         e.pfad_laenge = 0;
@@ -284,35 +340,49 @@ namespace physik
         const daten::baum* ereignis_baum = nullptr;
         punkt ereignis_normal = { 0, 0 };
         bool geprueft[256] = {};
+        const int baeume_n = bahn.baeume_anzahl < 256 ? bahn.baeume_anzahl : 256;
+        for(int b = 0; b < baeume_n; ++b)
+        {
+            const daten::baum& baum = bahn.baeume[b];
+            baum_cache& c = baeume_cache[b];
+            c.x = zahl(baum.p.x);
+            c.y = zahl(baum.p.y);
+            const double r = zahl(baum.r);
+            c.r2 = r * r;
+            c.h = zahl(baum.h);
+            if(c.h == 0) { c.h = 9; }
+            c.x0 = abrunden(c.x - r) - 1;
+            c.x1 = abrunden(c.x + r) + 1;
+            c.y0 = abrunden(c.y - r) - 1;
+            c.y1 = abrunden(c.y + r) + 1;
+            c.am_abwurf = abstand2({ c.x, c.y }, start) < 25;
+        }
+        const double korb_r2 = 0.45 * 0.45;
         double brems = 1;   // < 1, nachdem Äste die Scheibe abgebremst haben
 
         for(int i = 1; i <= N; i++)
         {
-            const double u0 = double(i - 1) / N;
             u = double(i) / N;
-            const double ds = D * (f(u) - f(u0)) * brems;
-            const double wT = u < 0.75 ? mathe::sin(mathe::pi * u / 0.75) : 0;
-            double wF = 0;
-            if(u > 0.45)
-            {
-                double q = (u - 0.45) / 0.55;
-                wF = q * mathe::wurzel(q);   // Math.pow(q, 1.5)
-            }
+            const double ds = D * (tab.f[i] - tab.f[i - 1]) * brems;
+            const double wT = tab.wT[i];
+            const double wF = tab.wF[i];
             th += seite * (turnK * wT - fadeK * wF + winkK * (1 - 0.5 * u)) / N;
             // höchstens 80° von der Abwurfrichtung weg: die Scheibe fliegt nie rückwärts
             th = w.richtung + clamp(th - w.richtung, -80 * DEG, 80 * DEG);
-            const double qx = -mathe::sin(th), qy = mathe::cos(th);
+            const double sin_th = mathe::sin(th), cos_th = mathe::cos(th);
+            const double qx = -sin_th, qy = cos_th;
             const double quer = wi.x * qx + wi.y * qy;
             // Fade-Haken quer zur Abwurfrichtung (nie nach hinten); wF wächst, je langsamer die Scheibe wird
             const double hs = seite * haken * wF / (0.22 * N);   // Summe aller wF ≈ 0,22·N
-            px += mathe::cos(th) * ds + qx * quer * 0.2 * T / N + sin_r * hs;
-            py += mathe::sin(th) * ds + qy * quer * 0.2 * T / N - cos_r * hs;
-            z = 1.3 * (1 - u) + H * mathe::sin(mathe::pi * u);
+            px += cos_th * ds + qx * quer * 0.2 * T / N + sin_r * hs;
+            py += sin_th * ds + qy * quer * 0.2 * T / N - cos_r * hs;
+            z = 1.3 * (1 - u) + H * tab.sin_pi_u[i];
             anhaengen(e, px, py, z, u * T);
 
             // Mauer: unterhalb ihrer Höhe prallt die Scheibe ab, darüber fliegt sie hinweg
             const pfadpunkt& vorher = e.pfad[e.pfad_laenge - 2];
-            mauer_treffer mauer = treffe_mauer(bahn, { vorher.x, vorher.y }, { px, py }, true, z);
+            mauer_treffer mauer = { false, 0, 0, 0, { 0, 0 } };
+            if(bahn.mauern_anzahl) { mauer = treffe_mauer(bahn, { vorher.x, vorher.y }, { px, py }, true, z); }
             if(mauer.gefunden)
             {
                 px = mauer.x;
@@ -326,17 +396,17 @@ namespace physik
 
             const punkt p = { px, py };
             bool raus = false;
-            if(abstand(p, start) > 5)   // in den ersten 5 m ab Abwurfpunkt zählen Bäume nicht
+            if(abstand2(p, start) > 25)   // in den ersten 5 m ab Abwurfpunkt zählen Bäume nicht
             {
-                for(int b = 0; b < bahn.baeume_anzahl; b++)
+                const int pxi = abrunden(px), pyi = abrunden(py);
+                for(int b = 0; b < baeume_n; b++)
                 {
-                    const daten::baum& baum = bahn.baeume[b];
+                    const baum_cache& c = baeume_cache[b];
                     if(geprueft[b]) { continue; }
-                    const punkt bp = zu_punkt(baum.p);
-                    if(abstand(bp, start) < 5) { continue; }   // Baum steht direkt am Abwurfpunkt: ganz ignorieren
-                    double bh = zahl(baum.h);
-                    if(bh == 0) { bh = 9; }
-                    if(abstand(p, bp) < zahl(baum.r) && z < bh)
+                    if(pxi < c.x0 || pxi > c.x1 || pyi < c.y0 || pyi > c.y1) { continue; }   // weit weg
+                    if(c.am_abwurf) { continue; }   // Baum steht direkt am Abwurfpunkt: ganz ignorieren
+                    const daten::baum& baum = bahn.baeume[b];
+                    if(abstand2(p, { c.x, c.y }) < c.r2 && z < c.h)
                     {
                         geprueft[b] = true;
                         // drei Möglichkeiten: abprallen, abbremsen (fliegt langsamer weiter) oder durch eine Lücke
@@ -358,7 +428,7 @@ namespace physik
                 }
             }
             if(raus) { break; }
-            if(abstand(p, korb) < 0.45 && z < 1.7)
+            if(abstand2(p, korb) < korb_r2 && z < 1.7)
             {
                 ereignis = zufallszahl() < (u > 0.6 ? 0.8 : 0.35) ? typ::korb : typ::abpraller;
                 hat_ereignis = true;
@@ -451,13 +521,12 @@ namespace physik
             for(int k = 1; k <= schritte; k++)
             {
                 const double v = 1 - double(k) / schritte;
-                if(treffe_mauer(bahn, { sx, sy }, { sx + dx * L / schritte, sy + dy * L / schritte }, false, 0).gefunden) { break; }   // rutscht gegen die Mauer
+                if(bahn.mauern_anzahl && treffe_mauer(bahn, { sx, sy }, { sx + dx * L / schritte, sy + dy * L / schritte }, false, 0).gefunden) { break; }   // rutscht gegen die Mauer
                 sx += dx * L / schritte;
                 sy += dy * L / schritte;
                 t += 0.015 + 0.05 * (1 - v);
                 anhaengen(e, sx, sy, 0, t);
-                const double dk = abstand({ sx, sy }, korb);
-                if(dk < 0.45)
+                if(abstand2({ sx, sy }, korb) < korb_r2)
                 {
                     if(auf_bowlingbahn({ sx, sy }, bahn))
                     {
