@@ -165,7 +165,70 @@ if (fehlt.length) {
   process.exit(1);
 }
 
+// Dieselben Würfe als C++-Header für tests/gba/physik_test.cpp
+const ZIEL_CPP = join(WURZEL, "tests", "gba", "gen_referenz.h");
+const zahl = v => {
+  const t = String(v);
+  return /[.e]/.test(t) ? t : t + ".0";
+};
+const TYPEN = ["landung", "baum", "mauer", "korb", "abpraller", "bowling"];
+const MANDO = { null: "keins", ok: "ok", verpasst: "verpasst" };
+const inhaltCpp = `// ERZEUGT von werkzeuge/referenzwuerfe.mjs – nicht von Hand bearbeiten
+// Dieselben Würfe wie tests/referenz.json
+#ifndef GEN_REFERENZ_H
+#define GEN_REFERENZ_H
+
+#include <stdint.h>
+
+namespace referenz
+{
+    struct stuetz { double x, y, z; };
+
+    struct wurf
+    {
+        int nr;
+        uint32_t startwert;
+        int bahn, spieler, scheibe;
+        double x, y, richtung, kraft, winkel;
+        bool links, vorhand;
+        double streu_faktor, weite_faktor;
+        double wind_x, wind_y;
+        double g_richtung, g_kraft, g_winkel;     // nach der Streuung
+        int typ;                                  // 0 landung, 1 baum, 2 mauer, 3 korb, 4 abpraller, 5 bowling
+        double lie_x, lie_y;
+        bool drin, ob;
+        int mando;                                // 0 keins, 1 ok, 2 verpasst
+        double distanz, dauer;
+        int pfad_laenge;
+        stuetz s[3];
+    };
+
+    constexpr int anzahl = ${wuerfe.length};
+    constexpr wurf wuerfe[anzahl] = {
+${wuerfe.map(w => {
+  const e = w.eingabe, r = w.ergebnis, g = w.gestreut;
+  const typ = TYPEN.indexOf(r.typ);
+  if (typ < 0) throw new Error("unbekannter Typ " + r.typ);
+  return `        {${w.nr}, ${w.startwert}u, ${w.bahn}, ${w.spieler}, ${w.scheibe}, ` +
+    `${[e.x, e.y, e.richtung, e.kraft, e.winkel].map(zahl).join(", ")}, ${e.hand === "links"}, ${e.wurfart === "vorhand"}, ` +
+    `${zahl(e.streuFaktor)}, ${zahl(e.weiteFaktor)}, ${zahl(w.wind.x)}, ${zahl(w.wind.y)}, ` +
+    `${[g.richtung, g.kraft, g.winkel].map(zahl).join(", ")}, ${typ}, ${zahl(r.lie.x)}, ${zahl(r.lie.y)}, ${r.drin}, ${r.ob}, ` +
+    `${["keins", "ok", "verpasst"].indexOf(MANDO[r.mando])}, ${zahl(r.distanz)}, ${zahl(r.dauer)}, ${r.pfadLaenge}, ` +
+    `{${r.stuetzpunkte.map(p => `{${zahl(p.x)}, ${zahl(p.y)}, ${zahl(p.z)}}`).join(", ")}}}`;
+}).join(",\n")}
+    };
+}
+
+#endif
+`;
+
 if (process.argv.includes("--pruefen")) {
+  let altCpp = "";
+  try { altCpp = readFileSync(ZIEL_CPP, "utf8"); } catch { /* fehlt */ }
+  if (altCpp !== inhaltCpp) {
+    console.error("tests/gba/gen_referenz.h ist veraltet – bitte  node werkzeuge/referenzwuerfe.mjs  ausführen.");
+    process.exit(1);
+  }
   let alt = "";
   try { alt = readFileSync(ZIEL, "utf8"); } catch { /* fehlt */ }
   if (alt === inhalt) { console.log("Referenzwürfe unverändert. " + uebersicht); process.exit(0); }
@@ -182,4 +245,5 @@ if (process.argv.includes("--pruefen")) {
 
 mkdirSync(dirname(ZIEL), { recursive: true });
 writeFileSync(ZIEL, inhalt);
+writeFileSync(ZIEL_CPP, inhaltCpp);
 console.log("tests/referenz.json geschrieben. " + uebersicht);

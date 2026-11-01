@@ -5,9 +5,9 @@ name: GBA-ROM
 on:
   push:
     branches: [main, dev]
-    paths: ["gba/**", "tests/gba/**", "werkzeuge/exportiere_gba.mjs", "physik.js", "bahnen.js", "taschen.js", "index.html", ".github/workflows/gba.yml"]
+    paths: ["gba/**", "tests/**", "werkzeuge/**", "physik.js", "bahnen.js", "taschen.js", "index.html", ".github/workflows/gba.yml"]
   pull_request:
-    paths: ["gba/**", "tests/gba/**", "werkzeuge/exportiere_gba.mjs", "physik.js", "bahnen.js", "taschen.js", "index.html", ".github/workflows/gba.yml"]
+    paths: ["gba/**", "tests/**", "werkzeuge/**", "physik.js", "bahnen.js", "taschen.js", "index.html", ".github/workflows/gba.yml"]
   workflow_dispatch:
 
 permissions:
@@ -32,6 +32,10 @@ jobs:
         run: |
           g++ -std=c++17 -Wall -Wextra -Werror -I gba/include tests/gba/daten_test.cpp -o daten_test
           ./daten_test
+      - name: Physik C++ = physik.js (600 Referenzwürfe)
+        run: |
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -I gba/include -I tests/gba tests/gba/physik_test.cpp gba/src/physik.cpp -o physik_test
+          ./physik_test
 
   rom:
     name: ROM bauen

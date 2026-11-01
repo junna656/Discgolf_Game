@@ -122,7 +122,7 @@ int main()
     vergleiche(turn, pruefwerte::turn, scheiben, "Summe Turn");
     vergleiche(speed, pruefwerte::speed, scheiben, "Summe Speed");
 
-    pruefe(std::fabs(z(einstellungen::baum_abprallen) - 0.45) < 0.001, "Stellschraube baum_abprallen");
+    pruefe(einstellungen::baum_abprallen == 0.45, "Stellschraube baum_abprallen");
 
     if(fehler)
     {

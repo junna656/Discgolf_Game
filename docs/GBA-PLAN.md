@@ -56,7 +56,10 @@ Golden-Test prüft dort nur die statistische Verteilung, nicht jeden einzelnen W
 2. Die Ergebnisse (Landepunkt, OB ja/nein, Baumtreffer, Korb) landen in `tests/referenz.json`.
 3. Ein kleines Testprogramm kompiliert die **C++-Physik nativ mit g++** (gleicher Code wie in der
    ROM, nur auf dem PC) und vergleicht mit `referenz.json`.
-   Erlaubt sind Abweichungen bis ca. 0,5 m, weil der GBA mit Festkomma rechnet (`bn::fixed`).
+   Umgesetzt (Etappe 3): Die C++-Physik rechnet in `double` mit eigenen Mathefunktionen (`gba/include/mathe.h`,
+   Butano bindet keine libm ein). Dadurch rechnen GBA und PC-Test gleich, und alle 600 Würfe stimmen bis auf
+   ca. 2 mm mit physik.js überein (Toleranz im Test: 1 cm). Festkomma (`bn::fixed`) nur, falls die Rechenzeit
+   auf dem GBA zu lang wird.
 4. **GitHub Actions** führt das bei jedem Push aus. Ändert jemand `physik.js` und vergisst die
    C++-Seite, wird der Test rot.
 
@@ -148,7 +151,7 @@ aber nicht. Wer will, schließt sie aus oder legt sie nach `_gba/` (Jekyll ignor
 | 0 ✅ | **Vorbereitung in der Webversion:** Zufall mit Startwert, `referenzwuerfe.mjs` | Webspiel unverändert spielbar, Referenzdaten vorhanden | 1–2 Abende |
 | 1 ✅ | **Werkzeugkette:** Butano + devkitARM in GitHub Actions, „Hallo Welt“-ROM | ROM läuft in mGBA und auf dem Pocket | 1 Abend |
 | 2 ✅ | **Daten-Generator** für Bahnen, Taschen, Stellschrauben | `gen_*.h` werden automatisch erzeugt | 1–2 Abende |
-| 3 | **Physik in C++** (Festkomma) + Golden-Tests grün | Würfe fliegen wie im Browser | 3–5 Abende |
+| 3 ✅ | **Physik in C++** (`double`, eigene Mathefunktionen) + Golden-Tests grün | Würfe fliegen wie im Browser | 3–5 Abende |
 | 4 | **Bahn 1 spielbar:** gerenderter Hintergrund, zielen, werfen, putten, OB | erster echter Test auf dem Pocket | 3–4 Abende |
 | 5 | **Alle Bahnen**, Spielerwahl, Bags, Scorekarte, Single und Vierer Flight (Hot-Seat) | vollständige Runde | 4–6 Abende |
 | 6 | **Feinschliff:** Porträts, Rufe, Speichern, Freies Werfen, Titelbild | Release 1.0 als ROM | 3–5 Abende |
@@ -160,7 +163,9 @@ Insgesamt grob **4–8 Wochen** nebenbei. Etappe 0 verbessert auch die Webversio
 
 ## 7. Risiken und offene Fragen
 
-- **Festkomma-Genauigkeit:** Lange Flüge mit vielen Schritten können sich leicht aufsummieren.
+- **Rechenzeit:** Die Physik rechnet in `double` ohne Hardware-Gleitkomma. Die ROM zeigt die Zeit je Wurf an;
+  ist sie zu lang, Festkomma oder Verteilen auf mehrere Bilder. (Früher: Festkomma-Genauigkeit –
+  Lange Flüge mit vielen Schritten können sich leicht aufsummieren.)
   Gegenmittel sind mehr Nachkommabits für Geschwindigkeiten oder eine Toleranz im Golden-Test.
 - **Leistung:** Die Physik berechnet den ganzen Flug vorab (`simuliere`). Auf dem GBA (16 MHz)
   sollte das in wenigen Frames gehen. Sonst wird über mehrere Frames verteilt, während die

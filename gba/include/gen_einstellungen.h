@@ -3,21 +3,19 @@
 #ifndef GEN_EINSTELLUNGEN_H
 #define GEN_EINSTELLUNGEN_H
 
-#include "daten.h"
-
 namespace gen::einstellungen
 {
-    constexpr daten::fk winkel = {6554};  // 1.6
-    constexpr daten::fk turn = {6144};  // 1.5
-    constexpr daten::fk fade = {6144};  // 1.5
-    constexpr daten::fk weite = {4096};  // 1
-    constexpr daten::fk streuung = {4096};  // 1
-    constexpr daten::fk wind = {4096};  // 1
-    constexpr daten::fk tempo = {2253};  // 0.55
-    constexpr daten::fk kick = {4096};  // 1
-    constexpr daten::fk zoom_stufe = {12288};  // 3
-    constexpr daten::fk baum_abprallen = {1843};  // 0.45
-    constexpr daten::fk baum_bremsen = {1229};  // 0.3
+    constexpr double winkel = 1.6;
+    constexpr double turn = 1.5;
+    constexpr double fade = 1.5;
+    constexpr double weite = 1.0;
+    constexpr double streuung = 1.0;
+    constexpr double wind = 1.0;
+    constexpr double tempo = 0.55;
+    constexpr double kick = 1.0;
+    constexpr double zoom_stufe = 3.0;
+    constexpr double baum_abprallen = 0.45;
+    constexpr double baum_bremsen = 0.3;
 }
 
 #endif

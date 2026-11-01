@@ -239,12 +239,15 @@ ${zeilen.join(",\n")}
 // ============================================================
 {
   const S = Physik.STANDARD;
-  const zeilen = Object.entries(S).map(([k, v]) => `    constexpr daten::fk ${bezeichner(k)} = ${fk(v, "STANDARD." + k)};  // ${v}`);
+  // als double, genau wie in JS (das Flugmodell rechnet in double; gerundete Werte würden z. B.
+  // die Baum-Entscheidung "Zufall < 0,45" knapp verschieben)
+  const zeilen = Object.entries(S).map(([k, v]) => {
+    if (typeof v !== "number") throw new Error(`STANDARD.${k} ist keine Zahl`);
+    return `    constexpr double ${bezeichner(k)} = ${Number.isInteger(v) ? v + ".0" : v};`;
+  });
   dateien["gen_einstellungen.h"] = `${KOPF}// Quelle: STANDARD in physik.js
 #ifndef GEN_EINSTELLUNGEN_H
 #define GEN_EINSTELLUNGEN_H
-
-#include "daten.h"
 
 namespace gen::einstellungen
 {

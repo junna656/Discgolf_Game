@@ -9,6 +9,7 @@
 // Der Wurf hier ist nur eine einfache Animation – das echte Flugmodell kommt in Etappe 3.
 //
 // Etappe 2: SELECT zeigt alle Bahnen (Minikarte) und Spieler aus den erzeugten Daten.
+// Etappe 3: dort wirft A einen echten Wurf mit dem Flugmodell (physik.cpp) und misst die Rechenzeit.
 
 #include "bn_core.h"
 #include "bn_keypad.h"
@@ -27,6 +28,11 @@
 
 #include "bn_sprite_items_karte.h"
 
+#include "bn_timer.h"
+#include "bn_timers.h"
+
+#include "physik.h"
+#include "mathe.h"
 #include "gen_version.h"
 #include "gen_bahnen.h"
 #include "gen_taschen.h"
@@ -248,10 +254,15 @@ void szene_daten()
     int bahn_nr = 0, spieler_nr = 0;
     bool neu = true;
     bn::vector<bn::sprite_ptr, 24> texte;
+    bn::vector<bn::sprite_ptr, 12> kennzahl;
     bn::vector<bn::sprite_ptr, 64> karte;
+    bn::vector<bn::sprite_ptr, 26> flug;
+    bn::fixed massstab, mitte_x, mitte_y;
+    uint32_t bilder = 0;
 
     while(! bn::keypad::select_pressed())
     {
+        ++bilder;
         if(bn::keypad::left_pressed()) { bahn_nr = (bahn_nr + gen::bahnen_anzahl - 1) % gen::bahnen_anzahl; neu = true; }
         if(bn::keypad::right_pressed()) { bahn_nr = (bahn_nr + 1) % gen::bahnen_anzahl; neu = true; }
         if(bn::keypad::l_pressed()) { spieler_nr = (spieler_nr + gen::spieler_anzahl - 1) % gen::spieler_anzahl; neu = true; }
@@ -261,7 +272,9 @@ void szene_daten()
         {
             neu = false;
             texte.clear();
+            kennzahl.clear();
             karte.clear();
+            flug.clear();
             const daten::bahn& b = gen::bahnen[bahn_nr];
 
             // Überschrift
@@ -281,8 +294,9 @@ void szene_daten()
             }
 
             // Minikarte: Spielfläche 192 Pixel breit, in der Mitte bei y = -4
-            const bn::fixed massstab = bn::fixed(192) / fx(b.breite);
-            const bn::fixed mitte_x = fx(b.breite) / 2, mitte_y = fx(b.hoehe) / 2;
+            massstab = bn::fixed(192) / fx(b.breite);
+            mitte_x = fx(b.breite) / 2;
+            mitte_y = fx(b.hoehe) / 2;
             auto bild = [&](daten::punkt p, int frame)
             {
                 bn::fixed x = (fx(p.x) - mitte_x) * massstab, y = (fx(p.y) - mitte_y) * massstab - 4;
@@ -316,7 +330,7 @@ void szene_daten()
                 if(b.mauern_anzahl) { z.append("   Mauer"); }
                 if(b.hat_mando) { z.append("   Mando"); }
                 if(b.hat_dropzone) { z.append("   Dropzone"); }
-                klein.generate(0, 58, zeile, texte);
+                klein.generate(0, 58, zeile, kennzahl);
             }
 
             // Spieler
@@ -335,6 +349,75 @@ void szene_daten()
                 }
                 klein.generate(0, 70, zeile, texte);
             }
+        }
+
+        // A: echten Wurf mit dem Flugmodell (physik.cpp) vom Abwurf Richtung Korb
+        if(bn::keypad::a_pressed())
+        {
+            static physik::ergebnis erg;   // groß – nicht auf den Stack
+            static zufall z(1);
+            z = zufall(bilder * 2654435761u + uint32_t(bahn_nr) * 40503u);
+            physik::setze_zufall(z);
+
+            const daten::bahn& b = gen::bahnen[bahn_nr];
+            const daten::spieler& sp = gen::alle_spieler[spieler_nr];
+            int si = sp.lieblingsscheibe_index;
+            if(si < 0)
+            {
+                si = 0;
+                for(int k = 0; k < sp.tasche_anzahl; ++k) { if(sp.tasche[k].standard) { si = k; } }
+            }
+            const daten::scheibe& scheibe = sp.tasche[si];
+            const physik::punkt ab = physik::zu_punkt(b.abwurf), ko = physik::zu_punkt(b.korb);
+            const daten::staerke& st = sp.vorhand ? sp.vorhand_staerke : sp.rueckhand;
+
+            physik::wurf w;
+            w.x = ab.x;
+            w.y = ab.y;
+            w.richtung = mathe::atan2(ko.y - ab.y, ko.x - ab.x);
+            w.kraft = physik::kraft_fuer(scheibe, mathe::hypot(ko.x - ab.x, ko.y - ab.y));
+            w.winkel = 0;
+            w.scheibe = &scheibe;
+            w.links = sp.linkshaender;
+            w.vorhand = sp.vorhand;
+            w.streu_faktor = st.gesetzt ? physik::zahl(st.streuung) : 1;
+            w.weite_faktor = st.gesetzt ? physik::zahl(st.weite) : 1;
+
+            bn::timer uhr;
+            physik::wurf g = physik::streue(w);
+            physik::simuliere(b, g, { 0, 0 }, erg);
+            const int ms = int(int64_t(uhr.elapsed_ticks()) * 1000 / bn::timers::ticks_per_second());
+
+            // Flugbahn als Punkte auf die Minikarte
+            flug.clear();
+            auto auf_karte = [&](double x, double y, int frame)
+            {
+                if(flug.full()) { return; }
+                bn::fixed kx = (bn::fixed(x) - mitte_x) * massstab, ky = (bn::fixed(y) - mitte_y) * massstab - 4;
+                bn::sprite_ptr s = bn::sprite_items::karte.create_sprite(kx, ky, frame);
+                s.set_z_order(0);
+                flug.push_back(bn::move(s));
+            };
+            const int schritt = erg.pfad_laenge / 24 + 1;
+            for(int k = 0; k < erg.pfad_laenge; k += schritt) { auf_karte(erg.pfad[k].x, erg.pfad[k].y, 5); }
+            auf_karte(erg.lie.x, erg.lie.y, 6);
+
+            // Ergebnis statt der Kennzahlen
+            kennzahl.clear();
+            bn::string<64> zeile;
+            bn::ostringstream zs(zeile);
+            zs.append(scheibe.name);
+            zs.append(": ");
+            zs.append(int(erg.distanz + 0.5));
+            zs.append(" m");
+            static const char* namen[] = { "", ", Baum", ", Mauer", ", IM KORB!", ", Abpraller", ", BOWLING!" };
+            zs.append(namen[int(erg.art)]);
+            if(erg.ob) { zs.append(", OB"); }
+            if(erg.mando == physik::mando_ergebnis::verpasst) { zs.append(", Mando verpasst"); }
+            zs.append("   (");
+            zs.append(ms);
+            zs.append(" ms)");
+            klein.generate(0, 58, zeile, kennzahl);
         }
 
         bn::core::update();
