@@ -191,7 +191,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.2.2</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.2.3</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <div class="kurswahl">
@@ -217,7 +217,7 @@
         <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Für jede Person wählst du, ob ein Mensch spielt oder der Computer – <b>Locker</b>, <b>Solide</b> oder <b>Profi</b>. Mindestens eine Person muss ein Mensch sein. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat.</li>
         <li><b>Kurs:</b> Im Hauptmenü wählst du den Kurs für die Flights. Bisher gibt es den Hyzernauts Discgolfparcours im Volkspark Potsdam – weitere Kurse folgen.</li>
         <li>Unter „Flights spielen“ wählst du die ganze Runde oder eine einzelne Bahn des Kurses.</li>
-        <li><b>Bahn wählen:</b> Im Spiel (Handy: im Bag, Rechner: rechts) kannst du jederzeit direkt auf jede Bahn des Kurses springen. Die laufende Bahn wird dabei abgebrochen und zählt nicht.</li>
+        <li><b>Bahn wählen:</b> Im Spiel (Handy: unter „Menü“, Rechner: rechts) kannst du jederzeit direkt auf jede Bahn des Kurses springen. Die laufende Bahn wird dabei abgebrochen und zählt nicht.</li>
       </ul>
 
       <h3>Werfen</h3>
@@ -227,7 +227,7 @@
         <li><b>Richtung beim Halten:</b> Solange du gedrückt hältst, kannst du noch ziehen und so die Richtung bis zum Loslassen ändern – auf dem Spielfeld folgt die Ziellinie dem Finger, beim Werfen-Knopf dreht seitliches Ziehen die Richtung.</li>
         <li><b>Richtung am Handy:</b> die Knöpfe <b>&lt;</b> und <b>&gt;</b> neben „Werfen“ drehen die Wurfrichtung, gedrückt halten dreht schneller.</li>
         <li><b>Streuung:</b> Je mehr Kraft, desto stärker weichen Richtung, Weite und Winkel ab. Im roten Bereich wird es wild.</li>
-        <li><b>Scheibe:</b> Das Spiel wählt passend zur Entfernung (Driver weit weg, Putter nah). Du kannst im Bag jederzeit selbst wechseln.</li>
+        <li><b>Scheibe:</b> Das Spiel wählt passend zur Entfernung (Driver weit weg, Putter nah). Du kannst jederzeit selbst wechseln (Handy: unter „Menü“).</li>
       </ul>
 
       <h3>Abwurfwinkel und Wurfart</h3>
@@ -398,13 +398,13 @@
   <button class="dreh" data-dreh="-1" title="Richtung nach links">&lt;</button>
   <button id="werfen2">Werfen</button>
   <button class="dreh" data-dreh="1" title="Richtung nach rechts">&gt;</button>
-  <button data-ansicht="bag">Bag</button>
+  <button data-ansicht="bag">Menü</button>
 </nav>
 
-<script src="taschen.js?v=0.2.2"></script>
-<script src="bahnen.js?v=0.2.2"></script>
-<script src="physik.js?v=0.2.2"></script>
-<script src="portraets.js?v=0.2.2"></script>
+<script src="taschen.js?v=0.2.3"></script>
+<script src="bahnen.js?v=0.2.3"></script>
+<script src="physik.js?v=0.2.3"></script>
+<script src="portraets.js?v=0.2.3"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -1350,7 +1350,7 @@ function zeichneEnde() {
     } else text(s.wuerfe + "  (" + plusMinus(s.wuerfe - bahn.par) + ")", 236, y, PAL.weiss, "right");
   });
   text(letzte ? (hochkant ? "TIPPEN: NOCHMAL" : "R / KLICK: NOCHMAL") : (hochkant ? "TIPPEN: NÄCHSTE BAHN" : "KLICK: NÄCHSTE BAHN"), 160, 128, PAL.weiss, "center");
-  text(hochkant ? "MENÜ IM BAG" : "M: HAUPTMENÜ", 160, 140, "#d0d8e2", "center");
+  text(hochkant ? "HAUPTMENÜ: UNTER MENÜ" : "M: HAUPTMENÜ", 160, 140, "#d0d8e2", "center");
 }
 
 // Nach dem Ende einer Bahn: nächste Bahn – wer am besten gespielt hat, wirft zuerst
@@ -1614,7 +1614,7 @@ el("tasche").addEventListener("click", e => {
   const b = e.target.closest("[data-scheibe]");
   if (b) { waehleScheibe(+b.dataset.scheibe); zeigeAnsicht("feld"); }
 });
-// Handy: zwei Ansichten, Spielfeld und Bag
+// Handy: zwei Ansichten, Spielfeld und Menü (Bag, Wurfart, Bahnen, Hauptmenü)
 function zeigeAnsicht(a) {
   document.body.dataset.ansicht = a;
   document.querySelectorAll(".tabs [data-ansicht]").forEach(b => b.classList.toggle("an", b.dataset.ansicht === a));
