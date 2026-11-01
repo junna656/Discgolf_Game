@@ -1,7 +1,0 @@
-# Vorschau des dev-Branchs als statische Seite auf Cloudflare (nicht öffentlich verlinkt)
-name = "boogie-garanten-dev"
-compatibility_date = "2025-06-01"
-workers_dev = true
-
-[assets]
-directory = "../_site"

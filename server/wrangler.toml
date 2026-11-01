@@ -14,4 +14,4 @@ new_sqlite_classes = ["Raum"]
 
 [vars]
 # erlaubte Herkunft der Spielseite (Komma-getrennt); leer = alle
-ERLAUBT = "https://www.discgolf-game.de,https://discgolf-game.de,https://junna656.github.io,https://boogie-garanten-dev.boogiegaranten.workers.dev,http://localhost:8765,http://127.0.0.1:8765"
+ERLAUBT = "https://www.discgolf-game.de,https://discgolf-game.de,https://junna656.github.io,http://localhost:8765,http://127.0.0.1:8765"
