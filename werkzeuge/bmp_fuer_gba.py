@@ -35,7 +35,8 @@ def main():
         stamm = name[:-4]
         umwandeln(os.path.join(quelle, name), os.path.join(ziel, stamm + ".bmp"))
         with open(os.path.join(ziel, stamm + ".json"), "w") as f:
-            json.dump({"type": "palette_bitmap"}, f)
+            # immer 256 Farben: Butano tauscht Paletten (Bahn ↔ Übersicht ↔ Putt-Ansicht) nur bei gleicher Größe
+            json.dump({"type": "palette_bitmap", "colors_count": 256}, f)
             f.write("\n")
 
 
