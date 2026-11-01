@@ -9,6 +9,7 @@
 //           (im Putt-Modus: werfen statt putten)  START  zurück zur Bahnansicht
 
 #include "spiel.h"
+#include "optionen.h"
 
 #include "bn_core.h"
 #include "bn_keypad.h"
@@ -86,9 +87,10 @@ namespace
     // Kraftbalken wie zeichneKraftbalken() in index.html: 12 Stücke à 8 Pixel, Mitte des Bildschirms
     constexpr int balken_stuecke = 12, balken_y = 60;
 
-    // Tempo auf dem GBA: Flug und Kraftpendel langsamer als im Browser (dort 1,0); auf dem kleinen
-    // Bildschirm wirkte die Browser-Geschwindigkeit zu hektisch
-    constexpr double gba_tempo = 0.65;
+    // Tempo: in Hauptmenü → Einstellungen wählbar (optionen.h); 100 % = wie im Browser
+    double flug_tempo() { return opt().flug / 100.0; }
+    double pendel_tempo() { return opt().pendel / 100.0; }
+    double ziel_tempo() { return opt().zielen / 100.0; }
 
     class spiel
     {
@@ -178,7 +180,7 @@ namespace
             if(_zustand == zustand::laden)
             {
                 // wie schleife() in index.html: Kraft pendelt in 1,1 s hoch und wieder herunter
-                const double ph = mathe_mod(double(_uhr_bilder - _lade_start) / 60 * gba_tempo / 1.1, 2);
+                const double ph = mathe_mod(double(_uhr_bilder - _lade_start) / 60 * pendel_tempo() / 1.1, 2);
                 _kraft = ph < 1 ? ph : 2 - ph;
             }
             if(_zustand == zustand::flug) { flug_weiter(); }
@@ -490,7 +492,7 @@ namespace
                 // (wie im Browser ~25°/s), lange gehalten 60°/s
                 _halten_links = bn::keypad::up_held() ? _halten_links + 1 : 0;
                 _halten_rechts = bn::keypad::down_held() ? _halten_rechts + 1 : 0;
-                auto schritt = [](int h) { return h == 1 ? 0.5 : h > 18 ? (h > 75 ? 1.0 : 0.4) : 0.0; };
+                auto schritt = [](int h) { return h == 1 ? 0.5 : (h > 18 ? (h > 75 ? 1.0 : 0.4) : 0.0) * ziel_tempo(); };
                 // nach rechts geworfen: hoch = gegen den Uhrzeigersinn; nach links geworfen umgekehrt
                 const double richtung = mathe::cos(_ziel_richtung) < 0 ? -1 : 1;
                 _ziel_richtung += (schritt(_halten_rechts) - schritt(_halten_links)) * richtung * physik::grad();
@@ -607,7 +609,7 @@ namespace
             const physik::ergebnis& e = flug_ergebnis;
             const int fertig_bis = _rechnet ? e.pfad_laenge - 1 : e.pfad_laenge;   // endgültige Punkte
             if(fertig_bis < 2) { return; }
-            const double t_neu = _flug_t + gen::einstellungen::tempo * gba_tempo / 60;
+            const double t_neu = _flug_t + gen::einstellungen::tempo * flug_tempo() / 60;
             // nicht über die schon gerechneten Punkte hinaus
             if(_rechnet && t_neu > e.pfad[fertig_bis - 1].t) { return; }
             _flug_t = t_neu;

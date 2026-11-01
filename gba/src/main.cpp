@@ -1,6 +1,6 @@
 // Boogie Garanten – GBA-Version: Hauptmenü, Bahnauswahl, Start.
 //
-//  - Hauptmenü:      Single Flight (Spieler mit ◀ ▶), Vierer Flight (Hot-Seat), Einzelne Bahn
+//  - Hauptmenü:      Single Flight (Spieler mit ◀ ▶), Vierer Flight (Hot-Seat), Einzelne Bahn, Einstellungen
 //  - Runde/Spiel:    gba/src/spiel.cpp (szene_runde)
 //  - Bahnauswahl:    Übersicht jeder Bahn, A spielt sie, B macht einen Testwurf (Flugbahn, Rechenzeit)
 //  - Selbsttests:    Zufall wie physik.js („Zufall: OK“), Speichern (Zähler „Starts“ im SRAM)
@@ -34,6 +34,7 @@
 #include "physik.h"
 #include "mathe.h"
 #include "spiel.h"
+#include "optionen.h"
 #include "gen_version.h"
 
 // Kennung des Builds (git-Commit), vom Makefile gesetzt
@@ -50,16 +51,21 @@ namespace
 {
     // --- Speicherstand ---
     constexpr char speicher_kennung[] = "BOOGIE GARANTEN 1";
+    constexpr int optionen_kennung = 0x4F505431;   // "OPT1": ab hier gibt es Einstellungen im Spielstand
 
     struct speicher
     {
         char kennung[sizeof(speicher_kennung)];
         int starts;
+        int optionen_da;   // = optionen_kennung, wenn "werte" gültig sind (ältere Spielstände haben das nicht)
+        optionen werte;
     };
+
+    speicher stand;
 
     int zaehle_start()
     {
-        speicher s;
+        speicher& s = stand;
         bn::sram::read(s);
         bool gueltig = true;
 
@@ -78,6 +84,15 @@ namespace
             }
 
             s.starts = 0;
+        }
+
+        // Einstellungen: fehlen oder unsinnig → Standard
+        const optionen& o = s.werte;
+        if(s.optionen_da != optionen_kennung || o.flug < 30 || o.flug > 200 || o.pendel < 30 || o.pendel > 200 ||
+           o.zielen < 30 || o.zielen > 200)
+        {
+            s.optionen_da = optionen_kennung;
+            s.werte = optionen();
         }
 
         ++s.starts;
@@ -112,8 +127,72 @@ namespace
 
 }
 
+optionen& opt() { return stand.werte; }
+void optionen_speichern() { bn::sram::write(stand); }
+
+// Einstellungen: ▲▼ wählen, ◀▶ ändern (10er-Schritte), B/START/A zurück – wird gespeichert
+void szene_einstellungen()
+{
+    bn::bg_palettes::set_transparent_color(bn::color(5, 12, 5));
+    bn::sprite_text_generator gross(common::variable_8x16_sprite_font);
+    bn::sprite_text_generator klein(common::variable_8x8_sprite_font);
+    gross.set_center_alignment();
+    klein.set_center_alignment();
+    bn::vector<bn::sprite_ptr, 24> feste_texte;
+    gross.generate(0, -68, "EINSTELLUNGEN", feste_texte);
+    klein.generate(0, 46, "Hoch/Runter: waehlen   Links/Rechts: aendern", feste_texte);
+    klein.generate(0, 58, "100 % = wie im Browser", feste_texte);
+    klein.generate(0, 70, "B: zurueck (wird gespeichert)", feste_texte);
+
+    struct eintrag { const char* name; int* wert; int standard; };
+    optionen& o = opt();
+    eintrag eintraege[] = {
+        { "Fluggeschwindigkeit", &o.flug, optionen().flug },
+        { "Kraftpendel", &o.pendel, optionen().pendel },
+        { "Zielen (Drehen)", &o.zielen, optionen().zielen },
+    };
+    constexpr int anzahl = 3;
+    int wahl = 0;
+    bool neu = true;
+    bn::vector<bn::sprite_ptr, 48> zeilen;
+
+    while(! (bn::keypad::b_pressed() || bn::keypad::start_pressed() || bn::keypad::a_pressed()))
+    {
+        if(bn::keypad::up_pressed()) { wahl = (wahl + anzahl - 1) % anzahl; neu = true; }
+        if(bn::keypad::down_pressed()) { wahl = (wahl + 1) % anzahl; neu = true; }
+        int& w = *eintraege[wahl].wert;
+        if(bn::keypad::left_pressed()) { w = bn::max(30, w - 10); neu = true; }
+        if(bn::keypad::right_pressed()) { w = bn::min(200, w + 10); neu = true; }
+        if(bn::keypad::select_pressed()) { w = eintraege[wahl].standard; neu = true; }
+
+        if(neu)
+        {
+            neu = false;
+            zeilen.clear();
+            for(int i = 0; i < anzahl; ++i)
+            {
+                bn::string<48> zeile;
+                bn::ostringstream z(zeile);
+                z.append(eintraege[i].name);
+                z.append(i == wahl ? ":   < " : ":     ");
+                z.append(*eintraege[i].wert);
+                z.append(i == wahl ? " % >" : " %  ");
+                (i == wahl ? gross : klein).generate(0, -38 + i * 22, zeile, zeilen);
+            }
+            bn::string<48> hinweis;
+            bn::ostringstream z(hinweis);
+            z.append("SELECT: Standard (");
+            z.append(eintraege[wahl].standard);
+            z.append(" %)");
+            klein.generate(0, 30, hinweis, zeilen);
+        }
+        bn::core::update();
+    }
+    optionen_speichern();
+}
+
 // Hauptmenü: Single Flight (Spieler wählen), Vierer Flight, Einzelne Bahn (Bahnauswahl)
-enum class auswahl { single, vierer, bahn };
+enum class auswahl { single, vierer, bahn, einstellungen };
 
 auswahl szene_menue(int starts, bool zufall_gleich, int& spieler_nr, uint32_t& bilder)
 {
@@ -147,8 +226,8 @@ auswahl szene_menue(int starts, bool zufall_gleich, int& spieler_nr, uint32_t& b
     while(true)
     {
         ++bilder;
-        if(bn::keypad::up_pressed()) { wahl = (wahl + 2) % 3; neu = true; }
-        if(bn::keypad::down_pressed()) { wahl = (wahl + 1) % 3; neu = true; }
+        if(bn::keypad::up_pressed()) { wahl = (wahl + 3) % 4; neu = true; }
+        if(bn::keypad::down_pressed()) { wahl = (wahl + 1) % 4; neu = true; }
         if(wahl == 0 && bn::keypad::left_pressed()) { spieler_nr = (spieler_nr + gen::spieler_anzahl - 1) % gen::spieler_anzahl; neu = true; }
         if(wahl == 0 && bn::keypad::right_pressed()) { spieler_nr = (spieler_nr + 1) % gen::spieler_anzahl; neu = true; }
         if(bn::keypad::a_pressed() || bn::keypad::start_pressed()) { return auswahl(wahl); }
@@ -157,7 +236,7 @@ auswahl szene_menue(int starts, bool zufall_gleich, int& spieler_nr, uint32_t& b
         {
             neu = false;
             eintraege.clear();
-            for(int i = 0; i < 3; ++i)
+            for(int i = 0; i < 4; ++i)
             {
                 bn::string<48> zeile;
                 bn::ostringstream z(zeile);
@@ -170,9 +249,10 @@ auswahl szene_menue(int starts, bool zufall_gleich, int& spieler_nr, uint32_t& b
                     if(wahl == 0) { z.append(" >"); }
                 }
                 else if(i == 1) { z.append("Vierer Flight"); }
-                else { z.append("Einzelne Bahn"); }
+                else if(i == 2) { z.append("Einzelne Bahn"); }
+                else { z.append("Einstellungen"); }
                 z.append(i == wahl ? " <" : "  ");
-                gross.generate(0, -26 + i * 18, zeile, eintraege);
+                gross.generate(0, -32 + i * 17, zeile, eintraege);
             }
         }
 
@@ -507,6 +587,7 @@ int main()
         bn::core::update();   // nach jeder Szene ein Bild weiter, sonst zählt der Tastendruck gleich weiter
 
         if(w == auswahl::bahn) { szene_daten(); }
+        else if(w == auswahl::einstellungen) { szene_einstellungen(); }
         else
         {
             // eine Runde über alle Bahnen des ersten Kurses (wie Single/Vierer Flight im Browser)
