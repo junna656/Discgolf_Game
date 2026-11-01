@@ -5,7 +5,8 @@
 //   ◀ ▶  zielen (gehalten schneller)        ▲ ▼  Scheibe wählen
 //   L / R  Abwurfwinkel Anhyzer / Hyzer     B    Vorhand / Rückhand (im Putt: Spin / Push)
 //   A halten  Kraft laden, loslassen werfen (im Putt: A putten, wenn das Fadenkreuz auf den Ketten ist)
-//   SELECT  Putt-Modus an/aus               START  zurück zur Bahnansicht
+//   SELECT  Umsehen: Steuerkreuz schiebt die Kamera, A ganze Bahn, B/SELECT zurück
+//           (im Putt-Modus: werfen statt putten)  START  zurück zur Bahnansicht
 
 #include "spiel.h"
 
@@ -86,6 +87,7 @@ namespace
             _spieler(bn::sprite_items::figuren.create_sprite(0, 0, f_spieler)),
             _korb(bn::sprite_items::figuren.create_sprite(0, 0, f_korb))
         {
+            _bahn_nr = bahn_nr;
             bn::bg_palettes::set_transparent_color(bn::color(0, 0, 0));
             _schatten.set_z_order(2);
             _korb.set_z_order(1);
@@ -136,19 +138,35 @@ namespace
             }
             if(_zustand == zustand::flug) { flug_weiter(); }
 
-            // Kamera weich nachführen (x gerade, damit das Kopieren schnell bleibt)
-            int zx, zy;
-            kamera_ziel(zx, zy);
-            int nx = _kam_x + (zx - _kam_x) / 6, ny = _kam_y + (zy - _kam_y) / 6;
-            if(bn::abs(zx - _kam_x) < 6) { nx = zx; }
-            if(bn::abs(zy - _kam_y) < 6) { ny = zy; }
-            nx &= ~1;
-            if(nx != _kam_x || ny != _kam_y) { _kam_x = nx; _kam_y = ny; _blit = 2; }
-            if(_blit > 0)
+            if(_uebersicht)
             {
-                _painter.unsafe_blit(0, 0, bn::palette_bitmap_roi(_item.pixels_item(), _kam_x, _kam_y, schirm_breite, schirm_hoehe));
-                _painter.flip_page_later();
-                --_blit;
+                // ganze Bahn (Übersichtsbild 240 × 135), etwas nach unten gerückt
+                if(_blit > 0)
+                {
+                    const bn::palette_bitmap_item& ue = *gen::uebersichten[_bahn_nr];
+                    _painter.clear();
+                    _painter.unsafe_blit(0, uebersicht_oben, bn::palette_bitmap_roi(ue.pixels_item(), 0, 0,
+                                         gen::uebersicht_breite, gen::uebersicht_hoehe));
+                    _painter.flip_page_later();
+                    --_blit;
+                }
+            }
+            else
+            {
+                // Kamera weich nachführen (x gerade, damit das Kopieren schnell bleibt)
+                int zx, zy;
+                kamera_ziel(zx, zy);
+                int nx = _kam_x + (zx - _kam_x) / 6, ny = _kam_y + (zy - _kam_y) / 6;
+                if(bn::abs(zx - _kam_x) < 6 || _umsehen) { nx = zx; }
+                if(bn::abs(zy - _kam_y) < 6 || _umsehen) { ny = zy; }
+                nx &= ~1;
+                if(nx != _kam_x || ny != _kam_y) { _kam_x = nx; _kam_y = ny; _blit = 2; }
+                if(_blit > 0)
+                {
+                    _painter.unsafe_blit(0, 0, bn::palette_bitmap_roi(_item.pixels_item(), _kam_x, _kam_y, schirm_breite, schirm_hoehe));
+                    _painter.flip_page_later();
+                    --_blit;
+                }
             }
 
             figuren();
@@ -177,6 +195,12 @@ namespace
 
         zustand _zustand = zustand::zielen;
         int _kam_x = 0, _kam_y = 0, _blit = 0;
+        int _bahn_nr = 0;
+
+        // Umsehen: Kamera frei schieben; Übersicht: ganze Bahn auf einem Bildschirm
+        static constexpr int uebersicht_oben = 12;
+        bool _umsehen = false, _uebersicht = false;
+        int _frei_x = 0, _frei_y = 0, _halten_umsehen = 0;
         int _uhr_bilder = 0, _lade_start = 0, _pause_bis = 0, _halten_links = 0, _halten_rechts = 0;
         physik::punkt _lie;
         physik::wind _wind;
@@ -221,11 +245,24 @@ namespace
         double zum_korb() const { physik::punkt k = korb(); return mathe::atan2(k.y - _lie.y, k.x - _lie.x); }
 
         // Bildschirmposition (Butano: Mitte = 0, 0) eines Punktes in Metern
-        bn::fixed sx(double x) const { return bn::fixed(float(x * _px_pro_m)) - _kam_x - schirm_breite / 2; }
-        bn::fixed sy(double y) const { return bn::fixed(float(y * _px_pro_m)) - _kam_y - schirm_hoehe / 2; }
+        // In der Übersicht ist das Bild kleiner (240 statt 512 Pixel breit) und beginnt bei Zeile uebersicht_oben
+        double zoom() const { return _uebersicht ? double(gen::uebersicht_breite) / bild_breite : 1; }
+        int kam_x() const { return _uebersicht ? 0 : _kam_x; }
+        int kam_y() const { return _uebersicht ? -uebersicht_oben : _kam_y; }
+        // Bildpunkt im großen Bahnbild → Bildschirm (Butano: Mitte = 0, 0)
+        bn::fixed bx(double px) const { return bn::fixed(float(px * zoom())) - kam_x() - schirm_breite / 2; }
+        bn::fixed by(double py) const { return bn::fixed(float(py * zoom())) - kam_y() - schirm_hoehe / 2; }
+        bn::fixed sx(double x) const { return bx(x * _px_pro_m); }
+        bn::fixed sy(double y) const { return by(y * _px_pro_m); }
 
         void kamera_ziel(int& x, int& y) const
         {
+            if(_umsehen)
+            {
+                x = _frei_x;
+                y = _frei_y;
+                return;
+            }
             double mx, my;
             if(_zustand == zustand::flug) { mx = _flug_pos.x; my = _flug_pos.y; }
             else if(_zustand == zustand::zielen || _zustand == zustand::laden)
@@ -279,6 +316,11 @@ namespace
         // ---------- Eingabe; false = Bahn beendet ----------
         bool eingabe()
         {
+            if(_umsehen)
+            {
+                umsehen();
+                return true;
+            }
             switch(_zustand)
             {
             case zustand::zielen:
@@ -293,7 +335,7 @@ namespace
                 if(bn::keypad::l_pressed()) { _winkel = bn::max(_winkel - 5, -30); }
                 if(bn::keypad::r_pressed()) { _winkel = bn::min(_winkel + 5, 30); }
                 if(bn::keypad::b_pressed()) { _vorhand = ! _vorhand; }
-                if(bn::keypad::select_pressed()) { _putt_modus = true; _scheibe_nr = putter(); _zustand = zustand::putt; _putt_start = _uhr_bilder; }
+                if(bn::keypad::select_pressed()) { _umsehen = true; _frei_x = _kam_x; _frei_y = _kam_y; _halten_umsehen = 0; }
                 if(bn::keypad::a_pressed()) { _zustand = zustand::laden; _lade_start = _uhr_bilder; _kraft = 0; }
                 break;
             }
@@ -320,6 +362,35 @@ namespace
                 break;
             }
             return true;
+        }
+
+        // ---------- Umsehen (wie "Umsehen" in index.html) ----------
+        void umsehen()
+        {
+            if(bn::keypad::b_pressed() || bn::keypad::select_pressed())
+            {
+                _umsehen = false;
+                if(_uebersicht) { _uebersicht = false; _bg.set_palette(_item.palette_item()); }
+                _blit = 2;
+                return;
+            }
+            if(bn::keypad::a_pressed())
+            {
+                _uebersicht = ! _uebersicht;
+                _bg.set_palette(_uebersicht ? gen::uebersichten[_bahn_nr]->palette_item() : _item.palette_item());
+                _blit = 2;
+                return;
+            }
+            if(_uebersicht) { return; }
+            const bool gedrueckt = bn::keypad::left_held() || bn::keypad::right_held() || bn::keypad::up_held() || bn::keypad::down_held();
+            _halten_umsehen = gedrueckt ? _halten_umsehen + 1 : 0;
+            const int tempo = _halten_umsehen > 20 ? 8 : 4;
+            if(bn::keypad::left_held()) { _frei_x -= tempo; }
+            if(bn::keypad::right_held()) { _frei_x += tempo; }
+            if(bn::keypad::up_held()) { _frei_y -= tempo; }
+            if(bn::keypad::down_held()) { _frei_y += tempo; }
+            _frei_x = bn::max(0, bn::min(_frei_x, bild_breite - schirm_breite));
+            _frei_y = bn::max(0, bn::min(_frei_y, bild_hoehe - schirm_hoehe));
         }
 
         // ---------- Wurf ----------
@@ -527,7 +598,7 @@ namespace
             physik::punkt p = _zustand == zustand::flug ? _flug_pos : _lie;
             const double z = _zustand == zustand::flug ? _flug_z : 0;
             _schatten.set_position(sx(p.x), sy(p.y));
-            _scheibe.set_position(sx(p.x), sy(p.y) - bn::fixed(float(z * _px_pro_m * 0.6)) - 1);
+            _scheibe.set_position(sx(p.x), sy(p.y) - bn::fixed(float(z * _px_pro_m * zoom() * 0.6)) - 1);
             const bool scheibe_sichtbar = _zustand == zustand::flug || _zustand == zustand::pause;
             _schatten.set_visible(scheibe_sichtbar);
             _scheibe.set_visible(scheibe_sichtbar);
@@ -554,7 +625,7 @@ namespace
                     px = ex + mathe::cos(a) * d - s * kurve * d * d / 400;
                     py = ey + mathe::sin(a) * d + c * kurve * d * d / 400;
                 }
-                _ziel[i].set_position(bn::fixed(float(px)) - _kam_x - schirm_breite / 2, bn::fixed(float(py)) - _kam_y - schirm_hoehe / 2);
+                _ziel[i].set_position(bx(px), by(py));
                 _ziel[i].set_visible(zielen);
             }
 
@@ -613,7 +684,11 @@ namespace
             bn::string<64> unten;
             {
                 bn::ostringstream z(unten);
-                if(_zustand == zustand::putt)
+                if(_umsehen)
+                {
+                    z.append(_uebersicht ? "GANZE BAHN   A: schieben   B: zurueck" : "UMSEHEN: Steuerkreuz   A: ganze Bahn   B: zurueck");
+                }
+                else if(_zustand == zustand::putt)
                 {
                     z.append(_push ? "PUTT Push" : "PUTT Spin");
                     z.append("  A: putten  B: Stil  SEL: werfen");
