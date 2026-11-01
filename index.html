@@ -2179,6 +2179,11 @@ el("personen").addEventListener("click", e => {
 });
 el("zurueck").addEventListener("click", () => { el(gewaehlterModus === "single" ? "menue-kurs" : "menue-start").hidden = false; el("menue-wahl").hidden = true; });
 el("zummenue").addEventListener("click", hauptmenueKlick);
+// Vorschau des dev-Branchs deutlich kennzeichnen
+if (/-dev\./.test(location.hostname)) {
+  const v = document.querySelector(".untertitel span");
+  if (v) { v.textContent += " · VORSCHAU (DEV)"; v.style.color = "#ff9a5a"; }
+}
 // Rückmeldung: GitHub-Formular mit Version und Gerät vorausgefüllt
 function meldeLink(vorlage) {
   const version = (document.querySelector(".untertitel span") || {}).textContent || "";
