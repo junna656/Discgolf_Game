@@ -882,6 +882,7 @@ function starteZug() {
 
 const ich = () => spieler[aktiv];
 const scheibe = () => ich().tasche[ich().scheibe];
+const flugzahlen = d => [d.speed, d.glide, d.turn, d.fade].join(" | ");
 const putter = s => s.tasche.find(d => d.typ === "Putter") || s.tasche[s.tasche.length - 1];
 
 // Wind: kleine Böen pro Wurf
@@ -1354,7 +1355,10 @@ function zeichnePuttAnsicht() {
 
   text("PUTT " + d.toFixed(1) + " M", bx + 4, by + 3, PAL.weiss);
   text(puttStil === "push" ? "PUSH" : "SPIN", bx + bw - 4, by + 3, "#ffe08a", "right");
-  text(putter(s).name.toUpperCase(), bx + 4, by + 12, TYPFARBE.Putter);
+  const pn = putter(s).name.toUpperCase();
+  text(pn, bx + 4, by + 12, TYPFARBE.Putter);
+  ctx.font = "8px Silkscreen";
+  text(flugzahlen(putter(s)), bx + 4 + ctx.measureText(pn).width + 6, by + 12, "#cdd6e2");
 
   if (!putt.flug) {
     const o = puttWackel(uhr - putt.t0);
@@ -1574,9 +1578,14 @@ function schleife(jetzt) {
     }
     if (!puttModus) {
       const w = Math.round(winkel);
-      const unten = hochkant ? SH - 46 : SH - 28;
+      const unten = hochkant ? SH - 46 : SH - 37; // quer: drei Zeilen links neben dem Kraftbalken
       text((s.wurfart === "vorhand" ? "VORHAND · " : "RÜCKHAND · ") + (w > 0 ? "HYZER " + w + "°" : w < 0 ? "ANHYZER " + -w + "°" : "FLACH") + (staerke(s).sterne ? " " + "★".repeat(staerke(s).sterne) : ""), 4, unten, "#ffe08a");
-      text(scheibe().name.toUpperCase(), 4, unten + 9, TYPFARBE[scheibe().typ]);
+      // Scheibe mit Flugzahlen (Speed | Glide | Turn | Fade)
+      const sc = scheibe(), nm = sc.name.toUpperCase();
+      text(nm, 4, unten + 9, TYPFARBE[sc.typ]);
+      ctx.font = "8px Silkscreen";
+      if (hochkant) text(flugzahlen(sc), 4 + ctx.measureText(nm).width + 6, unten + 9, "#cdd6e2");
+      else text(flugzahlen(sc), 4, unten + 18, "#cdd6e2");
     }
     if (!puttModus || zustand === "flug") zeichneKraftbalken();
   }
