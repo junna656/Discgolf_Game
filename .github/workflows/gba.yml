@@ -13,6 +13,11 @@ on:
 permissions:
   contents: read
 
+# neuer Push auf denselben Branch: älteren, noch laufenden Build abbrechen
+concurrency:
+  group: gba-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   pruefen:
     name: Header aktuell + C++-Tests
@@ -108,6 +113,8 @@ jobs:
   messen:
     name: Wurfzeit im Emulator messen (mGBA)
     needs: rom
+    # dauert ~4 Minuten: nur auf Wunsch (Actions → GBA-ROM → Run workflow) oder mit [messen] in der Commit-Nachricht
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[messen]')
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
