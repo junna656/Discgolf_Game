@@ -13,6 +13,16 @@ import sys
 from PIL import Image
 
 
+def portraet(quelle, ziel):
+    """Porträt als 4-Bit-Sprite: 15 Farben auf 1..15, Index 0 bleibt durchsichtig."""
+    bild = Image.open(quelle).convert("RGB").point(lambda v: (v >> 3) << 3)
+    q = bild.quantize(15, dither=Image.Dither.NONE)
+    palette = q.getpalette()[: 15 * 3]
+    neu = Image.frombytes("P", q.size, bytes(p + 1 for p in q.tobytes()))
+    neu.putpalette([255, 0, 255] + palette + [0] * (768 - 3 - len(palette)))
+    neu.save(ziel)
+
+
 def umwandeln(quelle, ziel):
     bild = Image.open(quelle).convert("RGB").point(lambda v: (v >> 3) << 3)
     if bild.width % 4:
@@ -33,6 +43,12 @@ def main():
         if not name.endswith(".png"):
             continue
         stamm = name[:-4]
+        if stamm.startswith("portraet_"):
+            portraet(os.path.join(quelle, name), os.path.join(ziel, stamm + ".bmp"))
+            with open(os.path.join(ziel, stamm + ".json"), "w") as f:
+                json.dump({"type": "sprite", "bpp_mode": "bpp_4", "colors_count": 16}, f)
+                f.write("\n")
+            continue
         umwandeln(os.path.join(quelle, name), os.path.join(ziel, stamm + ".bmp"))
         with open(os.path.join(ziel, stamm + ".json"), "w") as f:
             # immer 256 Farben: Butano tauscht Paletten (Bahn ↔ Übersicht ↔ Putt-Ansicht) nur bei gleicher Größe

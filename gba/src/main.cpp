@@ -1,6 +1,7 @@
 // Boogie Garanten – GBA-Version: Hauptmenü, Bahnauswahl, Start.
 //
-//  - Hauptmenü:      Single Flight (Spieler mit ◀ ▶), Vierer Flight (Hot-Seat), Einzelne Bahn, Einstellungen
+//  - Hauptmenü:      Single Flight / Freies Werfen (Spieler mit ◀ ▶), Vierer Flight (Hot-Seat),
+//                    Einzelne Bahn, Bestwerte, Einstellungen
 //  - Runde/Spiel:    gba/src/spiel.cpp (szene_runde)
 //  - Bahnauswahl:    Übersicht jeder Bahn, A spielt sie, B macht einen Testwurf (Flugbahn, Rechenzeit)
 //  - Selbsttests:    Zufall wie physik.js („Zufall: OK“), Speichern (Zähler „Starts“ im SRAM)
@@ -44,6 +45,7 @@
 #include "gen_bahnen.h"
 #include "gen_taschen.h"
 #include "gen_bahn_bilder.h"
+#include "gen_medien.h"
 #include "gen_zufall_test.h"
 #include "zufall.h"
 
@@ -52,6 +54,7 @@ namespace
     // --- Speicherstand ---
     constexpr char speicher_kennung[] = "BOOGIE GARANTEN 1";
     constexpr int optionen_kennung = 0x4F505431;   // "OPT1": ab hier gibt es Einstellungen im Spielstand
+    constexpr int rekorde_kennung = 0x52454B31;    // "REK1": Bestwerte im Spielstand
 
     struct speicher
     {
@@ -59,6 +62,8 @@ namespace
         int starts;
         int optionen_da;   // = optionen_kennung, wenn "werte" gültig sind (ältere Spielstände haben das nicht)
         optionen werte;
+        int rekorde_da;    // = rekorde_kennung, wenn "rek" gültig ist
+        rekorde rek;
     };
 
     speicher stand;
@@ -99,6 +104,12 @@ namespace
         pruefe(s.werte.zielen, standard.zielen);
         pruefe(s.werte.putt, standard.putt);
 
+        if(s.rekorde_da != rekorde_kennung)
+        {
+            s.rekorde_da = rekorde_kennung;
+            s.rek = rekorde();
+        }
+
         ++s.starts;
         bn::sram::write(s);
         return s.starts;
@@ -132,6 +143,92 @@ namespace
 }
 
 optionen& opt() { return stand.werte; }
+
+// Bestwerte nach einer Runde eintragen und speichern
+void rekorde_eintragen(const runde_stand& r, bool vollstaendig)
+{
+    rekorde& k = stand.rek;
+    for(int i = 0; i < r.anzahl; ++i)
+    {
+        const int sp = r.spieler[i];
+        if(sp < 0 || sp >= max_spieler) { continue; }
+        if(r.frei) { k.weitester[sp] = bn::max(k.weitester[sp], r.weitester[i]); continue; }
+        // Asse zählen auf jeder gespielten Bahn
+        for(int b = 0; b <= bn::min(r.index, r.bahnen - 1); ++b) { if(r.karte[i][b] == 1) { ++k.asse[sp]; } }
+        // ganze Runde über alle Bahnen des Kurses: beste Runde
+        if(vollstaendig && r.bahnen == gen::kurse[0].bahnen_anzahl)
+        {
+            int summe = 0;
+            for(int b = 0; b < r.bahnen; ++b) { summe += r.karte[i][b]; }
+            if(k.beste_runde[sp] == 0 || summe < k.beste_runde[sp]) { k.beste_runde[sp] = summe; }
+            ++k.runden[sp];
+        }
+    }
+    bn::sram::write(stand);
+}
+
+// Bestwerte: je Spieler beste Runde (±Par), gespielte Runden, Asse, weitester Wurf (Freies Werfen)
+void szene_bestwerte()
+{
+    bn::bg_palettes::set_transparent_color(bn::color(5, 12, 5));
+    bn::sprite_text_generator gross(common::variable_8x16_sprite_font);
+    bn::sprite_text_generator klein(common::variable_8x8_sprite_font);
+    bn::vector<bn::sprite_ptr, 80> texte;
+    gross.set_center_alignment();
+    gross.generate(0, -68, "BESTWERTE", texte);
+
+    int par = 0;
+    for(int b = 0; b < gen::kurse[0].bahnen_anzahl; ++b) { par += gen::bahnen[gen::kurse[0].erste_bahn + b].par; }
+    constexpr int x_runde = -14, x_anzahl = 38, x_asse = 70, x_weit = 104;
+    klein.set_center_alignment();
+    klein.generate(x_runde, -46, "Beste Runde", texte);
+    klein.generate(x_anzahl, -46, "Runden", texte);
+    klein.generate(x_asse, -46, "Asse", texte);
+    klein.generate(x_weit, -46, "Weitester", texte);
+
+    const rekorde& k = stand.rek;
+    for(int sp = 0; sp < bn::min(gen::spieler_anzahl, max_spieler); ++sp)
+    {
+        const int y = -28 + sp * 18;
+        klein.set_left_alignment();
+        klein.generate(-116, y, gen::alle_spieler[sp].name, texte);
+        klein.set_center_alignment();
+        bn::string<24> t;
+        {
+            bn::ostringstream z(t);
+            if(k.beste_runde[sp] == 0) { z.append("-"); }
+            else
+            {
+                const int d = k.beste_runde[sp] - par;
+                z.append(k.beste_runde[sp]);
+                z.append(d == 0 ? " (E)" : d > 0 ? " (+" : " (");
+                if(d != 0) { z.append(d); z.append(")"); }
+            }
+        }
+        klein.generate(x_runde, y, t, texte);
+        bn::string<12> a, b, c;
+        bn::ostringstream za(a), zb(b), zc(c);
+        za.append(k.runden[sp]);
+        zb.append(k.asse[sp]);
+        if(k.weitester[sp]) { zc.append(k.weitester[sp]); zc.append(" m"); } else { zc.append("-"); }
+        klein.generate(x_anzahl, y, a, texte);
+        klein.generate(x_asse, y, b, texte);
+        klein.generate(x_weit, y, c, texte);
+    }
+    klein.set_center_alignment();
+    bn::string<48> hinweis;
+    {
+        bn::ostringstream z(hinweis);
+        z.append(gen::kurse[0].name);
+        z.append(", Par ");
+        z.append(par);
+    }
+    klein.generate(0, 52, hinweis, texte);
+    klein.generate(0, 68, "B: zurueck", texte);
+
+    bn::core::update();
+    while(! bn::keypad::a_pressed() && ! bn::keypad::b_pressed() && ! bn::keypad::start_pressed()) { bn::core::update(); }
+}
 void optionen_speichern() { bn::sram::write(stand); }
 
 // Einstellungen: ▲▼ wählen, ◀▶ ändern (10er-Schritte), B/START/A zurück – wird gespeichert
@@ -197,7 +294,8 @@ void szene_einstellungen()
 }
 
 // Hauptmenü: Single Flight (Spieler wählen), Vierer Flight, Einzelne Bahn (Bahnauswahl)
-enum class auswahl { single, vierer, bahn, einstellungen };
+enum class auswahl { single, vierer, frei, bahn, bestwerte, einstellungen };
+constexpr int menue_eintraege = 6;
 
 auswahl szene_menue(int starts, bool zufall_gleich, int& spieler_nr, uint32_t& bilder)
 {
@@ -209,8 +307,8 @@ auswahl szene_menue(int starts, bool zufall_gleich, int& spieler_nr, uint32_t& b
     klein.set_center_alignment();
 
     bn::vector<bn::sprite_ptr, 40> feste_texte;
-    gross.generate(0, -66, "BOOGIE GARANTEN", feste_texte);
-    klein.generate(0, -50, "Retro-Edition  v" BG_VERSION "  (" BG_KENNUNG ")", feste_texte);
+    gross.generate(0, -70, "BOOGIE GARANTEN", feste_texte);
+    klein.generate(0, -56, "Retro-Edition  v" BG_VERSION "  (" BG_KENNUNG ")", feste_texte);
     {
         bn::string<48> zeile;
         bn::ostringstream z(zeile);
@@ -219,10 +317,9 @@ auswahl szene_menue(int starts, bool zufall_gleich, int& spieler_nr, uint32_t& b
         z.append(starts);
         klein.generate(0, 72, zeile, feste_texte);
     }
-    klein.generate(0, 56, "Hoch/Runter: waehlen   A: los", feste_texte);
+    klein.generate(0, 57, "Hoch/Runter: waehlen   A: los", feste_texte);
 
-    bn::sprite_ptr korb = bn::sprite_items::korb.create_sprite(96, 34);
-    bn::sprite_ptr scheibe = bn::sprite_items::scheibe.create_sprite(-96, 42);
+    bn::optional<bn::sprite_ptr> portraet;   // gewählter Spieler bei Single Flight und Freies Werfen
 
     int wahl = 0;
     bool neu = true;
@@ -231,38 +328,40 @@ auswahl szene_menue(int starts, bool zufall_gleich, int& spieler_nr, uint32_t& b
     while(true)
     {
         ++bilder;
-        if(bn::keypad::up_pressed()) { wahl = (wahl + 3) % 4; neu = true; }
-        if(bn::keypad::down_pressed()) { wahl = (wahl + 1) % 4; neu = true; }
-        if(wahl == 0 && bn::keypad::left_pressed()) { spieler_nr = (spieler_nr + gen::spieler_anzahl - 1) % gen::spieler_anzahl; neu = true; }
-        if(wahl == 0 && bn::keypad::right_pressed()) { spieler_nr = (spieler_nr + 1) % gen::spieler_anzahl; neu = true; }
+        if(bn::keypad::up_pressed()) { wahl = (wahl + menue_eintraege - 1) % menue_eintraege; neu = true; }
+        if(bn::keypad::down_pressed()) { wahl = (wahl + 1) % menue_eintraege; neu = true; }
+        const bool mit_spieler = wahl == 0 || wahl == 2;
+        if(mit_spieler && bn::keypad::left_pressed()) { spieler_nr = (spieler_nr + gen::spieler_anzahl - 1) % gen::spieler_anzahl; neu = true; }
+        if(mit_spieler && bn::keypad::right_pressed()) { spieler_nr = (spieler_nr + 1) % gen::spieler_anzahl; neu = true; }
         if(bn::keypad::a_pressed() || bn::keypad::start_pressed()) { return auswahl(wahl); }
 
         if(neu)
         {
             neu = false;
             eintraege.clear();
-            for(int i = 0; i < 4; ++i)
+            for(int i = 0; i < menue_eintraege; ++i)
             {
                 bn::string<48> zeile;
                 bn::ostringstream z(zeile);
                 z.append(i == wahl ? "> " : "  ");
-                if(i == 0)
+                if(i == 0 || i == 2)
                 {
-                    z.append("Single Flight:  ");
-                    if(wahl == 0) { z.append("< "); }
+                    z.append(i == 0 ? "Single Flight:  " : "Freies Werfen:  ");
+                    if(wahl == i) { z.append("< "); }
                     z.append(gen::alle_spieler[spieler_nr].name);
-                    if(wahl == 0) { z.append(" >"); }
+                    if(wahl == i) { z.append(" >"); }
                 }
                 else if(i == 1) { z.append("Vierer Flight"); }
-                else if(i == 2) { z.append("Einzelne Bahn"); }
+                else if(i == 3) { z.append("Einzelne Bahn"); }
+                else if(i == 4) { z.append("Bestwerte"); }
                 else { z.append("Einstellungen"); }
                 z.append(i == wahl ? " <" : "  ");
-                gross.generate(0, -32 + i * 17, zeile, eintraege);
+                (i == wahl ? gross : klein).generate(0, -40 + i * 15, zeile, eintraege);
             }
+            portraet.reset();
+            if(wahl == 0 || wahl == 2) { portraet = gen::portraets[spieler_nr]->create_sprite(100, 34); }
         }
 
-        // die Scheibe schwebt ein wenig hin und her
-        scheibe.set_y(42 + bn::fixed(int((bilder / 8) % 6) - 3) / 2);
         bn::core::update();
     }
 }
@@ -593,19 +692,32 @@ int main()
 
         if(w == auswahl::bahn) { szene_daten(); }
         else if(w == auswahl::einstellungen) { szene_einstellungen(); }
+        else if(w == auswahl::bestwerte) { szene_bestwerte(); }
         else
         {
-            // eine Runde über alle Bahnen des ersten Kurses (wie Single/Vierer Flight im Browser)
             runde_stand r;
-            r.erste_bahn = gen::kurse[0].erste_bahn;
-            r.bahnen = gen::kurse[0].bahnen_anzahl;
-            r.anzahl = w == auswahl::single ? 1 : bn::min(gen::spieler_anzahl, max_spieler);
+            if(w == auswahl::frei)
+            {
+                // Freies Werfen auf dem Sportplatz (freies Feld), Weiten testen
+                r.frei = true;
+                r.erste_bahn = gen::freies_feld;
+                r.bahnen = 1;
+            }
+            else
+            {
+                // eine Runde über alle Bahnen des ersten Kurses (wie Single/Vierer Flight im Browser)
+                r.erste_bahn = gen::kurse[0].erste_bahn;
+                r.bahnen = gen::kurse[0].bahnen_anzahl;
+            }
+            const bool allein = w != auswahl::vierer;
+            r.anzahl = allein ? 1 : bn::min(gen::spieler_anzahl, max_spieler);
             for(int i = 0; i < r.anzahl; ++i)
             {
-                r.spieler[i] = w == auswahl::single ? spieler_nr : i;
+                r.spieler[i] = allein ? spieler_nr : i;
                 r.reihenfolge[i] = i;
             }
-            szene_runde(r, bilder);
+            const bool vollstaendig = szene_runde(r, bilder);
+            rekorde_eintragen(r, vollstaendig);
         }
         bn::core::update();
     }

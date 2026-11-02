@@ -55,6 +55,7 @@ jobs:
           npm install --no-save --no-package-lock playwright@1
           npx playwright install --with-deps chromium
           python3 -m pip install --quiet pillow
+          which ffmpeg || { sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null; }
       - name: Rendern (werkzeuge/rendere_gba.mjs)
         run: node werkzeuge/rendere_gba.mjs
       - uses: actions/upload-artifact@v4
@@ -67,6 +68,9 @@ jobs:
             gba/graphics/uebersicht_*.json
             gba/graphics/putt_ansicht.bmp
             gba/graphics/putt_ansicht.json
+            gba/graphics/portraet_*.bmp
+            gba/graphics/portraet_*.json
+            gba/audio/*.wav
 
   rom:
     name: ROM bauen
@@ -82,7 +86,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: bahnbilder
-          path: gba/graphics
+          path: gba
       - name: Butano laden
         run: gba/hole_butano.sh
       - name: Bauen
