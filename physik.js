@@ -161,6 +161,9 @@
     return best;
   }
 
+  // Baumhöhe in Metern: angegeben oder nach Kronengröße (kleiner Busch ~4 m, großer Baum bis 12 m)
+  function baumHoehe(b) { return b.h || clamp(1.5 + b.r * 1.8, 3, 12); }
+
   function simuliere(bahn, wurf, wind) {
     const s = wurf.scheibe, kraft = wurf.kraft, winkel = wurf.winkel;
     wind = { x: wind.x * E.wind, y: wind.y * E.wind };
@@ -194,7 +197,9 @@
     let brems = 1;               // < 1, nachdem Äste die Scheibe abgebremst haben
     const bremsPunkte = [];
     let baumIndex = -1;          // Pfad-Stelle, an der die Scheibe in eine Krone prallt
-    const durchPunkte = [];      // Pfad-Stellen, an denen sie ungehindert durch eine Krone fliegt      // Pfad-Stellen, an denen gebremst wurde (für Geräusch/Anzeige)
+    const durchPunkte = [];      // Pfad-Stellen, an denen sie ungehindert durch eine Krone fliegt
+    // höhere (größere) Bäume zuerst prüfen: steht ein kleiner unter einem großen, trifft man oben den großen
+    const baumReihe = bahn.baeume.map((_, i) => i).sort((a, c) => baumHoehe(bahn.baeume[c]) - baumHoehe(bahn.baeume[a]) || a - c);      // Pfad-Stellen, an denen gebremst wurde (für Geräusch/Anzeige)
 
     // Fade-Gewicht pro Schritt: Form ab fadeStart, mit fadeRund nach zurückgelegter Strecke statt nach Zeit gewichtet
     // (die Scheibe wird langsamer – nach Zeit gewichtet entsteht am Ende ein enger Haken). Summe wie bisher 0,22·N.
@@ -233,11 +238,11 @@
 
       const p = { x: px, y: py };
       if (abstand(p, wurf) > 5) { // in den ersten 5 m ab Abwurfpunkt zählen Bäume nicht
-        for (let b = 0; b < bahn.baeume.length; b++) {
+        for (const b of baumReihe) {
           const baum = bahn.baeume[b];
           if (gepruefteBaeume.has(b)) continue;
           if (abstand(baum, wurf) < 5) continue; // Baum steht direkt am Abwurfpunkt: ganz ignorieren
-          if (abstand(p, baum) < baum.r * E.baumRadius && z < (baum.h || 9)) {
+          if (abstand(p, baum) < baum.r * E.baumRadius && z < baumHoehe(baum)) {
             gepruefteBaeume.add(b);
             // drei Möglichkeiten: abprallen, abbremsen (fliegt langsamer weiter) oder durch eine Lücke
             const w = zufall();
@@ -364,5 +369,5 @@
     return { pfad, lie, drin, ob, obIndex, mando, mandoIndex, typ, baumIndex, bremsPunkte, durchPunkte, dauer: t, distanz: abstand(lie, wurf) };
   }
 
-  g.Physik = { erzeugeZufall, setzeZufall, mauerTreffer, kraftFaktor, kraftFuer, simuliere, streue, gauss, abstand, istOB, obZone, imPolygon, seiteVonLinie, aufBowlingbahn, DEG, einstellungen: E, STANDARD, reichweite };
+  g.Physik = { baumHoehe, erzeugeZufall, setzeZufall, mauerTreffer, kraftFaktor, kraftFuer, simuliere, streue, gauss, abstand, istOB, obZone, imPolygon, seiteVonLinie, aufBowlingbahn, DEG, einstellungen: E, STANDARD, reichweite };
 })(typeof window !== "undefined" ? window : globalThis);

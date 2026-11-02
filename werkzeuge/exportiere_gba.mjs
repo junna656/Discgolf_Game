@@ -103,7 +103,7 @@ const bezeichner = t => ascii(t, "Bezeichner").replace(/([a-z0-9])([A-Z])/g, "$1
     const n = `b${i}`;
     // Bäume (Standardhöhe wie in physik.js: 9 m)
     teile.push(`    constexpr baum ${n}_baeume[] = {\n${b.baeume.map(t =>
-      `        {${ptO(t, wo)}, ${fk(t.r, wo)}, ${fk(t.h ?? 9, wo)}}`).join(",\n")}\n    };`);
+      `        {${ptO(t, wo)}, ${fk(t.r, wo)}, ${fk(t.h ?? Math.min(12, Math.max(3, 1.5 + t.r * 1.8)), wo)}}`).join(",\n")}\n    };`);
     // OB-Zonen
     const ob = b.ob || [];
     ob.forEach((o, k) => {

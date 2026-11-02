@@ -361,6 +361,8 @@ namespace physik
 
         e.pfad_laenge = 0;
         e.brems_anzahl = 0;
+        e.durch_anzahl = 0;
+        e.baum_index = -1;
         anhaengen(e, w.x, w.y, 1.3, 0);
         double px = w.x, py = w.y, th = w.richtung, z = 1.3, u = 0;
         typ ereignis = typ::landung;
@@ -379,12 +381,20 @@ namespace physik
             const double rt = r * gen::einstellungen::baum_radius;   // Treffer-Radius (wie physik.js: baum.r * E.baumRadius)
             c.r2 = rt * rt;
             c.h = zahl(baum.h);
-            if(c.h == 0) { c.h = 9; }
+            if(c.h == 0) { c.h = mathe::clamp(1.5 + r * 1.8, 3, 12); }   // wie baumHoehe() in physik.js
             c.x0 = abrunden(c.x - r) - 1;
             c.x1 = abrunden(c.x + r) + 1;
             c.y0 = abrunden(c.y - r) - 1;
             c.y1 = abrunden(c.y + r) + 1;
             c.am_abwurf = abstand2({ c.x, c.y }, start) < 25;
+        }
+        // höhere Bäume zuerst prüfen (wie baumReihe in physik.js): stabil nach Höhe absteigend sortiert
+        int reihe[256];
+        for(int b = 0; b < baeume_n; ++b)
+        {
+            int k = b;
+            while(k > 0 && baeume_cache[reihe[k - 1]].h < baeume_cache[b].h) { reihe[k] = reihe[k - 1]; --k; }
+            reihe[k] = b;
         }
         const double korb_r2 = 0.45 * 0.45;
         double brems = 1;   // < 1, nachdem Äste die Scheibe abgebremst haben
@@ -429,8 +439,9 @@ namespace physik
             if(abstand2(p, start) > 25)   // in den ersten 5 m ab Abwurfpunkt zählen Bäume nicht
             {
                 const int pxi = abrunden(px), pyi = abrunden(py);
-                for(int b = 0; b < baeume_n; b++)
+                for(int k = 0; k < baeume_n; k++)
                 {
+                    const int b = reihe[k];
                     const baum_cache& c = baeume_cache[b];
                     if(geprueft[b]) { continue; }
                     if(pxi < c.x0 || pxi > c.x1 || pyi < c.y0 || pyi > c.y1) { continue; }   // weit weg
@@ -446,6 +457,7 @@ namespace physik
                             ereignis = typ::baum;
                             hat_ereignis = true;
                             ereignis_baum = &baum;
+                            e.baum_index = e.pfad_laenge - 1;   // baumIndex: hier prallt sie in die Krone
                             raus = true;
                             break;
                         }
@@ -453,6 +465,10 @@ namespace physik
                         {
                             brems *= 0.35 + zufallszahl() * 0.25;
                             if(e.brems_anzahl < brems_max) { e.brems_punkte[e.brems_anzahl++] = e.pfad_laenge - 1; }
+                        }
+                        else if(e.durch_anzahl < brems_max)
+                        {
+                            e.durch_punkte[e.durch_anzahl++] = e.pfad_laenge - 1;   // durch eine Lücke geflogen
                         }
                     }
                 }
