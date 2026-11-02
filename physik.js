@@ -109,7 +109,7 @@
   }
   // umgekehrt: welche Kraft braucht die Scheibe für d Meter (ohne Rutschen)?
   function kraftFuer(s, d) {
-    const g = d / reichweite(s);
+    const g = d / (reichweite(s) / E.weite);
     const k = g >= 0.475 ? (g - 0.25) / 0.75 : (g - 0.03) / 0.445 * 0.3;
     return Math.max(0.02, Math.min(1, k));
   }
@@ -165,7 +165,7 @@
     const seite = (wurf.hand === "links" ? -1 : 1) * (wurf.wurfart === "vorhand" ? -1 : 1);
     const gegen = -(wind.x * Math.cos(wurf.richtung) + wind.y * Math.sin(wurf.richtung)); // Gegenwind > 0
 
-    let D = reichweite(s) * kraftFaktor(kraft); // E.weite steckt in reichweite()
+    let D = reichweite(s) / E.weite * kraftFaktor(kraft); // E.weite wird weiter unten einmal angewendet
     D *= 1 - Math.min(Math.abs(winkel), 40) / 40 * 0.12;
     if (wurf.wurfart === "vorhand") D *= 0.9;
     D *= wurf.weiteFaktor || 1; // Stärke des Spielers

@@ -167,6 +167,21 @@ namespace mathe
     }
 
     // wie Math.round (x.5 rundet Richtung +unendlich)
+    // e^x: Zerlegung x = k·ln2 + r, Taylor-Reihe für r (|r| ≤ ln2/2)
+    inline double exp(double x)
+    {
+        if(x < -700) { return 0; }
+        const double ln2 = 0.693147180559945309417;
+        const int k = int(x / ln2 + (x >= 0 ? 0.5 : -0.5));
+        const double r = x - k * ln2;
+        double summe = 1, glied = 1;
+        for(int n = 1; n < 30; ++n) { glied *= r / n; summe += glied; if(betrag(glied) < 1e-17 * betrag(summe)) { break; } }
+        return aus_bits(bits(summe) + (uint64_t(int64_t(k)) << 52));
+    }
+
+    // q^p für q > 0 (wie Math.pow)
+    inline double potenz(double q, double p) { return q <= 0 ? 0 : exp(p * log(q)); }
+
     inline double runde(double x)
     {
         double f = x >= 0 ? double(int64_t(x)) : -double(int64_t(-x));   // abgeschnitten

@@ -16,6 +16,8 @@ namespace gen::einstellungen
     constexpr double zoom_stufe = 3.0;
     constexpr double baum_abprallen = 0.45;
     constexpr double baum_bremsen = 0.3;
+    constexpr double fade_start = 0.45;
+    constexpr double fade_rund = 1.0;
 }
 
 #endif
