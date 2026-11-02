@@ -43,6 +43,7 @@
 #include "gen_taschen.h"
 #include "gen_einstellungen.h"
 #include "gen_bahn_bilder.h"
+#include "gen_medien.h"
 
 namespace
 {
@@ -159,9 +160,13 @@ namespace
                 if(_b.kurz[0]) { z.append(_b.kurz); }
                 else { z.append("Bahn "); z.append(int(_b.nummer)); }
                 if(_b.name[0] && ! _b.kurz[0]) { z.append(" \""); z.append(_b.name); z.append("\""); }
-                z.append(" - Par ");
-                z.append(int(_b.par));
-                z.append(" - ");
+                if(_r.frei) { z.append(" - Weiten testen - "); }
+                else
+                {
+                    z.append(" - Par ");
+                    z.append(int(_b.par));
+                    z.append(" - ");
+                }
                 z.append(int(abstand(physik::zu_punkt(_b.abwurf), korb()) + 0.5));
                 z.append(" m");
                 if(_anzahl > 1) { z.append(" - "); z.append(sp().name); z.append(" beginnt"); }
@@ -334,6 +339,14 @@ namespace
         double _putt_ox = 0, _putt_oy = 0;   // Fadenkreuz beim Putten (Web-Pixel um die Ketten)
         double _putt_flug_zeit = 0, _putt_zeit0 = 0;
         bn::timer _echt;            // echte Zeit seit dem letzten Bild
+        int _gebremst = 0;          // schon gemeldete Brems-Stellen im Flug (Äste)
+        // Freies Werfen: Landepunkte markieren (wie marken in index.html)
+        static constexpr int marken_max = 12;
+        bn::vector<bn::sprite_ptr, marken_max> _marken;
+        physik::punkt _marken_ort[marken_max];
+        int _marken_neu = 0;        // nächster Platz (die ältesten werden überschrieben)
+        bool _putt_ton = false;     // Ton beim Putt schon gespielt
+        bn::optional<bn::sprite_ptr> _portraet;   // Porträt bei „… ist dran“
         double _zeit = 0, _dt = 0, _lade_zeit = 0;
 
         double zahl01() { return _zz.naechste() / 4294967296.0; }
@@ -439,6 +452,8 @@ namespace
                 z.append(" ist dran");
                 if(_text_mitte.size()) { z.append(" - "); z.append(_text_mitte); }   // z. B. Scheibenwechsel
                 melde(t, 96);
+                _portraet = gen::portraets[int(st().sp - gen::alle_spieler)]->create_sprite(0, -44);
+                _portraet->set_z_order(0);
             }
         }
 
@@ -454,7 +469,7 @@ namespace
         // Wie im Browser (passendeStufe): am Abwurf immer die ganze Bahn zeigen
         bool ganze_bahn_am_abwurf() const
         {
-            return ! _putt_modus && st().wuerfe == 0 && (_zustand == zustand::zielen || _zustand == zustand::laden);
+            return ! _putt_modus && (st().wuerfe == 0 || _r.frei) && (_zustand == zustand::zielen || _zustand == zustand::laden);
         }
 
         void naechster_zug()
@@ -464,7 +479,7 @@ namespace
             _kraft = 0;
             _putt_modus = abstand(st().lie, korb()) <= 10;
             if(_putt_modus) { st().scheibe_nr = putter(); }
-            else { passe_scheibe_an(); }
+            else if(! _r.frei) { passe_scheibe_an(); }
             _zustand = _putt_modus ? zustand::putt : zustand::zielen;
             _putt_zeit0 = _zeit;
             _putt_ergebnis = nullptr;
@@ -661,6 +676,8 @@ namespace
             physik::setze_zufall(_wurf_zufall);
             physik::setze_rueckruf(rueckmeldung, this);
             flug_ergebnis.pfad_laenge = 0;
+            _gebremst = 0;
+            ton(bn::sound_items::sfx_wurf);
             physik::wurf g = physik::streue(w);
             physik::simuliere(_b, g, boe(), flug_ergebnis);
             physik::setze_rueckruf(nullptr, nullptr);
@@ -687,6 +704,12 @@ namespace
             }
             int i = 1;
             while(i < fertig_bis - 1 && e.pfad[i].t < _flug_t) { ++i; }
+            if(_gebremst < e.brems_anzahl && i >= e.brems_punkte[_gebremst])
+            {
+                ++_gebremst;
+                ton(bn::sound_items::sfx_ast);
+                melde("ABGEBREMST", 54);
+            }
             const physik::pfadpunkt& a = e.pfad[i - 1];
             const physik::pfadpunkt& b = e.pfad[i];
             const double f = mathe::clamp((_flug_t - a.t) / mathe::max(1e-6, b.t - a.t), 0, 1);
@@ -699,26 +722,97 @@ namespace
         {
             const physik::ergebnis& e = flug_ergebnis;
             if(e.mando == physik::mando_ergebnis::ok || (e.mando == physik::mando_ergebnis::verpasst && _b.m.hat_dropzone)) { st().mando_ok = true; }
+            if(_r.frei)
+            {
+                // Weitwurf: Landepunkt markieren, dann wieder vom Abwurf
+                const physik::punkt abwurf = physik::zu_punkt(_b.abwurf);
+                const double d = abstand(e.lie, abwurf);
+                int& bester = _r.weitester[st().platz];
+                _pause_bis = _uhr_bilder + 90;   // 1,5 s
+                _zustand = zustand::pause;
+                if(e.ob) { ton(bn::sound_items::sfx_ob); melde("OB!"); }
+                else
+                {
+                    const int platz = _marken_neu % marken_max;
+                    _marken_ort[platz] = e.lie;
+                    if(_marken.size() <= platz)
+                    {
+                        bn::sprite_ptr m = bn::sprite_items::figuren.create_sprite(0, 0, f_marke);
+                        m.set_z_order(2);
+                        _marken.push_back(bn::move(m));
+                    }
+                    ++_marken_neu;
+                    const bool best = int(d + 0.5) >= bester;
+                    bester = bn::max(bester, int(d + 0.5));
+                    if(e.drin) { ton(bn::sound_items::sfx_ketten); melde("TREFFER!"); }
+                    else if(e.art == physik::typ::baum) { ton(bn::sound_items::sfx_baum); melde("BAUM!"); }
+                    else if(e.art == physik::typ::mauer) { ton(bn::sound_items::sfx_baum); melde("MAUER!"); }
+                    else
+                    {
+                        ton(bn::sound_items::sfx_landung);
+                        bn::string<24> t;
+                        bn::ostringstream z(t);
+                        z.append(int(d + 0.5));
+                        z.append(best ? " m  BEST!" : " m");
+                        melde(t);
+                    }
+                }
+                st().lie = abwurf;
+                return;
+            }
             st().lie = e.lie;
             _pause_bis = _uhr_bilder + 78;   // 1,3 s
+            // Ruf bei Baum, Mauer, OB oder verpasster Mando (wie flugEnde in index.html)
+            if(! e.drin && (e.art == physik::typ::baum || e.art == physik::typ::mauer || e.ob ||
+                            e.mando == physik::mando_ergebnis::verpasst)) { rufe(); }
             _zustand = zustand::pause;
             if(e.drin)
             {
                 st().fertig = true;
-                melde(e.art == physik::typ::bowling ? "STRIKE!" : "TREFFER!");
+                ton(bn::sound_items::sfx_ketten);
+                zeige_ergebnis(e.art == physik::typ::bowling ? "STRIKE!" : nullptr);
             }
-            else if(e.mando == physik::mando_ergebnis::verpasst) { ++st().wuerfe; melde("MANDO VERPASST! +1"); }
-            else if(e.ob) { ++st().wuerfe; melde("OB! +1"); }
-            else if(e.art == physik::typ::baum) { melde("BAUM!"); }
-            else if(e.art == physik::typ::mauer) { melde("MAUER!"); }
+            else if(e.mando == physik::mando_ergebnis::verpasst) { ++st().wuerfe; ton(bn::sound_items::sfx_ob); melde("MANDO VERPASST! +1"); }
+            else if(e.ob) { ++st().wuerfe; ton(bn::sound_items::sfx_ob); melde("OB! +1"); }
+            else if(e.art == physik::typ::baum) { ton(bn::sound_items::sfx_baum); melde("BAUM!"); }
+            else if(e.art == physik::typ::mauer) { ton(bn::sound_items::sfx_baum); melde("MAUER!"); }
             else
             {
+                ton(bn::sound_items::sfx_landung);
                 bn::string<24> t;
                 bn::ostringstream z(t);
                 z.append(int(e.distanz + 0.5));
                 z.append(" m");
                 melde(t);
             }
+        }
+
+        static void ton(const bn::sound_item& t) { t.play(); }
+
+        // Ruf des Spielers, wenn ein Wurf schiefgeht (wie rufe() in index.html: Aufnahme oder nur Text)
+        void rufe()
+        {
+            const int nr = int(st().sp - gen::alle_spieler);
+            if(gen::ruf_toene[nr]) { ton(*gen::ruf_toene[nr]); }
+        }
+
+        // Ergebnis im Korb wie zeigeErgebnis() in index.html, mit Jubel unter Par
+        void zeige_ergebnis(const char* extra)
+        {
+            const int diff = st().wuerfe - _b.par;
+            bn::string<48> t;
+            bn::ostringstream z(t);
+            if(extra && st().wuerfe > 1) { z.append(extra); z.append(" "); }
+            if(st().wuerfe == 1) { z.append("ACE!!!"); }
+            else if(diff == -3) { z.append("ALBATROS!"); }
+            else if(diff == -2) { z.append("EAGLE!"); }
+            else if(diff == -1) { z.append("BIRDIE!"); }
+            else if(diff == 0) { z.append("PAR"); }
+            else if(diff == 1) { z.append("BOGEY"); }
+            else if(diff == 2) { z.append("DOPPEL-BOGEY"); }
+            else { z.append("+"); z.append(diff); }
+            if(diff < 0) { ton(bn::sound_items::sfx_jubel); }
+            melde(t, 96);
         }
 
         void melde(const bn::string_view& t, int bilder = 78)
@@ -770,6 +864,7 @@ namespace
             _zeile_oben.clear(); _zeile_zwei.clear(); _zeile_unten.clear(); _zeile_mitte.clear();
             _text_oben.clear(); _text_zwei.clear(); _text_unten.clear(); _text_mitte.clear();
             _ende_texte.clear();
+            _portraet.reset();
             _balken.clear();
             _balken_text.clear();
             _kraftmarke.reset();
@@ -865,6 +960,8 @@ namespace
             _putt_ox = o.x;
             _putt_oy = o.y;
             _putt_flug_zeit = _zeit;
+            _putt_ton = false;
+            ton(bn::sound_items::sfx_wurf);
             ++st().wuerfe;
             const double ax = mathe::betrag(o.x), ay = mathe::betrag(o.y);
             constexpr double bx = 12, by = 9;   // KETTEN in index.html
@@ -899,6 +996,7 @@ namespace
         void putt_ende()
         {
             const bool drin = bn::string_view(_putt_ergebnis) == "drin";
+            if(! drin) { rufe(); }
             _putt_ergebnis = nullptr;
             _zeile_mitte.clear();
             _text_mitte.clear();
@@ -913,6 +1011,12 @@ namespace
             const bool im_putt = _zustand == zustand::putt;
             const physik::punkt k = korb();
             _korb.set_position(sx(k.x), sy(k.y));
+            for(int i = 0; i < _marken.size(); ++i)
+            {
+                _marken[i].set_position(sx(_marken_ort[i].x), sy(_marken_ort[i].y));
+                _marken[i].set_visible(! im_putt);
+            }
+
             // alle Spieler, die noch nicht im Korb sind, an ihrer Lage
             for(int i = 0; i < _anzahl; ++i)
             {
@@ -1008,6 +1112,12 @@ namespace
                         if(erg == "hoch") { x = zx + t2 * 10; y = zy + (14 + 98 - zy) * t2; }
                     }
                     setze(*_putt_scheibe, x, y);
+                    if(t > 1 && ! _putt_ton)
+                    {
+                        _putt_ton = true;
+                        const bn::string_view erg(_putt_ergebnis);
+                        ton(erg == "drin" || erg == "spit" ? bn::sound_items::sfx_ketten : bn::sound_items::sfx_landung);
+                    }
                     _putt_scheibe->set_visible(true);
                 }
             }
@@ -1086,10 +1196,19 @@ namespace
                 z.append("   ");
                 if(_b.kurz[0]) { z.append(_b.kurz); }
                 else { z.append("Bahn "); z.append(int(_b.nummer)); }
-                z.append("   Par ");
-                z.append(int(_b.par));
-                z.append("   Wurf ");
-                z.append(st().wuerfe + 1);
+                if(_r.frei)
+                {
+                    z.append("   Weitester: ");
+                    z.append(_r.weitester[st().platz]);
+                    z.append(" m");
+                }
+                else
+                {
+                    z.append("   Par ");
+                    z.append(int(_b.par));
+                    z.append("   Wurf ");
+                    z.append(st().wuerfe + 1);
+                }
                 z.append("   ");
                 z.append(int(abstand(st().lie, k) + 0.5));
                 z.append(" m");
@@ -1141,6 +1260,7 @@ namespace
             setze_text(_text_oben, oben, _zeile_oben, -74);
             setze_text(_text_zwei, zwei, _zeile_zwei, -64);
             setze_text(_text_unten, unten, _zeile_unten, 72);
+            if(_portraet && _uhr_bilder >= _banner_bis) { _portraet.reset(); }
             if(_text_mitte.size() && _uhr_bilder >= _banner_bis && (_zustand == zustand::zielen || _zustand == zustand::putt)
                && ! (_zustand == zustand::putt && _putt_ergebnis))
             {
@@ -1164,6 +1284,7 @@ bool szene_runde(runde_stand& r, unsigned startwert)
         }
         bn::core::update();       // Bitmap-Hintergrund freigeben, bevor die nächste Bahn ihn braucht
         if(! weiter) { return false; }
+        if(r.bahnen > 1 && r.index == r.bahnen - 1) { szene_scorekarte(r); }
 
         // nächste Bahn: wer diese am besten gespielt hat, wirft zuerst (stabil, wie spieler.sort in weiter())
         for(int i = 1; i < r.anzahl; ++i)
@@ -1187,4 +1308,76 @@ void szene_spiel(int bahn_nr, int spieler_nr, unsigned startwert)
     r.erste_bahn = bahn_nr;
     r.bahnen = 1;
     szene_runde(r, startwert);
+}
+
+// Scorekarte: oben die Bahnnummern und Par, darunter je Spieler die Würfe und das Gesamt (±Par).
+// Bis 18 Bahnen in einer Tabelle (8×8-Schrift, eine Zelle je Bahn).
+void szene_scorekarte(const runde_stand& r)
+{
+    bn::bg_palettes::set_transparent_color(bn::color(3, 8, 4));
+    bn::sprite_text_generator text(common::variable_8x8_sprite_font);
+    bn::vector<bn::sprite_ptr, 120> zellen;
+
+    constexpr int name_x = -116, erste_x = -78, gesamt_x = 108;
+    const int spalte = r.bahnen > 15 ? 9 : 11;
+    auto zelle = [&](int x, int y, const bn::string_view& t, bool mitte = true)
+    {
+        if(mitte) { text.set_center_alignment(); } else { text.set_left_alignment(); }
+        if(zellen.size() + 4 < zellen.max_size()) { text.generate(x, y, t, zellen); }
+    };
+
+    text.set_center_alignment();
+    text.generate(0, -70, "SCOREKARTE", zellen);
+    zelle(name_x, -52, "Bahn", false);
+    zelle(name_x, -40, "Par", false);
+    zelle(gesamt_x, -52, "Ges.");
+    int par_summe = 0;
+    for(int k = 0; k < r.bahnen; ++k)
+    {
+        const daten::bahn& b = gen::bahnen[r.erste_bahn + k];
+        par_summe += b.par;
+        bn::string<8> n, p;
+        bn::ostringstream zn(n), zp(p);
+        zn.append(k + 1);
+        zp.append(int(b.par));
+        zelle(erste_x + k * spalte, -52, n);
+        zelle(erste_x + k * spalte, -40, p);
+    }
+    {
+        bn::string<8> p;
+        bn::ostringstream z(p);
+        z.append(par_summe);
+        zelle(gesamt_x, -40, p);
+    }
+
+    for(int i = 0; i < r.anzahl; ++i)
+    {
+        const int y = -22 + i * 14;
+        zelle(name_x, y, gen::alle_spieler[r.spieler[i]].name, false);
+        int summe = 0;
+        for(int k = 0; k < r.bahnen; ++k)
+        {
+            const int w = r.karte[i][k];
+            summe += w;
+            bn::string<8> t;
+            bn::ostringstream z(t);
+            z.append(w);
+            zelle(erste_x + k * spalte, y, t);
+        }
+        bn::string<16> g;
+        bn::ostringstream z(g);
+        z.append(summe);
+        const int d = summe - par_summe;
+        z.append(d == 0 ? " E" : d > 0 ? " +" : " ");
+        if(d != 0) { z.append(d); }
+        zelle(gesamt_x, y, g);
+    }
+    text.set_center_alignment();
+    text.generate(0, 70, "A: weiter", zellen);
+
+    bn::core::update();
+    while(! bn::keypad::a_pressed() && ! bn::keypad::b_pressed() && ! bn::keypad::start_pressed())
+    {
+        bn::core::update();
+    }
 }

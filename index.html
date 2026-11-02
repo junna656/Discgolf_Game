@@ -162,7 +162,12 @@
     height: min(calc(100vh - 200px), calc((100vw - 24px) * 16 / 9));
     height: min(calc(100dvh - 200px), calc((100vw - 24px) * 16 / 9));
   }
-  @media (max-width: 860px) {
+  /* Touch-Geräte (Handy und Tablet): kein Markieren/Kopieren-Menü beim langen Drücken */
+  @media (pointer: coarse) {
+    .rahmen, .tabs, button, canvas { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  }
+  /* Kompakte Ansicht (Spielfeld + Leiste unten, Menü als zweite Ansicht): Handy und alle Touch-Geräte */
+  @media (max-width: 860px), (pointer: coarse) {
     .rahmen { flex-direction: column; align-items: stretch; padding: 8px 12px 84px; gap: 8px; }
     .seite { width: 100%; gap: 8px; }
     .hilfe { display: none; }
@@ -188,6 +193,24 @@
     .tabs button { font-size: 15px; }
     canvas { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   }
+  /* Touch quer (z. B. iPad 4:3): Spielfeld so groß, dass Wurf-Knöpfe und Leiste darunter noch passen – unverzerrt */
+  @media (pointer: coarse) and (min-width: 861px) and (orientation: landscape) {
+    body[data-ansicht="feld"] #feldrahmen canvas { width: auto; max-width: none; margin: 0 auto;
+      height: min(calc(100vh - 250px), calc((100vw - 24px) * 9 / 16));
+      height: min(calc(100dvh - 250px), calc((100vw - 24px) * 9 / 16)); }
+  }
+  /* Breite Tablets quer (ab 16:10): Wurf-Knöpfe rechts neben dem Feld */
+  @media (pointer: coarse) and (min-width: 861px) and (orientation: landscape) and (min-aspect-ratio: 16/10) {
+    body[data-ansicht="feld"] .rahmen { flex-direction: row; align-items: flex-start; max-width: none; }
+    body[data-ansicht="feld"] .spielfeld { flex: 1; min-width: 0; }
+    /* Höhe = kleinere von Bildschirmhöhe und Breite·9/16, Breite folgt dem Seitenverhältnis – nie verzerrt */
+    body[data-ansicht="feld"] #feldrahmen canvas { width: auto; max-width: none; margin: 0 auto;
+      height: min(calc(100vh - 110px), calc((100vw - 300px) * 9 / 16));
+      height: min(calc(100dvh - 110px), calc((100vw - 300px) * 9 / 16)); }
+    body[data-ansicht="feld"] .seite { width: 230px; }
+    body[data-ansicht="feld"] #winkelbox .knoepfe, body[data-ansicht="feld"] #puttbox .knoepfe { flex-wrap: wrap; }
+    body[data-ansicht="feld"] #winkelbox .knoepfe button, body[data-ansicht="feld"] #puttbox .knoepfe button { flex: 1 1 100%; padding: 14px 4px; }
+  }
 </style>
 </head>
 <body data-ansicht="feld">
@@ -195,7 +218,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.4.0</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.4.1</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -461,10 +484,10 @@
   <button data-ansicht="feld" class="zum-spiel">← Zurück zum Spiel</button>
 </nav>
 
-<script src="taschen.js?v=0.4.0"></script>
-<script src="bahnen.js?v=0.4.0"></script>
-<script src="physik.js?v=0.4.0"></script>
-<script src="portraets.js?v=0.4.0"></script>
+<script src="taschen.js?v=0.4.1"></script>
+<script src="bahnen.js?v=0.4.1"></script>
+<script src="physik.js?v=0.4.1"></script>
+<script src="portraets.js?v=0.4.1"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -483,7 +506,7 @@ let kamera = null, kx = 0, ky = 0;
 let zoomManuell = null, umsehen = false, zieh = null;
 // Handy hochkant: Bahn um 90° drehen (Abwurf unten, Korb oben). SW/SH = Bildschirmgröße in Pixeln
 let hochkant = false, SW = W, SH = H;
-const hochMQ = matchMedia("(max-width: 860px) and (orientation: portrait)");
+const hochMQ = matchMedia("(max-width: 860px) and (orientation: portrait), (pointer: coarse) and (orientation: portrait)");
 function pruefeAusrichtung() {
   hochkant = hochMQ.matches;
   SW = hochkant ? H : W;
@@ -1123,7 +1146,7 @@ function zeichneSprechblase() {
   ctx.fillStyle = PAL.schwarz; ctx.fillRect(zx, y + bh, 4, 1); ctx.fillRect(zx, y + bh + 1, 3, 1); ctx.fillRect(zx, y + bh + 2, 2, 1);
   ctx.fillStyle = PAL.weiss; ctx.fillRect(zx + 1, y + bh, 2, 1); ctx.fillRect(zx + 1, y + bh + 1, 1, 1);
   ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillStyle = "#c8281c";
-  zeilen.forEach((z, i) => ctx.fillText(z, x + 4, y + 3 + i * 9));
+  zeilen.forEach((z, i) => text(z, x + 4, y + 3 + i * 9, "#c8281c", "left", 8, false));
 }
 
 // ---------- Putt-Modus ----------
@@ -1200,14 +1223,46 @@ function puttEnde() {
 }
 
 // ---------- Zeichnen ----------
-function text(t, x, y, farbe = PAL.weiss, ausr = "left", gr = 8) {
-  ctx.font = gr + "px Silkscreen";
-  ctx.textAlign = ausr;
-  ctx.textBaseline = "top";
-  ctx.fillStyle = PAL.schwarz;
-  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) ctx.fillText(t, x + dx, y + dy);
-  ctx.fillStyle = farbe;
-  ctx.fillText(t, x, y);
+// Scharfe Pixelschrift: Text einmal klein vorzeichnen, Kantenglättung wegschneiden (nur ganze Pixel),
+// mit schwarzem Rand einfärben und zwischenspeichern – sonst verschmiert die Schrift beim Hochskalieren
+const textSpeicher = new Map();
+function textBild(t, gr, farbe, rand) {
+  const key = t + "|" + gr + "|" + farbe + "|" + rand;
+  let b = textSpeicher.get(key);
+  if (b) return b;
+  if (textSpeicher.size > 600) textSpeicher.clear();
+  const m = document.createElement("canvas"), mc = m.getContext("2d");
+  mc.font = gr + "px Silkscreen";
+  const w = Math.ceil(mc.measureText(t).width) + 4, h = Math.ceil(gr * 1.5) + 4;
+  m.width = w; m.height = h;
+  mc.font = gr + "px Silkscreen"; mc.textBaseline = "top"; mc.fillStyle = "#fff";
+  mc.fillText(t, 2, 2);
+  const d = mc.getImageData(0, 0, w, h), px = d.data;
+  for (let i = 3; i < px.length; i += 4) px[i] = px[i] >= 110 ? 255 : 0;
+  mc.putImageData(d, 0, 0);
+  const faerbe = f => {
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const cc = c.getContext("2d"); cc.drawImage(m, 0, 0);
+    cc.globalCompositeOperation = "source-in"; cc.fillStyle = f; cc.fillRect(0, 0, w, h);
+    return c;
+  };
+  const c = document.createElement("canvas"); c.width = w + 2; c.height = h + 2;
+  const cc = c.getContext("2d");
+  if (rand) { const s = faerbe(PAL.schwarz); for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) cc.drawImage(s, 1 + dx, 1 + dy); }
+  cc.drawImage(faerbe(farbe), 1, 1);
+  b = { c, w: w - 4 };
+  textSpeicher.set(key, b);
+  return b;
+}
+// erst wenn die Pixelschrift geladen ist, stimmen die vorgezeichneten Texte
+if (document.fonts) { document.fonts.ready.then(() => textSpeicher.clear()); document.fonts.addEventListener("loadingdone", () => textSpeicher.clear()); }
+function text(t, x, y, farbe = PAL.weiss, ausr = "left", gr = 8, rand = true) {
+  t = String(t);
+  ctx.font = gr + "px Silkscreen"; // für measureText an anderen Stellen
+  if (!t) return;
+  const b = textBild(t, gr, farbe, rand);
+  const links = ausr === "center" ? x - b.w / 2 : ausr === "right" ? x - b.w : x;
+  ctx.drawImage(b.c, Math.round(links) - 3, Math.round(y) - 3);
 }
 
 function zeichneKorbOben(wackel) {
@@ -1321,7 +1376,8 @@ function zeichneKraftbalken() {
 
 function zeichneScheibe(p, dreht = false) {
   const { x, y } = zuSchirm(p), hz = Math.round(p.z * S * 0.6);
-  ctx.fillStyle = PAL.schatten; ctx.fillRect(x - 2, y, 5, 1);
+  // Schatten am Boden: zeigt, wo die Scheibe wirklich ist (die Scheibe selbst ist um die Flughöhe versetzt)
+  ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(x - 3, y - 1, 7, 3); ctx.fillRect(x - 2, y - 2, 5, 5);
   const f = TYPFARBE[scheibe().typ] || PAL.weiss, oy = y - hz - 1;
   ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 3, oy - 1, 7, 3); ctx.fillRect(x - 2, oy - 2, 5, 5);
   ctx.fillStyle = f; ctx.fillRect(x - 2, oy - 1, 5, 3); ctx.fillRect(x - 1, oy - 1, 3, 3);
@@ -1569,6 +1625,26 @@ function schleife(jetzt) {
       flug.gebremst++;
       sfx.ast();
       zeigeBanner("ABGEBREMST", "#9be07a", 0.9, 8);
+    }
+    // Blätter in der Krone: viele beim Abprallen, mittel beim Abbremsen, wenige beim Durchfliegen
+    flug.blaetter = flug.blaetter || [];
+    flug.blattFertig = flug.blattFertig || new Set();
+    const blattStellen = [...(e.typ === "baum" && e.baumIndex >= 0 ? [[e.baumIndex, 16, 1.6]] : []),
+      ...(e.bremsPunkte || []).map(i => [i, 9, 1.1]), ...(e.durchPunkte || []).map(i => [i, 4, 0.7])];
+    for (const [i, anzahl, tempo] of blattStellen) {
+      if (flug.blattFertig.has(i) || fp.i < i) continue;
+      flug.blattFertig.add(i);
+      const q = e.pfad[i];
+      flug.blaetter.push({ t0: uhr, x: q.x, y: q.y, z: q.z, teile: Array.from({ length: anzahl }, () => ({ a: Math.random() * Math.PI * 2, v: (0.4 + Math.random()) * tempo })) });
+    }
+    for (const bl of flug.blaetter) {
+      const dt = uhr - bl.t0;
+      if (dt > 0.8) continue;
+      const c = zuSchirm(bl), hz = Math.round(bl.z * S * 0.6);
+      for (const [n, tl] of bl.teile.entries()) {
+        ctx.fillStyle = n % 3 ? "#7cd86a" : "#3d8a35";
+        ctx.fillRect(Math.round(c.x + Math.cos(tl.a) * tl.v * dt * S * 3), Math.round(c.y - hz + Math.sin(tl.a) * tl.v * dt * S * 3 + dt * dt * 20), 2, 2);
+      }
     }
     if (e.mando === "verpasst" && !flug.mandoGezeigt && fp.i >= e.mandoIndex && modus !== "frei") {
       flug.mandoGezeigt = true;
@@ -2236,6 +2312,7 @@ const DEV_REGLER = [
   ["baumAbprallen", "Abprallen (Anteil)", 0, 1, 0.05],
   ["baumBremsen", "Abbremsen (Anteil)", 0, 1, 0.05],
   ["kick", "Kick nach Abprall", 0, 3, 0.1],
+  ["baumRadius", "Treffer-Radius der Krone (Anteil)", 0.4, 1, 0.05],
   ["Thomas' Ruf", null],
   ["rufAbStreuung", "ruft ab Abweichung (°)", 1, 20, 1],
 ];
@@ -2317,6 +2394,6 @@ requestAnimationFrame(schleife);
 // Als App installierbar / offline startbar
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => { /* egal */ });
 </script>
-<script src="mehrspieler.js?v=0.4.0"></script>
+<script src="mehrspieler.js?v=0.4.1"></script>
 </body>
 </html>

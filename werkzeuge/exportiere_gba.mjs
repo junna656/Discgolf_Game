@@ -297,6 +297,38 @@ ${BAHNEN.map((b, i) => `        &bn::palette_bitmap_items::uebersicht_${nn(i)},`
 }
 
 // ============================================================
+//  Porträts, Töne, Rufe  →  gen_medien.h  (Dateien selbst: werkzeuge/rendere_gba.mjs)
+// ============================================================
+{
+  const basis = d => d.split("/").pop().replace(/\.[^.]+$/, "").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+  dateien["gen_medien.h"] = `${KOPF}// Porträts (portraets.js), Töne (sfx in index.html) und Rufe (taschen.js) – nur für den GBA-Build
+#ifndef GEN_MEDIEN_H
+#define GEN_MEDIEN_H
+
+${SPIELER.map((sp, i) => `#include "bn_sprite_items_portraet_${i}.h"`).join("\n")}
+#include "bn_sound_items.h"
+
+namespace gen
+{
+    // je Spieler (Reihenfolge wie alle_spieler)
+    constexpr const bn::sprite_item* portraets[] = {
+${SPIELER.map((sp, i) => `        &bn::sprite_items::portraet_${i},`).join("\n")}
+    };
+
+    // Ruf, wenn ein Wurf schiefgeht (ruf/rufDatei in taschen.js); ohne Aufnahme nur als Text
+    constexpr const char* ruf_texte[] = {
+${SPIELER.map(sp => `        ${str(sp.ruf || "", "Ruf " + sp.name)},`).join("\n")}
+    };
+    constexpr const bn::sound_item* ruf_toene[] = {
+${SPIELER.map(sp => `        ${sp.rufDatei ? `&bn::sound_items::ruf_${basis(sp.rufDatei)}` : "nullptr"},`).join("\n")}
+    };
+}
+
+#endif
+`;
+}
+
+// ============================================================
 //  Prüfwerte für tests/gba/daten_test.cpp (aus den JS-Daten berechnet)
 // ============================================================
 {

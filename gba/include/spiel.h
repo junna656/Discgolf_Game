@@ -14,10 +14,15 @@ struct runde_stand
     int bahnen = 1;                     // Anzahl Bahnen der Runde
     int index = 0;                      // aktuelle Bahn (0 .. bahnen - 1)
     int karte[max_spieler][max_bahnen] = {};   // Würfe je Platz und Bahn (Scorekarte)
+    bool frei = false;                  // Freies Werfen: Weiten testen, ohne Zählen (modus "frei")
+    int weitester[max_spieler] = {};    // Freies Werfen: weitester Wurf je Platz (Meter)
 };
 
 // Spielt eine ganze Runde. false = mit START abgebrochen.
 bool szene_runde(runde_stand& r, unsigned startwert);
+
+// Scorekarte einer Runde: alle Bahnen, Würfe je Spieler, Gesamt (±Par)
+void szene_scorekarte(const runde_stand& r);
 
 // Eine einzelne Bahn mit einem Spieler (Bahnauswahl)
 void szene_spiel(int bahn_nr, int spieler_nr, unsigned startwert);

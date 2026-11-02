@@ -10,3 +10,6 @@ graphics/uebersicht_*.bmp
 graphics/uebersicht_*.json
 graphics/putt_ansicht.bmp
 graphics/putt_ansicht.json
+audio/*.wav
+graphics/portraet_*.bmp
+graphics/portraet_*.json
