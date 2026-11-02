@@ -31,6 +31,8 @@
   const STANDARD = { winkel: 1.7, turn: 1.6, fade: 1.6, weite: 0.9, streuung: 1, wind: 0.7, tempo: 0.75, kick: 1.1, zoomStufe: 3,
     // Baum in der Krone: so oft prallt die Scheibe ab bzw. wird abgebremst – der Rest fliegt durch eine Lücke
     baumAbprallen: 0.45, baumBremsen: 0.3,
+    // Anteil der gezeichneten Krone, der als Treffer zählt (der äußere Blätterrand nicht)
+    baumRadius: 0.8,
     // ab welchem Anteil des Flugs der Fade einsetzt (0.5 = ab der Hälfte)
     fadeStart: 0.5,
     // Rundung des Fades: 0 = Haken ganz am Ende (eng), 1 = Fade verteilt sich über die Strecke (großer Radius)
@@ -190,7 +192,8 @@
     let ereignis = null;
     const gepruefteBaeume = new Set();
     let brems = 1;               // < 1, nachdem Äste die Scheibe abgebremst haben
-    const bremsPunkte = [];      // Pfad-Stellen, an denen gebremst wurde (für Geräusch/Anzeige)
+    const bremsPunkte = [];
+    let baumIndex = -1;          // Pfad-Stelle, an der die Scheibe in eine Krone prallt      // Pfad-Stellen, an denen gebremst wurde (für Geräusch/Anzeige)
 
     // Fade-Gewicht pro Schritt: Form ab fadeStart, mit fadeRund nach zurückgelegter Strecke statt nach Zeit gewichtet
     // (die Scheibe wird langsamer – nach Zeit gewichtet entsteht am Ende ein enger Haken). Summe wie bisher 0,22·N.
@@ -233,11 +236,11 @@
           const baum = bahn.baeume[b];
           if (gepruefteBaeume.has(b)) continue;
           if (abstand(baum, wurf) < 5) continue; // Baum steht direkt am Abwurfpunkt: ganz ignorieren
-          if (abstand(p, baum) < baum.r && z < (baum.h || 9)) {
+          if (abstand(p, baum) < baum.r * E.baumRadius && z < (baum.h || 9)) {
             gepruefteBaeume.add(b);
             // drei Möglichkeiten: abprallen, abbremsen (fliegt langsamer weiter) oder durch eine Lücke
             const w = zufall();
-            if (w < E.baumAbprallen) { ereignis = { typ: "baum", baum }; break flug; }
+            if (w < E.baumAbprallen) { ereignis = { typ: "baum", baum }; baumIndex = pfad.length - 1; break flug; }
             if (w < E.baumAbprallen + E.baumBremsen) { brems *= 0.35 + zufall() * 0.25; bremsPunkte.push(pfad.length - 1); }
           }
         }
@@ -356,7 +359,7 @@
       }
     }
 
-    return { pfad, lie, drin, ob, obIndex, mando, mandoIndex, typ, bremsPunkte, dauer: t, distanz: abstand(lie, wurf) };
+    return { pfad, lie, drin, ob, obIndex, mando, mandoIndex, typ, baumIndex, bremsPunkte, dauer: t, distanz: abstand(lie, wurf) };
   }
 
   g.Physik = { erzeugeZufall, setzeZufall, mauerTreffer, kraftFaktor, kraftFuer, simuliere, streue, gauss, abstand, istOB, obZone, imPolygon, seiteVonLinie, aufBowlingbahn, DEG, einstellungen: E, STANDARD, reichweite };

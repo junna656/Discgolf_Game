@@ -376,7 +376,8 @@ namespace physik
             c.x = zahl(baum.p.x);
             c.y = zahl(baum.p.y);
             const double r = zahl(baum.r);
-            c.r2 = r * r;
+            const double rt = r * gen::einstellungen::baum_radius;   // Treffer-Radius (wie physik.js: baum.r * E.baumRadius)
+            c.r2 = rt * rt;
             c.h = zahl(baum.h);
             if(c.h == 0) { c.h = 9; }
             c.x0 = abrunden(c.x - r) - 1;
