@@ -29,7 +29,9 @@
   // Stellschrauben für die Entwicklung (im Spiel unter "Einstellungen" änderbar)
   const STANDARD = { winkel: 1.6, turn: 1.5, fade: 1.5, weite: 1, streuung: 1, wind: 1, tempo: 0.55, kick: 1, zoomStufe: 3,
     // Baum in der Krone: so oft prallt die Scheibe ab bzw. wird abgebremst – der Rest fliegt durch eine Lücke
-    baumAbprallen: 0.45, baumBremsen: 0.3 };
+    baumAbprallen: 0.45, baumBremsen: 0.3,
+    // ab welchem Anteil des Flugs der Fade einsetzt (0.45 = nach knapp der Hälfte)
+    fadeStart: 0.45 };
   const E = Object.assign({}, STANDARD);
   const abstand = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -192,7 +194,9 @@
       u = i / N;
       const ds = D * (f(u) - f(u0)) * brems;
       const wT = u < 0.75 ? Math.sin(Math.PI * u / 0.75) : 0;
-      const wF = u > 0.45 ? Math.pow((u - 0.45) / 0.55, 1.5) : 0;
+      // Fade setzt ab E.fadeStart ein; normiert, damit früher/später nur den Zeitpunkt ändert, nicht die Gesamtstärke
+      const fs = clamp(E.fadeStart, 0.05, 0.95), fadeNorm = 0.22 / ((1 - fs) / 2.5);
+      const wF = u > fs ? Math.pow((u - fs) / (1 - fs), 1.5) * fadeNorm : 0;
       th += seite * (turnK * wT - fadeK * wF + winkK * (1 - 0.5 * u)) / N;
       // höchstens 80° von der Abwurfrichtung weg: die Scheibe fliegt nie rückwärts
       th = wurf.richtung + clamp(th - wurf.richtung, -80 * DEG, 80 * DEG);
