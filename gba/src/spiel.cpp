@@ -91,6 +91,7 @@ namespace
     double flug_tempo() { return opt().flug / 100.0; }
     double pendel_tempo() { return opt().pendel / 100.0; }
     double ziel_tempo() { return opt().zielen / 100.0; }
+    double putt_tempo() { return opt().putt / 100.0; }
 
     class spiel
     {
@@ -193,10 +194,14 @@ namespace
         void bild()
         {
             ++_uhr_bilder;
+            // Spielzeit nach der echten Uhr (wie uhr += dt in index.html, höchstens 0,05 s je Bild):
+            // dauert ein Bild länger (Kamera, Berechnung), läuft die Animation trotzdem gleich schnell
+            _dt = mathe::min(0.05, double(_echt.elapsed_ticks_with_restart()) / bn::timers::ticks_per_second());
+            _zeit += _dt;
             if(_zustand == zustand::laden)
             {
                 // wie schleife() in index.html: Kraft pendelt in 1,1 s hoch und wieder herunter
-                const double ph = mathe_mod(double(_uhr_bilder - _lade_start) / 60 * pendel_tempo() / 1.1, 2);
+                const double ph = mathe_mod((_zeit - _lade_zeit) * pendel_tempo() / 1.1, 2);
                 _kraft = ph < 1 ? ph : 2 - ph;
             }
             if(_zustand == zustand::flug) { flug_weiter(); }
@@ -238,8 +243,10 @@ namespace
                 int zx, zy;
                 kamera_ziel(zx, zy);
                 int nx = _kam_x + (zx - _kam_x) / 6, ny = _kam_y + (zy - _kam_y) / 6;
-                if(bn::abs(zx - _kam_x) < 6 || _umsehen) { nx = zx; }
-                if(bn::abs(zy - _kam_y) < 6 || _umsehen) { ny = zy; }
+                // im Flug ohne Nachziehen: die Kamera folgt sofort, sobald die Scheibe am Rand ist
+                const bool sofort = _umsehen || _zustand == zustand::flug;
+                if(bn::abs(zx - _kam_x) < 6 || sofort) { nx = zx; }
+                if(bn::abs(zy - _kam_y) < 6 || sofort) { ny = zy; }
                 nx &= ~1;
                 if(nx != _kam_x || ny != _kam_y) { _kam_x = nx; _kam_y = ny; _blit = 2; }
                 if(_blit > 0)
@@ -304,7 +311,7 @@ namespace
         static constexpr int uebersicht_oben = 12;
         bool _umsehen = false, _uebersicht = false;
         int _frei_x = 0, _frei_y = 0, _halten_umsehen = 0;
-        int _uhr_bilder = 0, _lade_start = 0, _pause_bis = 0, _halten_links = 0, _halten_rechts = 0;
+        int _uhr_bilder = 0, _pause_bis = 0, _halten_links = 0, _halten_rechts = 0;
         physik::wind _wind;
         int _winkel = 0;
         bool _putt_modus = false, _push = false;
@@ -322,11 +329,12 @@ namespace
         double _flug_z = 0;
 
         // Putt
-        int _putt_start = 0;
         physik::punkt _putt_lie = { 0, 0 };
         const char* _putt_ergebnis = nullptr;
         double _putt_ox = 0, _putt_oy = 0;   // Fadenkreuz beim Putten (Web-Pixel um die Ketten)
-        int _putt_flug_start = 0;
+        double _putt_flug_zeit = 0, _putt_zeit0 = 0;
+        bn::timer _echt;            // echte Zeit seit dem letzten Bild
+        double _zeit = 0, _dt = 0, _lade_zeit = 0;
 
         double zahl01() { return _zz.naechste() / 4294967296.0; }
 
@@ -373,7 +381,22 @@ namespace
                 return;
             }
             double mx, my;
-            if(_zustand == zustand::flug) { mx = _flug_pos.x; my = _flug_pos.y; }
+            if(_zustand == zustand::flug)
+            {
+                // wie im Browser: im Flug steht die Kamera, sie schiebt nur mit, wenn die Scheibe
+                // aus dem Bild fliegen würde (spart das Umkopieren des ganzen Bildes in jedem Bild)
+                constexpr int rand_x = 56, rand_y = 40;
+                const int px = int(_flug_pos.x * _px_pro_m), py = int(_flug_pos.y * _px_pro_m);
+                x = _kam_x;
+                y = _kam_y;
+                if(px - x < rand_x) { x = px - rand_x; }
+                if(px - x > schirm_breite - rand_x) { x = px - (schirm_breite - rand_x); }
+                if(py - y < rand_y) { y = py - rand_y; }
+                if(py - y > schirm_hoehe - rand_y) { y = py - (schirm_hoehe - rand_y); }
+                x = bn::max(0, bn::min(x, bild_breite - schirm_breite));
+                y = bn::max(0, bn::min(y, bild_hoehe - schirm_hoehe));
+                return;
+            }
             else if(_zustand == zustand::zielen || _zustand == zustand::laden)
             {
                 // etwas in Wurfrichtung vorausschauen
@@ -443,7 +466,7 @@ namespace
             if(_putt_modus) { st().scheibe_nr = putter(); }
             else { passe_scheibe_an(); }
             _zustand = _putt_modus ? zustand::putt : zustand::zielen;
-            _putt_start = _uhr_bilder;
+            _putt_zeit0 = _zeit;
             _putt_ergebnis = nullptr;
             setze_uebersicht(ganze_bahn_am_abwurf());
         }
@@ -545,7 +568,7 @@ namespace
                     else { _frei_x = _kam_x; _frei_y = _kam_y; }
                     _umsehen = true;
                 }
-                if(bn::keypad::a_pressed()) { _zustand = zustand::laden; _lade_start = _uhr_bilder; _kraft = 0; }
+                if(bn::keypad::a_pressed()) { _zustand = zustand::laden; _lade_zeit = _zeit; _kraft = 0; }
                 break;
             }
             case zustand::laden:
@@ -650,7 +673,7 @@ namespace
             const physik::ergebnis& e = flug_ergebnis;
             const int fertig_bis = _rechnet ? e.pfad_laenge - 1 : e.pfad_laenge;   // endgültige Punkte
             if(fertig_bis < 2) { return; }
-            const double t_neu = _flug_t + gen::einstellungen::tempo * flug_tempo() / 60;
+            const double t_neu = _flug_t + gen::einstellungen::tempo * flug_tempo() * _dt;
             // nicht über die schon gerechneten Punkte hinaus
             if(_rechnet && t_neu > e.pfad[fertig_bis - 1].t) { return; }
             _flug_t = t_neu;
@@ -833,14 +856,15 @@ namespace
                      A * 0.75 * mathe::sin(t * 2.9 * w + 2) + A * 0.3 * mathe::sin(t * 5.1 * w) };
         }
 
-        double putt_zeit() const { return double(_uhr_bilder - _putt_start) / 60; }
+        // Zeit für das Wackeln des Fadenkreuzes; Einstellung „Putt-Fadenkreuz“ macht es schneller
+        double putt_zeit() const { return (_zeit - _putt_zeit0) * putt_tempo(); }
 
         void putten()
         {
             const versatz o = putt_wackel(putt_zeit());
             _putt_ox = o.x;
             _putt_oy = o.y;
-            _putt_flug_start = _uhr_bilder;
+            _putt_flug_zeit = _zeit;
             ++st().wuerfe;
             const double ax = mathe::betrag(o.x), ay = mathe::betrag(o.y);
             constexpr double bx = 12, by = 9;   // KETTEN in index.html
@@ -965,7 +989,7 @@ namespace
                 else
                 {
                     _fadenkreuz->set_visible(false);
-                    const double t = double(_uhr_bilder - _putt_flug_start) / 60 / 0.45;
+                    const double t = (_zeit - _putt_flug_zeit) / 0.45;
                     const double zx = web_kx + _putt_ox, zy = web_ky + _putt_oy;
                     constexpr double start_y = 14 + 146 - 10;   // by + bh - 10
                     double x, y;

@@ -7,6 +7,7 @@ struct optionen
     int flug = 100;     // Fluggeschwindigkeit in % (100 = wie im Browser)
     int pendel = 65;    // Kraftpendel in % (100 = wie im Browser, 1,1 s je Ausschlag)
     int zielen = 100;   // Drehen beim Halten von ▲▼ in % (100 ≈ 24°/s wie im Browser)
+    int putt = 150;     // Wackeln des Putt-Fadenkreuzes in % (100 = wie im Browser)
 };
 
 optionen& opt();

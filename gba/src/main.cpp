@@ -86,14 +86,18 @@ namespace
             s.starts = 0;
         }
 
-        // Einstellungen: fehlen oder unsinnig → Standard
-        const optionen& o = s.werte;
-        if(s.optionen_da != optionen_kennung || o.flug < 30 || o.flug > 200 || o.pendel < 30 || o.pendel > 200 ||
-           o.zielen < 30 || o.zielen > 200)
+        // Einstellungen: fehlen → Standard; einzelne unsinnige Werte (z. B. neu hinzugekommene) → Standard
+        if(s.optionen_da != optionen_kennung)
         {
             s.optionen_da = optionen_kennung;
             s.werte = optionen();
         }
+        const optionen standard;
+        auto pruefe = [](int& wert, int vorgabe) { if(wert < 30 || wert > 200) { wert = vorgabe; } };
+        pruefe(s.werte.flug, standard.flug);
+        pruefe(s.werte.pendel, standard.pendel);
+        pruefe(s.werte.zielen, standard.zielen);
+        pruefe(s.werte.putt, standard.putt);
 
         ++s.starts;
         bn::sram::write(s);
@@ -150,8 +154,9 @@ void szene_einstellungen()
         { "Fluggeschwindigkeit", &o.flug, optionen().flug },
         { "Kraftpendel", &o.pendel, optionen().pendel },
         { "Zielen (Drehen)", &o.zielen, optionen().zielen },
+        { "Putt-Fadenkreuz", &o.putt, optionen().putt },
     };
-    constexpr int anzahl = 3;
+    constexpr int anzahl = 4;
     int wahl = 0;
     bool neu = true;
     bn::vector<bn::sprite_ptr, 48> zeilen;
@@ -177,14 +182,14 @@ void szene_einstellungen()
                 z.append(i == wahl ? ":   < " : ":     ");
                 z.append(*eintraege[i].wert);
                 z.append(i == wahl ? " % >" : " %  ");
-                (i == wahl ? gross : klein).generate(0, -38 + i * 22, zeile, zeilen);
+                (i == wahl ? gross : klein).generate(0, -44 + i * 19, zeile, zeilen);
             }
             bn::string<48> hinweis;
             bn::ostringstream z(hinweis);
             z.append("SELECT: Standard (");
             z.append(eintraege[wahl].standard);
             z.append(" %)");
-            klein.generate(0, 30, hinweis, zeilen);
+            klein.generate(0, 34, hinweis, zeilen);
         }
         bn::core::update();
     }
