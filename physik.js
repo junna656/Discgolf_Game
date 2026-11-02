@@ -27,11 +27,12 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   // Stellschrauben für die Entwicklung (im Spiel unter "Einstellungen" änderbar)
-  const STANDARD = { winkel: 1.6, turn: 1.5, fade: 1.5, weite: 1, streuung: 1, wind: 1, tempo: 0.55, kick: 1, zoomStufe: 3,
+  // abgestimmt in der Vorschau (02.11.2026)
+  const STANDARD = { winkel: 1.7, turn: 1.6, fade: 1.6, weite: 0.9, streuung: 1, wind: 0.7, tempo: 0.75, kick: 1.1, zoomStufe: 3,
     // Baum in der Krone: so oft prallt die Scheibe ab bzw. wird abgebremst – der Rest fliegt durch eine Lücke
     baumAbprallen: 0.45, baumBremsen: 0.3,
-    // ab welchem Anteil des Flugs der Fade einsetzt (0.45 = nach knapp der Hälfte)
-    fadeStart: 0.45,
+    // ab welchem Anteil des Flugs der Fade einsetzt (0.5 = ab der Hälfte)
+    fadeStart: 0.5,
     // Rundung des Fades: 0 = Haken ganz am Ende (eng), 1 = Fade verteilt sich über die Strecke (großer Radius)
     fadeRund: 1 };
   const E = Object.assign({}, STANDARD);
