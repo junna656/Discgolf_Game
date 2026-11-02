@@ -162,7 +162,12 @@
     height: min(calc(100vh - 200px), calc((100vw - 24px) * 16 / 9));
     height: min(calc(100dvh - 200px), calc((100vw - 24px) * 16 / 9));
   }
-  @media (max-width: 860px) {
+  /* Touch-Geräte (Handy und Tablet): kein Markieren/Kopieren-Menü beim langen Drücken */
+  @media (pointer: coarse) {
+    .rahmen, .tabs, button, canvas { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  }
+  /* Kompakte Ansicht (Spielfeld + Leiste unten, Menü als zweite Ansicht): Handy und alle Touch-Geräte */
+  @media (max-width: 860px), (pointer: coarse) {
     .rahmen { flex-direction: column; align-items: stretch; padding: 8px 12px 84px; gap: 8px; }
     .seite { width: 100%; gap: 8px; }
     .hilfe { display: none; }
@@ -187,6 +192,15 @@
     #winkelbox .knoepfe button, #puttbox .knoepfe button { font-size: 13px; }
     .tabs button { font-size: 15px; }
     canvas { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  }
+  /* Tablet quer: Spielfeld links so groß wie möglich, Wurf-Knöpfe rechts daneben, Leiste unten */
+  @media (pointer: coarse) and (min-width: 861px) and (orientation: landscape) {
+    body[data-ansicht="feld"] .rahmen { flex-direction: row; align-items: flex-start; max-width: none; }
+    body[data-ansicht="feld"] .spielfeld { flex: 1; min-width: 0; }
+    body[data-ansicht="feld"] #feldrahmen canvas { width: auto; max-width: 100%; height: calc(100dvh - 110px); margin: 0 auto; }
+    body[data-ansicht="feld"] .seite { width: 230px; }
+    body[data-ansicht="feld"] #winkelbox .knoepfe, body[data-ansicht="feld"] #puttbox .knoepfe { flex-wrap: wrap; }
+    body[data-ansicht="feld"] #winkelbox .knoepfe button, body[data-ansicht="feld"] #puttbox .knoepfe button { flex: 1 1 100%; padding: 14px 4px; }
   }
 </style>
 </head>
@@ -483,7 +497,7 @@ let kamera = null, kx = 0, ky = 0;
 let zoomManuell = null, umsehen = false, zieh = null;
 // Handy hochkant: Bahn um 90° drehen (Abwurf unten, Korb oben). SW/SH = Bildschirmgröße in Pixeln
 let hochkant = false, SW = W, SH = H;
-const hochMQ = matchMedia("(max-width: 860px) and (orientation: portrait)");
+const hochMQ = matchMedia("(max-width: 860px) and (orientation: portrait), (pointer: coarse) and (orientation: portrait)");
 function pruefeAusrichtung() {
   hochkant = hochMQ.matches;
   SW = hochkant ? H : W;
