@@ -87,15 +87,22 @@ namespace physik
                 const double u = double(i) / N;
                 tab.f[i] = 2 * u - u * u;   // zurückgelegter Anteil bei linearer Abbremsung
                 tab.wT[i] = u < 0.75 ? mathe::sin(mathe::pi * u / 0.75) : 0;
-                double wF = 0;
-                if(u > 0.45)
-                {
-                    double q = (u - 0.45) / 0.55;
-                    wF = q * mathe::wurzel(q);   // Math.pow(q, 1.5)
-                }
-                tab.wF[i] = wF;
                 tab.sin_pi_u[i] = mathe::sin(mathe::pi * u);
             }
+            // Fade-Gewicht wie physik.js: ab fade_start, mit fade_rund nach Strecke statt Zeit gewichtet, Summe 0,22·N
+            const double fs = mathe::clamp(gen::einstellungen::fade_start, 0.05, 0.95);
+            const double rund = mathe::clamp(gen::einstellungen::fade_rund, 0, 1);
+            double summe = 0;
+            tab.wF[0] = 0;
+            for(int i = 1; i <= N; ++i)
+            {
+                const double u1 = double(i) / N;
+                const double form = u1 > fs ? mathe::potenz((u1 - fs) / (1 - fs), 1.5 - 0.8 * rund) : 0;
+                const double w = form * ((1 - rund) + rund * 2 * (1 - u1 + 0.5 / N));
+                tab.wF[i] = w;
+                summe += w;
+            }
+            for(int i = 1; i <= N; ++i) { tab.wF[i] *= summe > 0 ? 0.22 * N / summe : 0; }
             tab.fertig = true;
         }
 

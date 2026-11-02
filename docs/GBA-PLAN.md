@@ -152,8 +152,8 @@ aber nicht. Wer will, schließt sie aus oder legt sie nach `_gba/` (Jekyll ignor
 | 1 ✅ | **Werkzeugkette:** Butano + devkitARM in GitHub Actions, „Hallo Welt“-ROM | ROM läuft in mGBA und auf dem Pocket | 1 Abend |
 | 2 ✅ | **Daten-Generator** für Bahnen, Taschen, Stellschrauben | `gen_*.h` werden automatisch erzeugt | 1–2 Abende |
 | 3 ✅ | **Physik in C++** (`double`, eigene Mathefunktionen) + Golden-Tests grün | Würfe fliegen wie im Browser | 3–5 Abende |
-| 4 | **Bahn 1 spielbar:** gerenderter Hintergrund, zielen, werfen, putten, OB | erster echter Test auf dem Pocket | 3–4 Abende |
-| 5 | **Alle Bahnen**, Spielerwahl, Bags, Scorekarte, Single und Vierer Flight (Hot-Seat) | vollständige Runde | 4–6 Abende |
+| 4 ✅ | **Bahn 1 spielbar:** gerenderter Hintergrund, zielen, werfen, putten, OB | erster echter Test auf dem Pocket | 3–4 Abende |
+| 5 ✅ | **Alle Bahnen**, Spielerwahl, Bags, Scorekarte, Single und Vierer Flight (Hot-Seat) | vollständige Runde | 4–6 Abende |
 | 6 | **Feinschliff:** Porträts, Rufe, Speichern, Freies Werfen, Titelbild | Release 1.0 als ROM | 3–5 Abende |
 
 Insgesamt grob **4–8 Wochen** nebenbei. Etappe 0 verbessert auch die Webversion

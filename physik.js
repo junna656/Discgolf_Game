@@ -27,9 +27,14 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   // Stellschrauben für die Entwicklung (im Spiel unter "Einstellungen" änderbar)
-  const STANDARD = { winkel: 1.6, turn: 1.5, fade: 1.5, weite: 1, streuung: 1, wind: 1, tempo: 0.55, kick: 1, zoomStufe: 3,
+  // abgestimmt in der Vorschau (02.11.2026)
+  const STANDARD = { winkel: 1.7, turn: 1.6, fade: 1.6, weite: 0.9, streuung: 1, wind: 0.7, tempo: 0.75, kick: 1.1, zoomStufe: 3,
     // Baum in der Krone: so oft prallt die Scheibe ab bzw. wird abgebremst – der Rest fliegt durch eine Lücke
-    baumAbprallen: 0.45, baumBremsen: 0.3 };
+    baumAbprallen: 0.45, baumBremsen: 0.3,
+    // ab welchem Anteil des Flugs der Fade einsetzt (0.5 = ab der Hälfte)
+    fadeStart: 0.5,
+    // Rundung des Fades: 0 = Haken ganz am Ende (eng), 1 = Fade verteilt sich über die Strecke (großer Radius)
+    fadeRund: 1 };
   const E = Object.assign({}, STANDARD);
   const abstand = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -161,7 +166,7 @@
     const seite = (wurf.hand === "links" ? -1 : 1) * (wurf.wurfart === "vorhand" ? -1 : 1);
     const gegen = -(wind.x * Math.cos(wurf.richtung) + wind.y * Math.sin(wurf.richtung)); // Gegenwind > 0
 
-    let D = reichweite(s) / E.weite * kraftFaktor(kraft);
+    let D = reichweite(s) / E.weite * kraftFaktor(kraft); // E.weite wird weiter unten einmal angewendet
     D *= 1 - Math.min(Math.abs(winkel), 40) / 40 * 0.12;
     if (wurf.wurfart === "vorhand") D *= 0.9;
     D *= wurf.weiteFaktor || 1; // Stärke des Spielers
@@ -187,12 +192,24 @@
     let brems = 1;               // < 1, nachdem Äste die Scheibe abgebremst haben
     const bremsPunkte = [];      // Pfad-Stellen, an denen gebremst wurde (für Geräusch/Anzeige)
 
+    // Fade-Gewicht pro Schritt: Form ab fadeStart, mit fadeRund nach zurückgelegter Strecke statt nach Zeit gewichtet
+    // (die Scheibe wird langsamer – nach Zeit gewichtet entsteht am Ende ein enger Haken). Summe wie bisher 0,22·N.
+    const fs = clamp(E.fadeStart, 0.05, 0.95), rund = clamp(E.fadeRund, 0, 1);
+    const fadeGewicht = [];
+    let summe = 0;
+    for (let i = 1; i <= N; i++) {
+      const u1 = i / N, form = u1 > fs ? Math.pow((u1 - fs) / (1 - fs), 1.5 - 0.8 * rund) : 0;
+      const w = form * ((1 - rund) + rund * 2 * (1 - u1 + 0.5 / N));
+      fadeGewicht.push(w); summe += w;
+    }
+    for (let i = 0; i < N; i++) fadeGewicht[i] *= summe > 0 ? 0.22 * N / summe : 0;
+
     flug: for (let i = 1; i <= N; i++) {
       const u0 = (i - 1) / N;
       u = i / N;
       const ds = D * (f(u) - f(u0)) * brems;
       const wT = u < 0.75 ? Math.sin(Math.PI * u / 0.75) : 0;
-      const wF = u > 0.45 ? Math.pow((u - 0.45) / 0.55, 1.5) : 0;
+      const wF = fadeGewicht[i - 1];
       th += seite * (turnK * wT - fadeK * wF + winkK * (1 - 0.5 * u)) / N;
       // höchstens 80° von der Abwurfrichtung weg: die Scheibe fliegt nie rückwärts
       th = wurf.richtung + clamp(th - wurf.richtung, -80 * DEG, 80 * DEG);

@@ -195,7 +195,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.3.5</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.4.0</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -203,6 +203,7 @@
       <button class="gross" id="zu-online">Online spielen<small>Bis zu vier Handys live in einer Runde</small></button>
       <button class="gross" id="zu-doku" style="font-size:12px;padding:10px 16px;margin-top:8px">Anleitung<small>Steuerung, Regeln und Tipps</small></button>
       <button class="gross" id="zu-bags" style="font-size:12px;padding:10px 16px">Spieler & Bags<small>Spielerkarten ansehen, Scheiben im Bag bearbeiten</small></button>
+      <button class="gross" id="zu-dev" style="font-size:12px;padding:10px 16px;border-color:#ff9a5a" hidden>Entwicklung<small>Parameter einstellen – nur in der Vorschau</small></button>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="#" id="melde-fehler" style="color:var(--leise)">Fehler melden</a> · <a href="#" id="melde-wunsch" style="color:var(--leise)">Idee vorschlagen</a></p>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="impressum.html" style="color:var(--leise)">Impressum</a> · <a href="datenschutz.html" style="color:var(--leise)">Datenschutz</a></p>
     </div>
@@ -232,8 +233,9 @@
 
       <h3>Abwurfwinkel und Wurfart</h3>
       <ul>
-        <li><b>Hyzer</b> kippt die Scheibe nach außen: Sie zieht nach links. Mehrfach tippen = stärker (bis 30°).</li>
+        <li><b>Hyzer</b> kippt die Scheibe nach außen: Sie zieht nach links.</li>
         <li><b>Anhyzer</b> kippt nach innen: Sie zieht nach rechts.</li>
+        <li>Erstes Tippen auf Hyzer oder Anhyzer = 5°, jedes weitere Tippen +5° bis 30°, danach wieder 5°.</li>
         <li><b>Vorhand</b> spiegelt alle Kurven (Hyzer nach rechts), fliegt etwas kürzer und streut mehr.</li>
         <li>Linkshänder (in taschen.js) spiegeln ebenfalls alle Kurven.</li>
       </ul>
@@ -330,6 +332,12 @@
       <button class="gross" id="kurs-weiter" style="text-align:center">Weiter</button>
       <button id="kurs-zurueck">← Zurück</button>
     </div>
+    <div id="menue-dev" class="liste" style="gap:8px" hidden>
+      <h2 style="text-align:center;font-size:13px">Entwicklung – Parameter</h2>
+      <p class="klein" style="margin:0">Nur in der Vorschau (/dev/). Änderungen gelten sofort und bleiben auf diesem Gerät gespeichert. Mit „Werte kopieren“ kannst du sie mir schicken.</p>
+      <div class="devregler liste" style="gap:6px"></div>
+      <button id="dev-zurueck">← Zurück</button>
+    </div>
     <div id="menue-online" class="liste" style="gap:8px" hidden>
       <h2 style="text-align:center;font-size:13px">Online spielen</h2>
       <div id="mp-einstieg" class="liste" style="gap:8px">
@@ -400,9 +408,9 @@
       </div>
       <h2>Abwurfwinkel</h2>
       <div class="knoepfe" style="margin-bottom:6px">
-        <button data-winkel="15">Hyzer</button>
+        <button data-winkel="5">Hyzer</button>
         <button data-winkel="0">Flach</button>
-        <button data-winkel="-15">Anhyzer</button>
+        <button data-winkel="-5">Anhyzer</button>
       </div>
       <input type="range" id="winkel" min="-30" max="30" step="1" value="0" style="direction: rtl">
       <div class="zeile"><span>Hyzer</span><span id="winkeltext">flach</span><span>Anhyzer</span></div>
@@ -429,6 +437,10 @@
       <div class="liste" id="tasche"></div>
       <p class="klein nur-mobil" style="margin:6px 0 0">Scheibe antippen – dann geht es zurück zum Spielfeld.</p>
     </div>
+    <div class="box nur-bag" id="devbox" hidden>
+      <h2>Entwicklung (nur Vorschau)</h2>
+      <div class="devregler liste" style="gap:6px"></div>
+    </div>
     <div class="box nur-feld" id="puttbox" hidden>
       <h2>Putten</h2>
       <div class="knoepfe">
@@ -449,10 +461,10 @@
   <button data-ansicht="feld" class="zum-spiel">← Zurück zum Spiel</button>
 </nav>
 
-<script src="taschen.js?v=0.3.5"></script>
-<script src="bahnen.js?v=0.3.5"></script>
-<script src="physik.js?v=0.3.5"></script>
-<script src="portraets.js?v=0.3.5"></script>
+<script src="taschen.js?v=0.4.0"></script>
+<script src="bahnen.js?v=0.4.0"></script>
+<script src="physik.js?v=0.4.0"></script>
+<script src="portraets.js?v=0.4.0"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -2010,6 +2022,7 @@ function zeigeMenue() {
   el("menue-vierer").hidden = true;
   el("menue-online").hidden = true;
   el("menue-kurs").hidden = true;
+  el("menue-dev").hidden = true;
   el("menue").hidden = false;
 }
 
@@ -2200,9 +2213,82 @@ el("personen").addEventListener("click", e => {
 el("zurueck").addEventListener("click", () => { el(gewaehlterModus === "single" ? "menue-kurs" : "menue-start").hidden = false; el("menue-wahl").hidden = true; });
 el("zummenue").addEventListener("click", hauptmenueKlick);
 // Vorschau des dev-Branchs (www.discgolf-game.de/dev/) deutlich kennzeichnen
-if (/^\/dev(\/|$)/.test(location.pathname)) {
+const IST_VORSCHAU = /^\/dev(\/|$)/.test(location.pathname);
+const ENTWICKLUNG = IST_VORSCHAU || location.protocol === "file:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+if (IST_VORSCHAU) {
   const v = document.querySelector(".untertitel span");
   if (v) { v.textContent += " · VORSCHAU (DEV)"; v.style.color = "#ff9a5a"; }
+}
+
+// ---------- Entwicklung: Parameter einstellen (nur Vorschau/lokal) ----------
+const DEV_REGLER = [
+  ["Flug", null],
+  ["weite", "Weite (alle Scheiben)", 0.5, 1.5, 0.05],
+  ["turn", "Turn-Stärke", 0, 4, 0.1],
+  ["fade", "Fade-Stärke", 0, 4, 0.1],
+  ["fadeStart", "Fade beginnt ab (Anteil des Flugs)", 0.1, 0.9, 0.05],
+  ["fadeRund", "Fade-Rundung (0 = enger Haken, 1 = großer Bogen)", 0, 1, 0.05],
+  ["winkel", "Hyzer/Anhyzer-Wirkung", 0, 4, 0.1],
+  ["streuung", "Streuung", 0, 3, 0.05],
+  ["wind", "Wind-Einfluss", 0, 3, 0.05],
+  ["tempo", "Fluggeschwindigkeit (Anzeige)", 0.2, 1.5, 0.05],
+  ["Bäume", null],
+  ["baumAbprallen", "Abprallen (Anteil)", 0, 1, 0.05],
+  ["baumBremsen", "Abbremsen (Anteil)", 0, 1, 0.05],
+  ["kick", "Kick nach Abprall", 0, 3, 0.1],
+  ["Thomas' Ruf", null],
+  ["rufAbStreuung", "ruft ab Abweichung (°)", 1, 20, 1],
+];
+const DEV_SPEICHER = "discgolf-dev-einstellungen";
+const devStandard = k => (k in Physik.STANDARD ? Physik.STANDARD[k] : k in TON_STANDARD ? TON_STANDARD[k] : 1);
+function devGeaendert() {
+  const o = {};
+  for (const [k, , , , sch] of DEV_REGLER) if (sch && Math.abs(E[k] - devStandard(k)) > 1e-9) o[k] = E[k];
+  return o;
+}
+function devSpeichern() { try { localStorage.setItem(DEV_SPEICHER, JSON.stringify(devGeaendert())); } catch (e) { /* egal */ } }
+function devZeichne() {
+  const g = devGeaendert(), anzahl = Object.keys(g).length;
+  const html = DEV_REGLER.map(([k, name, min, max, sch]) => !sch
+    ? `<h3 style="margin:8px 0 0;font-size:11px;color:#ffe08a">${k}</h3>`
+    : `<label class="klein" style="display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center">
+        <span>${name}${k in g ? ' <b style="color:#ff9a5a">•</b>' : ""}</span><b data-wert="${k}">${+E[k].toFixed(2)}</b>
+        <input type="range" data-dev="${k}" min="${min}" max="${max}" step="${sch}" value="${E[k]}" style="grid-column:1 / -1">
+      </label>`).join("") + `
+    <div class="knoepfe" style="margin-top:6px"><button data-dev-aktion="reset">Standard${anzahl ? " (" + anzahl + " geändert)" : ""}</button><button data-dev-aktion="kopieren">Werte kopieren</button></div>`;
+  document.querySelectorAll(".devregler").forEach(c => { c.innerHTML = html; });
+}
+if (ENTWICKLUNG) {
+  try { Object.assign(E, JSON.parse(localStorage.getItem(DEV_SPEICHER) || "{}")); } catch (e) { /* egal */ }
+  // fehlt ein Wert (z. B. alte physik.js im Cache), nicht abstürzen
+  for (const [k, , , , sch] of DEV_REGLER) if (sch && typeof E[k] !== "number") E[k] = devStandard(k);
+  el("devbox").hidden = false;
+  el("zu-dev").hidden = false;
+  devZeichne();
+  document.addEventListener("input", e => {
+    const k = e.target.dataset && e.target.dataset.dev;
+    if (!k) return;
+    E[k] = +e.target.value;
+    document.querySelectorAll(`[data-wert="${k}"]`).forEach(b => { b.textContent = +E[k].toFixed(2); });
+    document.querySelectorAll(`[data-dev="${k}"]`).forEach(r => { if (r !== e.target) r.value = E[k]; });
+    devSpeichern();
+  });
+  document.addEventListener("change", e => { if (e.target.dataset && e.target.dataset.dev) devZeichne(); });
+  document.addEventListener("click", e => {
+    const a = e.target.closest("[data-dev-aktion]");
+    if (!a) return;
+    if (a.dataset.devAktion === "reset") {
+      for (const [k, , , , sch] of DEV_REGLER) if (sch) E[k] = devStandard(k);
+      devSpeichern(); devZeichne();
+    } else {
+      const text = JSON.stringify(devGeaendert());
+      const fertig = () => { a.textContent = "Kopiert!"; setTimeout(devZeichne, 1500); };
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(fertig, () => prompt("Werte:", text));
+      else prompt("Werte:", text);
+    }
+  });
+  el("zu-dev").addEventListener("click", () => { devZeichne(); el("menue-start").hidden = true; el("menue-dev").hidden = false; el("menue").scrollTop = 0; });
+  el("dev-zurueck").addEventListener("click", () => { el("menue-dev").hidden = true; el("menue-start").hidden = false; });
 }
 // Rückmeldung: GitHub-Formular mit Version und Gerät vorausgefüllt
 function meldeLink(vorlage) {
@@ -2231,6 +2317,6 @@ requestAnimationFrame(schleife);
 // Als App installierbar / offline startbar
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => { /* egal */ });
 </script>
-<script src="mehrspieler.js?v=0.3.5"></script>
+<script src="mehrspieler.js?v=0.4.0"></script>
 </body>
 </html>
