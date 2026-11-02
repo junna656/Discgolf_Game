@@ -233,8 +233,9 @@
 
       <h3>Abwurfwinkel und Wurfart</h3>
       <ul>
-        <li><b>Hyzer</b> kippt die Scheibe nach außen: Sie zieht nach links. Mehrfach tippen = stärker (bis 30°).</li>
+        <li><b>Hyzer</b> kippt die Scheibe nach außen: Sie zieht nach links.</li>
         <li><b>Anhyzer</b> kippt nach innen: Sie zieht nach rechts.</li>
+        <li>Erstes Tippen auf Hyzer oder Anhyzer = 5°, jedes weitere Tippen +5° bis 30°, danach wieder 5°.</li>
         <li><b>Vorhand</b> spiegelt alle Kurven (Hyzer nach rechts), fliegt etwas kürzer und streut mehr.</li>
         <li>Linkshänder (in taschen.js) spiegeln ebenfalls alle Kurven.</li>
       </ul>
@@ -407,9 +408,9 @@
       </div>
       <h2>Abwurfwinkel</h2>
       <div class="knoepfe" style="margin-bottom:6px">
-        <button data-winkel="15">Hyzer</button>
+        <button data-winkel="5">Hyzer</button>
         <button data-winkel="0">Flach</button>
-        <button data-winkel="-15">Anhyzer</button>
+        <button data-winkel="-5">Anhyzer</button>
       </div>
       <input type="range" id="winkel" min="-30" max="30" step="1" value="0" style="direction: rtl">
       <div class="zeile"><span>Hyzer</span><span id="winkeltext">flach</span><span>Anhyzer</span></div>
