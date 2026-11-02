@@ -2240,7 +2240,7 @@ const DEV_REGLER = [
   ["rufAbStreuung", "ruft ab Abweichung (°)", 1, 20, 1],
 ];
 const DEV_SPEICHER = "discgolf-dev-einstellungen";
-const devStandard = k => (k in Physik.STANDARD ? Physik.STANDARD[k] : TON_STANDARD[k]);
+const devStandard = k => (k in Physik.STANDARD ? Physik.STANDARD[k] : k in TON_STANDARD ? TON_STANDARD[k] : 1);
 function devGeaendert() {
   const o = {};
   for (const [k, , , , sch] of DEV_REGLER) if (sch && Math.abs(E[k] - devStandard(k)) > 1e-9) o[k] = E[k];
@@ -2260,6 +2260,8 @@ function devZeichne() {
 }
 if (ENTWICKLUNG) {
   try { Object.assign(E, JSON.parse(localStorage.getItem(DEV_SPEICHER) || "{}")); } catch (e) { /* egal */ }
+  // fehlt ein Wert (z. B. alte physik.js im Cache), nicht abstürzen
+  for (const [k, , , , sch] of DEV_REGLER) if (sch && typeof E[k] !== "number") E[k] = devStandard(k);
   el("devbox").hidden = false;
   el("zu-dev").hidden = false;
   devZeichne();
