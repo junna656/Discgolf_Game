@@ -35,6 +35,9 @@
 #include "bn_sprite_items_balken.h"
 #include "bn_sprite_items_kraftmarke.h"
 #include "bn_sprite_items_blatt.h"
+#include "bn_sprite_items_windpfeil.h"
+#include "bn_sprite_items_windkasten.h"
+#include "bn_sprite_items_korb_oben.h"
 #include "common_variable_8x8_sprite_font.h"
 
 #include "physik.h"
@@ -66,14 +69,6 @@ namespace
 
     double abstand(physik::punkt a, physik::punkt b) { return mathe::hypot(a.x - b.x, a.y - b.y); }
 
-    // Richtung als Himmelsrichtung (Karte: Norden oben)
-    const char* himmelsrichtung(double x, double y)
-    {
-        static const char* namen[] = { "O", "SO", "S", "SW", "W", "NW", "N", "NO" };
-        double a = mathe::atan2(y, x);   // y nach unten = Süden
-        int k = int(mathe::runde(a / (mathe::pi / 4)));
-        return namen[(k + 8) % 8];
-    }
 
     const char* typ_name(daten::scheiben_typ t)
     {
@@ -109,7 +104,7 @@ namespace
             _px_pro_m(double(bild_breite) / physik::zahl(_b.breite)),
             _schatten(bn::sprite_items::figuren.create_sprite(0, 0, f_schatten)),
             _scheibe(bn::sprite_items::figuren.create_sprite(0, 0, f_scheibe)),
-            _korb(bn::sprite_items::figuren.create_sprite(0, 0, f_korb))
+            _korb(bn::sprite_items::korb_oben.create_sprite(0, 0, 0))
         {
             _bahn_nr = r.erste_bahn + r.index;
             bn::bg_palettes::set_transparent_color(bn::color(0, 0, 0));
@@ -126,6 +121,7 @@ namespace
             // Wind wie neueRunde() in index.html: 1..6 m/s, beliebige Richtung
             const double st = 1 + zahl01() * 5, ri = zahl01() * mathe::pi * 2;
             _wind = { mathe::cos(ri) * st, mathe::sin(ri) * st };
+            wind_anzeige();
 
             // Spieler in Wurfreihenfolge, alle am Abwurf; jede Figur in der Farbe des Spielers
             _anzahl = r.anzahl;
@@ -351,6 +347,14 @@ namespace
         int _blatt_neu = 0;
         int _blatt_brems = 0, _blatt_durch = 0;
         bool _blatt_baum = false;
+
+        // Korb wackelt kurz, wenn die Scheibe drin ist (korbWackelt in index.html)
+        double _wackel_bis = -1;
+        int _korb_bild = 0;
+
+        // Wind wie zeichneWind() in index.html: Kästchen oben rechts, Pfeil in Windrichtung, Stärke, „WIND“
+        bn::optional<bn::sprite_ptr> _wind_kasten, _wind_pfeil;
+        bn::vector<bn::sprite_ptr, 4> _wind_text;
         // Freies Werfen: Landepunkte markieren (wie marken in index.html)
         static constexpr int marken_max = 12;
         bn::vector<bn::sprite_ptr, marken_max> _marken;
@@ -800,6 +804,7 @@ namespace
             {
                 st().fertig = true;
                 ton(bn::sound_items::sfx_ketten);
+                _wackel_bis = _zeit + 0.8;
                 zeige_ergebnis(e.art == physik::typ::bowling ? "STRIKE!" : nullptr);
             }
             else if(e.mando == physik::mando_ergebnis::verpasst) { ++st().wuerfe; ton(bn::sound_items::sfx_ob); melde("MANDO VERPASST! +1"); }
@@ -818,6 +823,31 @@ namespace
         }
 
         static void ton(const bn::sound_item& t) { t.play(); }
+
+        void wind_anzeige()
+        {
+            constexpr int x = 104, y = -46;
+            _wind_kasten = bn::sprite_items::windkasten.create_sprite(x, y);
+            _wind_kasten->set_z_order(1);
+            _wind_kasten->set_bg_priority(0);
+            _wind_pfeil = bn::sprite_items::windpfeil.create_sprite(x, y - 5);
+            _wind_pfeil->set_z_order(0);
+            // Windrichtung auf dem Bildschirm (y nach unten); Butano dreht gegen den Uhrzeigersinn
+            double grad = -mathe::atan2(_wind.y, _wind.x) * 180 / mathe::pi;
+            if(grad < 0) { grad += 360; }
+            if(grad >= 360) { grad -= 360; }
+            _wind_pfeil->set_rotation_angle(bn::fixed(float(grad)));
+            const int zehntel = int(mathe::hypot(_wind.x, _wind.y) * 10 + 0.5);
+            bn::string<12> t;
+            bn::ostringstream z(t);
+            z.append(zehntel / 10);
+            z.append(".");
+            z.append(zehntel % 10);
+            _text.set_center_alignment();
+            _text.generate(x, y + 5, t, _wind_text);
+            _text.generate(x, y + 13, "WIND", _wind_text);
+            _text.set_left_alignment();
+        }
 
         void blaetter(const physik::pfadpunkt& q, int anzahl, double tempo)
         {
@@ -1057,19 +1087,32 @@ namespace
             if(erg != "drin" && physik::ist_ob(p, _b)) { p = { k.x - dx, k.y - dy }; }
             _putt_lie = p;
             _pause_bis = _uhr_bilder + 70;
-            melde(erg == "drin" ? "DRIN!" : erg == "spit" ? "SPIT OUT!" : erg == "hoch" ? "ZU HOCH!" : erg == "kurz" ? "ZU KURZ!" : "DANEBEN!");
+            // Anzeige erst, wenn die Scheibe angekommen ist (putt_ende, wie puttEnde in index.html)
         }
 
         void putt_ende()
         {
-            const bool drin = bn::string_view(_putt_ergebnis) == "drin";
+            const bn::string_view erg(_putt_ergebnis);   // zeigt auf ein festes Literal, bleibt gültig
+            const bool drin = erg == "drin";
             if(! drin) { rufe(); }
             _putt_ergebnis = nullptr;
             _zeile_mitte.clear();
             _text_mitte.clear();
-            if(drin) { st().lie = korb(); st().fertig = true; }
-            else { st().lie = _putt_lie; }
-            naechster();
+            if(drin)
+            {
+                st().lie = korb();
+                st().fertig = true;
+                _wackel_bis = _zeit + 0.8;
+                zeige_ergebnis(nullptr);
+            }
+            else
+            {
+                st().lie = _putt_lie;
+                melde(erg == "hoch" ? "DRUEBER" : erg == "kurz" ? "ZU KURZ" : erg == "spit" ? "SPIT-OUT!" : "DANEBEN");
+            }
+            // kurze Pause wie spaeter(naechster, 1300)
+            _zustand = zustand::pause;
+            _pause_bis = _uhr_bilder + 78;
         }
 
         // ---------- Anzeige ----------
@@ -1077,8 +1120,25 @@ namespace
         {
             const bool im_putt = _zustand == zustand::putt;
             const physik::punkt k = korb();
-            _korb.set_position(sx(k.x), sy(k.y));
+            // Korb wie zeichneKorbOben(): Korb-Punkt im 16×16-Bild bei (7, 11)
+            _korb.set_position(sx(k.x) + 1, sy(k.y) - 3);
+            int bild_nr = 0;
+            if(_zeit < _wackel_bis)
+            {
+                const double w = mathe::sin(_zeit * 60);   // dx = round(sin(uhr · 60))
+                bild_nr = w > 0.5 ? 1 : w < -0.5 ? 2 : 0;
+            }
+            if(bild_nr != _korb_bild)
+            {
+                _korb_bild = bild_nr;
+                _korb.set_tiles(bn::sprite_items::korb_oben.tiles_item(), bild_nr);
+            }
             blaetter_zeichnen();
+
+            const bool wind_sichtbar = _zustand != zustand::fertig;
+            _wind_kasten->set_visible(wind_sichtbar);
+            _wind_pfeil->set_visible(wind_sichtbar);
+            for(bn::sprite_ptr& w : _wind_text) { w.set_visible(wind_sichtbar); }
 
             for(int i = 0; i < _marken.size(); ++i)
             {
@@ -1285,13 +1345,8 @@ namespace
             bn::string<64> zwei;
             {
                 bn::ostringstream z(zwei);
-                z.append("Wind ");
-                z.append(int(mathe::hypot(_wind.x, _wind.y) + 0.5));
-                z.append(" m/s ");
-                z.append(himmelsrichtung(_wind.x, _wind.y));
                 if(_zustand != zustand::putt)
                 {
-                    z.append("   ");
                     z.append(st().vorhand ? "Vorhand" : "Rueckhand");
                     if(_winkel > 0) { z.append(", Hyzer "); z.append(_winkel); }
                     else if(_winkel < 0) { z.append(", Anhyzer "); z.append(-_winkel); }
