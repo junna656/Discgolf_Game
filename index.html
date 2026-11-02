@@ -241,7 +241,7 @@
         <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Für jede Person wählst du, ob ein Mensch spielt oder der Computer – <b>Locker</b>, <b>Solide</b> oder <b>Profi</b>. Mindestens eine Person muss ein Mensch sein. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat.</li>
         <li><b>Online spielen:</b> Bis zu vier Handys spielen live zusammen. Eine Person tippt „Raum eröffnen“ und sagt den anderen den 4-Buchstaben-Code; die anderen geben ihn unter „Beitreten“ ein. Jeder wählt seine Figur (mit dem eigenen Bag), freie Figuren kann der Gastgeber vom Computer spielen lassen. Der Gastgeber wählt die Bahnen und startet. Alle sehen jeden Wurf live; wer dran ist, wirft auf seinem Handy. Bricht eine Verbindung ab, übernimmt der Computer, bis das Handy wieder da ist – nach dem Neuladen kommst du automatisch zurück in den Raum. Weiter zur nächsten Bahn und Bahn wählen kann nur der Gastgeber.</li>
         <li><b>Kurs:</b> Nach Single oder Vierer Flight wählst du den Kurs und ob die ganze Runde oder eine einzelne Bahn gespielt wird (online macht das der Gastgeber in der Lobby). Bisher gibt es den Hyzernauts Discgolfparcours im Volkspark Potsdam – weitere Kurse folgen.</li>
-        <li><b>Bahn wählen:</b> Im Spiel (Handy: unter „Menü“, Rechner: rechts) kannst du jederzeit direkt auf jede Bahn des Kurses springen. Die laufende Bahn wird dabei abgebrochen und zählt nicht.</li>
+        <li><b>Bahn wählen (Training):</b> Spielst du nur eine einzelne Bahn, kannst du im Spiel (Handy: unter „Menü“, Rechner: rechts) direkt auf jede andere Bahn springen. In einer ganzen Runde geht das nicht – dort werden die Bahnen der Reihe nach gespielt, damit keine Bahn wiederholt werden kann.</li>
       </ul>
 
       <h3>Werfen</h3>
@@ -1728,7 +1728,8 @@ function aktualisierePanel() {
     `${bahn.distanzmarken ? bahn.ort || "" : kurs.name + " · " + kurs.ort}<br>${bahn.kurz ? "" : "Bahn " + bahn.nummer + " "}${bahn.name ? "„" + bahn.name + "“ " : ""}· Par ${bahn.par} · ${Math.round(abstand(bahn.abwurf, bahn.korb))} m`
     + (ganzeRunde() ? `<br>Runde: Bahn ${rundenIndex + 1} von ${runde.length}` : "");
   // Bahn wählen: alle Bahnen des Kurses, die aktuelle markiert
-  el("bahnsprungbox").hidden = modus === "frei";
+  // Bahn wählen nur beim Training (einzelne Bahn), nicht in einer gezählten Runde – sonst ließen sich Bahnen wiederholen
+  el("bahnsprungbox").hidden = modus === "frei" || ganzeRunde();
   if (modus !== "frei") el("bahnsprung").innerHTML = runde.map((b, i) =>
     `<button data-sprung="${i}" class="${i === rundenIndex ? "an" : ""} ${spieler.some(sp => sp.karte[i] !== undefined) ? "gespielt" : ""}">${b.nummer}</button>`).join("");
   el("modusname").textContent = { frei: "Freies Werfen", single: "Single Flight", vierer: "Vierer Flight" }[modus];
@@ -2063,6 +2064,7 @@ function kiZug() {
 
 // Direkt auf eine Bahn springen (die laufende Bahn wird abgebrochen)
 function springeZu(i) {
+  if (ganzeRunde()) return; // in einer gezählten Runde kein Springen
   if (modus === "frei" || !spieler) return;
   if (nurEine) startIndex = i; // bei "Nur eine Bahn" wird dann diese Bahn gespielt
   rundenIndex = i;
