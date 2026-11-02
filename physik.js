@@ -193,7 +193,8 @@
     const gepruefteBaeume = new Set();
     let brems = 1;               // < 1, nachdem Äste die Scheibe abgebremst haben
     const bremsPunkte = [];
-    let baumIndex = -1;          // Pfad-Stelle, an der die Scheibe in eine Krone prallt      // Pfad-Stellen, an denen gebremst wurde (für Geräusch/Anzeige)
+    let baumIndex = -1;          // Pfad-Stelle, an der die Scheibe in eine Krone prallt
+    const durchPunkte = [];      // Pfad-Stellen, an denen sie ungehindert durch eine Krone fliegt      // Pfad-Stellen, an denen gebremst wurde (für Geräusch/Anzeige)
 
     // Fade-Gewicht pro Schritt: Form ab fadeStart, mit fadeRund nach zurückgelegter Strecke statt nach Zeit gewichtet
     // (die Scheibe wird langsamer – nach Zeit gewichtet entsteht am Ende ein enger Haken). Summe wie bisher 0,22·N.
@@ -242,6 +243,7 @@
             const w = zufall();
             if (w < E.baumAbprallen) { ereignis = { typ: "baum", baum }; baumIndex = pfad.length - 1; break flug; }
             if (w < E.baumAbprallen + E.baumBremsen) { brems *= 0.35 + zufall() * 0.25; bremsPunkte.push(pfad.length - 1); }
+            else durchPunkte.push(pfad.length - 1); // durch eine Lücke geflogen
           }
         }
       }
@@ -359,7 +361,7 @@
       }
     }
 
-    return { pfad, lie, drin, ob, obIndex, mando, mandoIndex, typ, baumIndex, bremsPunkte, dauer: t, distanz: abstand(lie, wurf) };
+    return { pfad, lie, drin, ob, obIndex, mando, mandoIndex, typ, baumIndex, bremsPunkte, durchPunkte, dauer: t, distanz: abstand(lie, wurf) };
   }
 
   g.Physik = { erzeugeZufall, setzeZufall, mauerTreffer, kraftFaktor, kraftFuer, simuliere, streue, gauss, abstand, istOB, obZone, imPolygon, seiteVonLinie, aufBowlingbahn, DEG, einstellungen: E, STANDARD, reichweite };
