@@ -88,6 +88,9 @@ namespace physik
         typ art;
         int brems_punkte[brems_max];
         int brems_anzahl;
+        int durch_punkte[brems_max];    // durchPunkte: ungehindert durch eine Krone geflogen
+        int durch_anzahl;
+        int baum_index;                 // baumIndex: Pfadstelle des Abpralls in eine Krone, -1 = keiner
         double dauer, distanz;
     };
 

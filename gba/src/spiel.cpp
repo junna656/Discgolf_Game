@@ -34,6 +34,7 @@
 #include "bn_sprite_items_korb.h"
 #include "bn_sprite_items_balken.h"
 #include "bn_sprite_items_kraftmarke.h"
+#include "bn_sprite_items_blatt.h"
 #include "common_variable_8x8_sprite_font.h"
 
 #include "physik.h"
@@ -340,6 +341,16 @@ namespace
         double _putt_flug_zeit = 0, _putt_zeit0 = 0;
         bn::timer _echt;            // echte Zeit seit dem letzten Bild
         int _gebremst = 0;          // schon gemeldete Brems-Stellen im Flug (Äste)
+
+        // Blätter in der Krone (wie flug.blaetter in index.html): viele beim Abprallen, mittel beim
+        // Abbremsen, wenige beim Durchfliegen; fliegen ~0,8 s radial weg mit etwas Schwerkraft
+        struct blatt { double x, y, z, a, v, t0; };
+        static constexpr int blaetter_max = 32;
+        blatt _blatt[blaetter_max];
+        bn::vector<bn::sprite_ptr, blaetter_max> _blatt_sprites;
+        int _blatt_neu = 0;
+        int _blatt_brems = 0, _blatt_durch = 0;
+        bool _blatt_baum = false;
         // Freies Werfen: Landepunkte markieren (wie marken in index.html)
         static constexpr int marken_max = 12;
         bn::vector<bn::sprite_ptr, marken_max> _marken;
@@ -677,6 +688,9 @@ namespace
             physik::setze_rueckruf(rueckmeldung, this);
             flug_ergebnis.pfad_laenge = 0;
             _gebremst = 0;
+            _blatt_brems = 0;
+            _blatt_durch = 0;
+            _blatt_baum = false;
             ton(bn::sound_items::sfx_wurf);
             physik::wurf g = physik::streue(w);
             physik::simuliere(_b, g, boe(), flug_ergebnis);
@@ -704,6 +718,22 @@ namespace
             }
             int i = 1;
             while(i < fertig_bis - 1 && e.pfad[i].t < _flug_t) { ++i; }
+            // Blätter: Abprallen 16 (Tempo 1,6), Abbremsen 9 (1,1), Durchfliegen 4 (0,7)
+            if(e.art == physik::typ::baum && e.baum_index >= 0 && ! _blatt_baum && i >= e.baum_index)
+            {
+                _blatt_baum = true;
+                blaetter(e.pfad[e.baum_index], 16, 1.6);
+            }
+            if(_blatt_brems < e.brems_anzahl && i >= e.brems_punkte[_blatt_brems])
+            {
+                blaetter(e.pfad[e.brems_punkte[_blatt_brems]], 9, 1.1);
+                ++_blatt_brems;
+            }
+            if(_blatt_durch < e.durch_anzahl && i >= e.durch_punkte[_blatt_durch])
+            {
+                blaetter(e.pfad[e.durch_punkte[_blatt_durch]], 4, 0.7);
+                ++_blatt_durch;
+            }
             if(_gebremst < e.brems_anzahl && i >= e.brems_punkte[_gebremst])
             {
                 ++_gebremst;
@@ -788,6 +818,43 @@ namespace
         }
 
         static void ton(const bn::sound_item& t) { t.play(); }
+
+        void blaetter(const physik::pfadpunkt& q, int anzahl, double tempo)
+        {
+            for(int n = 0; n < anzahl; ++n)
+            {
+                const int platz = _blatt_neu % blaetter_max;
+                ++_blatt_neu;
+                _blatt[platz] = { q.x, q.y, q.z, zahl01() * mathe::pi * 2, (0.4 + zahl01()) * tempo, _zeit };
+                if(_blatt_sprites.size() <= platz)
+                {
+                    // jedes 3. Blatt dunkel (wie n % 3 in index.html)
+                    bn::sprite_ptr b = bn::sprite_items::blatt.create_sprite(0, 0, n % 3 ? 0 : 1);
+                    b.set_z_order(0);
+                    _blatt_sprites.push_back(bn::move(b));
+                }
+                else { _blatt_sprites[platz].set_tiles(bn::sprite_items::blatt.tiles_item(), n % 3 ? 0 : 1); }
+            }
+        }
+
+        void blaetter_zeichnen()
+        {
+            const double S = _px_pro_m * zoom();
+            for(int i = 0; i < _blatt_sprites.size(); ++i)
+            {
+                const blatt& b = _blatt[i];
+                const double dt = _zeit - b.t0;
+                if(dt > 0.8 || _zustand == zustand::putt || _zustand == zustand::fertig)
+                {
+                    _blatt_sprites[i].set_visible(false);
+                    continue;
+                }
+                const double weg = b.v * dt * S * 3;
+                _blatt_sprites[i].set_position(sx(b.x) + bn::fixed(float(mathe::cos(b.a) * weg)),
+                                               sy(b.y) - bn::fixed(float(b.z * S * 0.6)) + bn::fixed(float(mathe::sin(b.a) * weg + dt * dt * 20)));
+                _blatt_sprites[i].set_visible(true);
+            }
+        }
 
         // Ruf des Spielers, wenn ein Wurf schiefgeht (wie rufe() in index.html: Aufnahme oder nur Text)
         void rufe()
@@ -1011,6 +1078,8 @@ namespace
             const bool im_putt = _zustand == zustand::putt;
             const physik::punkt k = korb();
             _korb.set_position(sx(k.x), sy(k.y));
+            blaetter_zeichnen();
+
             for(int i = 0; i < _marken.size(); ++i)
             {
                 _marken[i].set_position(sx(_marken_ort[i].x), sy(_marken_ort[i].y));

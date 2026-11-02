@@ -361,6 +361,8 @@ namespace physik
 
         e.pfad_laenge = 0;
         e.brems_anzahl = 0;
+        e.durch_anzahl = 0;
+        e.baum_index = -1;
         anhaengen(e, w.x, w.y, 1.3, 0);
         double px = w.x, py = w.y, th = w.richtung, z = 1.3, u = 0;
         typ ereignis = typ::landung;
@@ -455,6 +457,7 @@ namespace physik
                             ereignis = typ::baum;
                             hat_ereignis = true;
                             ereignis_baum = &baum;
+                            e.baum_index = e.pfad_laenge - 1;   // baumIndex: hier prallt sie in die Krone
                             raus = true;
                             break;
                         }
@@ -462,6 +465,10 @@ namespace physik
                         {
                             brems *= 0.35 + zufallszahl() * 0.25;
                             if(e.brems_anzahl < brems_max) { e.brems_punkte[e.brems_anzahl++] = e.pfad_laenge - 1; }
+                        }
+                        else if(e.durch_anzahl < brems_max)
+                        {
+                            e.durch_punkte[e.durch_anzahl++] = e.pfad_laenge - 1;   // durch eine Lücke geflogen
                         }
                     }
                 }
