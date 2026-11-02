@@ -279,6 +279,7 @@
         <li><b>OB</b> (weiße Linie mit roten Pflöcken, Zaun, dunkleres Gras): Strafwurf, weiter geht es dort, wo die Scheibe ins Aus geflogen ist. Der Rand des Spielfelds ist immer OB.</li>
         <li><b>Bahn 1 „Bowling“:</b> Auf dem Holzdeck rutscht die Scheibe weit – und kann direkt in den Korb rutschen (STRIKE!).</li>
         <li><b>Bahn 9 (Insel):</b> Der Korb steht in einer Box kurz hinter dem Weg – vorne und links Baumstämme, rechts Sträucher. Alles außerhalb der Box ist OB. Nach OB geht es vom zweiten Abwurf weiter (gelb umrandeter Kasten auf dem Fairway).</li>
+        <li><b>Bahn 14 (Mando):</b> Der Wurf muss rechts am großen Baum vor dem Korb vorbei (gelbe Linie, roter Pfeil). Wer links vorbei fliegt, bekommt +1 und wirft noch einmal von der alten Lage.</li>
         <li><b>Bahn 12 (Mando):</b> Der Wurf muss zwischen dem großen Baum links vom Weg und dem kleinen Baum rechts davon hindurch (gelbe Linie, rote Pfeile). Wer außen vorbei fliegt, bekommt +1 und wirft von der Dropzone vor der Lücke weiter (gelb umrandeter Kasten links vom Weg).</li>
       </ul>
 
@@ -807,7 +808,7 @@ function zeichneHintergrund(z) {
     // Pfeile am Kronenrand
     const rand = (x, y) => Math.max(1, ((bahn.baeume.find(t => Math.hypot(t.x - x, t.y - y) < 1) || {}).r || 2) - 1.2);
     pfeil(ax + ux * rand(ax, ay), ay + uy * rand(ax, ay), ux, uy);
-    pfeil(bx - ux * rand(bx, by), by - uy * rand(bx, by), -ux, -uy);
+    if (!bahn.mando.einseitig) pfeil(bx - ux * rand(bx, by), by - uy * rand(bx, by), -ux, -uy);
   }
   return hg;
 }

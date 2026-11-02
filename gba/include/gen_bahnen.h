@@ -576,7 +576,7 @@ namespace gen
             nullptr, 0,
             false, {{{0}, {0}}, {{0}, {0}}, {0}},
             false, {{0}, {0}},
-            false, {{{0}, {0}}, {{0}, {0}}, false, {{0}, {0}}}
+            true, {{{336282}, {147046}}, {{336282}, {274432}}, false, {{0}, {0}}}
         },
         { // Bahn 15
             15, "", "", "Hyzernauts Parcours - Volkspark", 3,
