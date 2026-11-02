@@ -775,8 +775,10 @@ function zeichneHintergrund(z) {
   c.strokeStyle = PAL.brett; c.lineWidth = Math.max(2, 0.6 * S); c.lineCap = "butt";
   for (const bl of bahn.balken || []) { c.beginPath(); bl.forEach(([x, y], i) => i ? c.lineTo(x * S, y * S) : c.moveTo(x * S, y * S)); c.stroke(); }
   // Bäume: Schatten, dann Kronen
-  for (const b of bahn.baeume) pixelKreis(c, b.x * S + 2 * z, b.y * S + 2 * z, b.r * S, PAL.schatten);
-  for (const b of bahn.baeume) {
+  // kleine Bäume zuerst, große (höhere) darüber – so wie man sie von oben sieht
+  const baeumeSortiert = [...bahn.baeume].sort((a, b) => a.r - b.r);
+  for (const b of baeumeSortiert) pixelKreis(c, b.x * S + 2 * z, b.y * S + 2 * z, b.r * S, PAL.schatten);
+  for (const b of baeumeSortiert) {
     const r = b.r * S;
     pixelKreis(c, b.x * S, b.y * S, r, PAL.baum1);
     pixelKreis(c, b.x * S - r * 0.2, b.y * S - r * 0.2, r * 0.75, PAL.baum2);
