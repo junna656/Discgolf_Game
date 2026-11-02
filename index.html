@@ -193,11 +193,20 @@
     .tabs button { font-size: 15px; }
     canvas { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   }
-  /* Tablet quer: Spielfeld links so groß wie möglich, Wurf-Knöpfe rechts daneben, Leiste unten */
+  /* Touch quer (z. B. iPad 4:3): Spielfeld so groß, dass Wurf-Knöpfe und Leiste darunter noch passen – unverzerrt */
   @media (pointer: coarse) and (min-width: 861px) and (orientation: landscape) {
+    body[data-ansicht="feld"] #feldrahmen canvas { width: auto; max-width: none; margin: 0 auto;
+      height: min(calc(100vh - 250px), calc((100vw - 24px) * 9 / 16));
+      height: min(calc(100dvh - 250px), calc((100vw - 24px) * 9 / 16)); }
+  }
+  /* Breite Tablets quer (ab 16:10): Wurf-Knöpfe rechts neben dem Feld */
+  @media (pointer: coarse) and (min-width: 861px) and (orientation: landscape) and (min-aspect-ratio: 16/10) {
     body[data-ansicht="feld"] .rahmen { flex-direction: row; align-items: flex-start; max-width: none; }
     body[data-ansicht="feld"] .spielfeld { flex: 1; min-width: 0; }
-    body[data-ansicht="feld"] #feldrahmen canvas { width: auto; max-width: 100%; height: calc(100dvh - 110px); margin: 0 auto; }
+    /* Höhe = kleinere von Bildschirmhöhe und Breite·9/16, Breite folgt dem Seitenverhältnis – nie verzerrt */
+    body[data-ansicht="feld"] #feldrahmen canvas { width: auto; max-width: none; margin: 0 auto;
+      height: min(calc(100vh - 110px), calc((100vw - 300px) * 9 / 16));
+      height: min(calc(100dvh - 110px), calc((100vw - 300px) * 9 / 16)); }
     body[data-ansicht="feld"] .seite { width: 230px; }
     body[data-ansicht="feld"] #winkelbox .knoepfe, body[data-ansicht="feld"] #puttbox .knoepfe { flex-wrap: wrap; }
     body[data-ansicht="feld"] #winkelbox .knoepfe button, body[data-ansicht="feld"] #puttbox .knoepfe button { flex: 1 1 100%; padding: 14px 4px; }
