@@ -31,7 +31,9 @@
     // Baum in der Krone: so oft prallt die Scheibe ab bzw. wird abgebremst – der Rest fliegt durch eine Lücke
     baumAbprallen: 0.45, baumBremsen: 0.3,
     // ab welchem Anteil des Flugs der Fade einsetzt (0.45 = nach knapp der Hälfte)
-    fadeStart: 0.45 };
+    fadeStart: 0.45,
+    // Rundung des Fades: 0 = Haken ganz am Ende (eng), 1 = Fade verteilt sich über die Strecke (großer Radius)
+    fadeRund: 1 };
   const E = Object.assign({}, STANDARD);
   const abstand = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -189,14 +191,24 @@
     let brems = 1;               // < 1, nachdem Äste die Scheibe abgebremst haben
     const bremsPunkte = [];      // Pfad-Stellen, an denen gebremst wurde (für Geräusch/Anzeige)
 
+    // Fade-Gewicht pro Schritt: Form ab fadeStart, mit fadeRund nach zurückgelegter Strecke statt nach Zeit gewichtet
+    // (die Scheibe wird langsamer – nach Zeit gewichtet entsteht am Ende ein enger Haken). Summe wie bisher 0,22·N.
+    const fs = clamp(E.fadeStart, 0.05, 0.95), rund = clamp(E.fadeRund, 0, 1);
+    const fadeGewicht = [];
+    let summe = 0;
+    for (let i = 1; i <= N; i++) {
+      const u1 = i / N, form = u1 > fs ? Math.pow((u1 - fs) / (1 - fs), 1.5 - 0.8 * rund) : 0;
+      const w = form * ((1 - rund) + rund * 2 * (1 - u1 + 0.5 / N));
+      fadeGewicht.push(w); summe += w;
+    }
+    for (let i = 0; i < N; i++) fadeGewicht[i] *= summe > 0 ? 0.22 * N / summe : 0;
+
     flug: for (let i = 1; i <= N; i++) {
       const u0 = (i - 1) / N;
       u = i / N;
       const ds = D * (f(u) - f(u0)) * brems;
       const wT = u < 0.75 ? Math.sin(Math.PI * u / 0.75) : 0;
-      // Fade setzt ab E.fadeStart ein; normiert, damit früher/später nur den Zeitpunkt ändert, nicht die Gesamtstärke
-      const fs = clamp(E.fadeStart, 0.05, 0.95), fadeNorm = 0.22 / ((1 - fs) / 2.5);
-      const wF = u > fs ? Math.pow((u - fs) / (1 - fs), 1.5) * fadeNorm : 0;
+      const wF = fadeGewicht[i - 1];
       th += seite * (turnK * wT - fadeK * wF + winkK * (1 - 0.5 * u)) / N;
       // höchstens 80° von der Abwurfrichtung weg: die Scheibe fliegt nie rückwärts
       th = wurf.richtung + clamp(th - wurf.richtung, -80 * DEG, 80 * DEG);
