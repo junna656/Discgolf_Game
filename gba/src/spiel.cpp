@@ -37,6 +37,7 @@
 #include "bn_sprite_items_blatt.h"
 #include "bn_sprite_items_windpfeil.h"
 #include "bn_sprite_items_windkasten.h"
+#include "bn_sprite_items_korb_oben.h"
 #include "common_variable_8x8_sprite_font.h"
 
 #include "physik.h"
@@ -103,7 +104,7 @@ namespace
             _px_pro_m(double(bild_breite) / physik::zahl(_b.breite)),
             _schatten(bn::sprite_items::figuren.create_sprite(0, 0, f_schatten)),
             _scheibe(bn::sprite_items::figuren.create_sprite(0, 0, f_scheibe)),
-            _korb(bn::sprite_items::figuren.create_sprite(0, 0, f_korb))
+            _korb(bn::sprite_items::korb_oben.create_sprite(0, 0, 0))
         {
             _bahn_nr = r.erste_bahn + r.index;
             bn::bg_palettes::set_transparent_color(bn::color(0, 0, 0));
@@ -346,6 +347,10 @@ namespace
         int _blatt_neu = 0;
         int _blatt_brems = 0, _blatt_durch = 0;
         bool _blatt_baum = false;
+
+        // Korb wackelt kurz, wenn die Scheibe drin ist (korbWackelt in index.html)
+        double _wackel_bis = -1;
+        int _korb_bild = 0;
 
         // Wind wie zeichneWind() in index.html: Kästchen oben rechts, Pfeil in Windrichtung, Stärke, „WIND“
         bn::optional<bn::sprite_ptr> _wind_kasten, _wind_pfeil;
@@ -799,6 +804,7 @@ namespace
             {
                 st().fertig = true;
                 ton(bn::sound_items::sfx_ketten);
+                _wackel_bis = _zeit + 0.8;
                 zeige_ergebnis(e.art == physik::typ::bowling ? "STRIKE!" : nullptr);
             }
             else if(e.mando == physik::mando_ergebnis::verpasst) { ++st().wuerfe; ton(bn::sound_items::sfx_ob); melde("MANDO VERPASST! +1"); }
@@ -1081,19 +1087,32 @@ namespace
             if(erg != "drin" && physik::ist_ob(p, _b)) { p = { k.x - dx, k.y - dy }; }
             _putt_lie = p;
             _pause_bis = _uhr_bilder + 70;
-            melde(erg == "drin" ? "DRIN!" : erg == "spit" ? "SPIT OUT!" : erg == "hoch" ? "ZU HOCH!" : erg == "kurz" ? "ZU KURZ!" : "DANEBEN!");
+            // Anzeige erst, wenn die Scheibe angekommen ist (putt_ende, wie puttEnde in index.html)
         }
 
         void putt_ende()
         {
-            const bool drin = bn::string_view(_putt_ergebnis) == "drin";
+            const bn::string_view erg(_putt_ergebnis);   // zeigt auf ein festes Literal, bleibt gültig
+            const bool drin = erg == "drin";
             if(! drin) { rufe(); }
             _putt_ergebnis = nullptr;
             _zeile_mitte.clear();
             _text_mitte.clear();
-            if(drin) { st().lie = korb(); st().fertig = true; }
-            else { st().lie = _putt_lie; }
-            naechster();
+            if(drin)
+            {
+                st().lie = korb();
+                st().fertig = true;
+                _wackel_bis = _zeit + 0.8;
+                zeige_ergebnis(nullptr);
+            }
+            else
+            {
+                st().lie = _putt_lie;
+                melde(erg == "hoch" ? "DRUEBER" : erg == "kurz" ? "ZU KURZ" : erg == "spit" ? "SPIT-OUT!" : "DANEBEN");
+            }
+            // kurze Pause wie spaeter(naechster, 1300)
+            _zustand = zustand::pause;
+            _pause_bis = _uhr_bilder + 78;
         }
 
         // ---------- Anzeige ----------
@@ -1101,7 +1120,19 @@ namespace
         {
             const bool im_putt = _zustand == zustand::putt;
             const physik::punkt k = korb();
-            _korb.set_position(sx(k.x), sy(k.y));
+            // Korb wie zeichneKorbOben(): Korb-Punkt im 16×16-Bild bei (7, 11)
+            _korb.set_position(sx(k.x) + 1, sy(k.y) - 3);
+            int bild_nr = 0;
+            if(_zeit < _wackel_bis)
+            {
+                const double w = mathe::sin(_zeit * 60);   // dx = round(sin(uhr · 60))
+                bild_nr = w > 0.5 ? 1 : w < -0.5 ? 2 : 0;
+            }
+            if(bild_nr != _korb_bild)
+            {
+                _korb_bild = bild_nr;
+                _korb.set_tiles(bn::sprite_items::korb_oben.tiles_item(), bild_nr);
+            }
             blaetter_zeichnen();
 
             const bool wind_sichtbar = _zustand != zustand::fertig;
