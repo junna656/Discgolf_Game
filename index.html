@@ -249,7 +249,7 @@
       <ul>
         <li><b>Freies Werfen:</b> Sportplatz mit Fußballfeld und Entfernungsmarken alle 25 m, Korb in 130 m. Jeder Wurf startet am Abwurf, es wird nicht gezählt. Kreuze zeigen, wo deine Scheiben gelandet sind; der weiteste Wurf ist gold.</li>
         <li><b>Single Flight:</b> eine Person spielt die Runde.</li>
-        <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Für jede Person wählst du, ob ein Mensch spielt oder der Computer – <b>Locker</b>, <b>Solide</b> oder <b>Profi</b>. Mindestens eine Person muss ein Mensch sein. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat.</li>
+        <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Für jede Person wählst du, ob ein Mensch spielt oder der Computer – <b>Locker</b>, <b>Solide</b> oder <b>Profi</b>. Mindestens eine Person muss ein Mensch sein. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat. Spielen alle vier an einer Bahn ein Birdie (oder besser), gibt es einen <b>Star Frame</b> – mit eigenem Feier-Bildschirm.</li>
         <li><b>Bestenliste:</b> Nach jeder ganzen Runde (alle Bahnen, Single, Vierer oder online) wird das Ergebnis jeder Person hochgeladen. In der Bestenliste im Hauptmenü steht für jede Person die beste Runde – für alle Geräte gemeinsam. Runden des Computers zählen nicht. Ohne Internet wird das Ergebnis später nachgeschickt.</li>
         <li><b>Online spielen:</b> Bis zu vier Handys spielen live zusammen. Eine Person tippt „Raum eröffnen“ und sagt den anderen den 4-Buchstaben-Code; die anderen geben ihn unter „Beitreten“ ein. Jeder wählt seine Figur (mit dem eigenen Bag), freie Figuren kann der Gastgeber vom Computer spielen lassen. Der Gastgeber wählt die Bahnen und startet. Alle sehen jeden Wurf live; wer dran ist, wirft auf seinem Handy. Bricht eine Verbindung ab, übernimmt der Computer, bis das Handy wieder da ist – nach dem Neuladen kommst du automatisch zurück in den Raum. Weiter zur nächsten Bahn und Bahn wählen kann nur der Gastgeber.</li>
         <li><b>Kurs:</b> Nach Single oder Vierer Flight wählst du den Kurs und ob die ganze Runde oder eine einzelne Bahn gespielt wird (online macht das der Gastgeber in der Lobby). Bisher gibt es den Hyzernauts Discgolfparcours im Volkspark Potsdam – weitere Kurse folgen.</li>
@@ -607,6 +607,12 @@ const sfx = {
     ton(150, 0.5, "sawtooth", 0.06, 90, 0.7);
   },
   jubel: () => [523, 659, 784, 1046].forEach((f, i) => ton(f, 0.14, "square", 0.035, null, i * 0.1)),
+  // Star Frame: kleine Fanfare, Schlussakkord und Kettenrasseln
+  fanfare: () => {
+    [[523, 0], [523, 0.12], [523, 0.24], [659, 0.36], [784, 0.62], [659, 0.86], [784, 0.98]].forEach(([f, t]) => ton(f, 0.16, "square", 0.04, null, t));
+    for (const f of [523, 659, 784, 1046]) ton(f, 0.9, "square", 0.025, null, 1.2);
+    for (let i = 0; i < 14; i++) ton(1400 + Math.random() * 1800, 0.12, "triangle", 0.02, null, 1.2 + i * 0.05);
+  },
 };
 
 // ---------- Hintergrund (einmal vorgerendert) ----------
@@ -845,6 +851,7 @@ function zeichneHintergrund(z) {
 }
 
 // ---------- Spielzustand ----------
+let sternFrame = null; // Feier-Bildschirm nach einem Star Frame (alle vier mit Birdie)
 let spieler, aktiv, zustand, wind, ziel, winkel, ladeZeit, kraft, flug, banner, puttModus, puttStil, putt, uhr = 0, fertigText;
 
 // Modus: "frei" (Weitwurf auf dem Feld), "single" (eine Person), "vierer" (alle)
@@ -911,6 +918,7 @@ function aufWindanzeige(e) {
 
 function starteBahn() {
   spielNr++;
+  sternFrame = null;
   kamera = null;
   marken = [];
   flug = null;
@@ -941,6 +949,11 @@ function naechster() {
     for (const s of spieler) s.karte[rundenIndex] = s.wuerfe;
     zustand = "ende";
     banner = null;
+    // Star Frame: im Vierer Flight spielen alle vier mindestens ein Birdie auf derselben Bahn
+    if ((modus === "vierer" || modus === "online") && spieler.length === 4 && spieler.every(s => s.wuerfe <= bahn.par - 1)) {
+      sternFrame = { t0: uhr, sterne: Array.from({ length: 28 }, () => ({ x: Math.random(), y: Math.random(), v: 0.3 + Math.random() * 0.7, p: Math.random() * 6 })) };
+      sfx.fanfare();
+    }
     if (rundeVorbei() && ganzeRunde()) blMeldeRunde();
     aktualisierePanel();
     return;
@@ -1560,6 +1573,63 @@ const plusMinus = d => d === 0 ? "E" : (d > 0 ? "+" : "") + d;
 const rundeVorbei = () => nurEine || rundenIndex >= runde.length - 1;
 const ganzeRunde = () => runde.length > 1 && !nurEine;
 
+// Feier-Bildschirm: Strahlen, funkelnde Sterne, großer Schriftzug und die vier Portraits mit Ergebnis
+const portraitBilder = new Map();
+function portraitBild(s) {
+  let b = portraitBilder.get(s.name);
+  if (!b) {
+    b = document.createElement("canvas"); b.width = 32; b.height = 32;
+    zeichnePortrait(b.getContext("2d"), s);
+    portraitBilder.set(s.name, b);
+  }
+  return b;
+}
+function pixelStern(x, y, r, farbe) {
+  ctx.fillStyle = farbe;
+  x = Math.round(x); y = Math.round(y);
+  ctx.fillRect(x - r, y, 2 * r + 1, 1); ctx.fillRect(x, y - r, 1, 2 * r + 1);
+  if (r > 1) ctx.fillRect(x - 1, y - 1, 3, 3);
+}
+function zeichneSternFrame() {
+  const t = uhr - sternFrame.t0;
+  schirmTransform();
+  ctx.fillStyle = "rgba(14,10,30,.9)"; ctx.fillRect(0, 0, SW, SH);
+  // Strahlen aus der Mitte, drehen sich langsam
+  const cx = SW / 2, cy = SH * 0.42, R = Math.hypot(SW, SH);
+  ctx.fillStyle = "rgba(255,216,74,.10)";
+  for (let i = 0; i < 12; i++) {
+    const a = i / 12 * Math.PI * 2 + t * 0.35, b = a + 0.12;
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.lineTo(cx + Math.cos(b) * R, cy + Math.sin(b) * R);
+    ctx.fill();
+  }
+  // Sterne fallen langsam und funkeln
+  for (const st of sternFrame.sterne) {
+    const y = ((st.y + t * st.v * 0.12) % 1) * SH, an = Math.sin(t * 6 + st.p) > -0.2;
+    if (an) pixelStern(st.x * SW, y, st.v > 0.7 ? 2 : 1, st.v > 0.6 ? "#ffd84a" : PAL.weiss);
+  }
+  mitteTransform();
+  // Schriftzug springt herein und blinkt
+  const rein = Math.min(1, t / 0.5), y0 = 22 - (1 - rein) * 40;
+  text("★ STAR FRAME ★", 160, y0, Math.floor(t * 4) % 2 ? PAL.weiss : "#ffd84a", "center", 16);
+  text("ALLE VIER MIT BIRDIE!", 160, y0 + 24, "#9be07a", "center");
+  // die vier Portraits nacheinander
+  const namen = { "-3": "ALBATROS", "-2": "EAGLE", "-1": "BIRDIE" };
+  spieler.forEach((s, i) => {
+    const ti = t - 0.6 - i * 0.25;
+    if (ti < 0) return;
+    const x = 160 - 79 + i * 42, hops = Math.max(0, 1 - ti * 3) * 12 + Math.abs(Math.sin(t * 3 + i)) * 2;
+    const y = 70 - hops;
+    ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 2, y - 2, 36, 36);
+    ctx.fillStyle = s.farbe; ctx.fillRect(x - 1, y - 1, 34, 34);
+    ctx.drawImage(portraitBild(s), x, y);
+    text(s.name.toUpperCase(), x + 16, 110, s.farbe, "center");
+    text(s.wuerfe === 1 ? "ACE" : namen[s.wuerfe - bahn.par] || "BIRDIE", x + 16, 120, "#ffd84a", "center");
+  });
+  if (t > 1.8) text(hochkant ? "TIPPEN: WEITER" : "KLICK: WEITER", 160, 150, PAL.weiss, "center");
+  schirmTransform();
+}
+
 function zeichneEnde() {
   const ganz = ganzeRunde(), letzte = rundeVorbei();
   ctx.fillStyle = "rgba(10,14,20,.88)"; ctx.fillRect(70, 26, 180, 128);
@@ -1788,9 +1858,13 @@ function schleife(jetzt) {
     }
   }
   if (zustand === "ende") {
-    mitteTransform();
-    zeichneEnde();
-    schirmTransform();
+    if (sternFrame && !sternFrame.zu && uhr - sternFrame.t0 > 9) sternFrame.zu = true; // nach 9 s von selbst weiter
+    if (sternFrame && !sternFrame.zu) zeichneSternFrame();
+    else {
+      mitteTransform();
+      zeichneEnde();
+      schirmTransform();
+    }
   }
 
   requestAnimationFrame(schleife);
@@ -1977,7 +2051,7 @@ cv.addEventListener("pointerdown", e => {
     try { cv.setPointerCapture(e.pointerId); } catch (err) { /* egal */ }
     return;
   }
-  if (zustand === "ende") { weiterKlick(); return; }
+  if (zustand === "ende") { if (sternFrame && !sternFrame.zu) { sternFrame.zu = true; return; } weiterKlick(); return; }
   if (gesperrt()) return;
   if (windWechselbar() && aufWindanzeige(e) && neuerWind()) return;
   if (zustand === "putt") { putten(); return; }
@@ -1995,7 +2069,7 @@ window.addEventListener("keydown", e => {
   if (k === " ") {
     e.preventDefault();
     if (e.repeat) return;
-    if (zustand === "putt") putten(); else if (zustand === "ende") weiterKlick(); else startLaden();
+    if (zustand === "putt") putten(); else if (zustand === "ende") { if (sternFrame && !sternFrame.zu) sternFrame.zu = true; else weiterKlick(); } else startLaden();
   } else if (k === "ArrowLeft" || k === "ArrowRight") {
     e.preventDefault();
     if (zustand === "zielen") ziel += (k === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 0.2 : 1) * DEG;
