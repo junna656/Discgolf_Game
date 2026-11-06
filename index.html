@@ -1843,8 +1843,10 @@ function schleife(jetzt) {
       const dt = uhr - bl.t0;
       if (dt > 0.8) continue;
       const c = zuSchirm(bl), hz = Math.round(bl.z * S * 0.6);
+      // Farben des getroffenen Baums (Jahreszeit), sonst klassisch grün
+      if (!bl.farben) bl.farben = (window.blattFarbenAn && blattFarbenAn(bahnBild(kamera.z), bl.x, bl.y)) || ["#7cd86a", "#3d8a35"];
       for (const [n, tl] of bl.teile.entries()) {
-        ctx.fillStyle = n % 3 ? "#7cd86a" : "#3d8a35";
+        ctx.fillStyle = n % 3 ? bl.farben[0] : bl.farben[1];
         ctx.fillRect(Math.round(c.x + Math.cos(tl.a) * tl.v * dt * S * 3), Math.round(c.y - hz + Math.sin(tl.a) * tl.v * dt * S * 3 + dt * dt * 20), 2, 2);
       }
     }

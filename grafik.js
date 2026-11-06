@@ -416,6 +416,8 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   }
   zeichneMando(c, z);
   // für das fallende Laub (zeichneLaubfall): Laubbäume mit ihren Farben
+  // für Blätter, die beim Treffer aus der Krone fliegen (blattFarbenAn): jeder Baum mit seinen Farben
+  hg.baumFarben = baeume.map(({ x, y, r, farben, kiefer, kahl }) => ({ x, y, r, farben, kiefer, kahl }));
   if (JZ.laubfall) { hg.laubBaeume = baeume.filter(b => !b.kiefer && !b.kahl).map(({ x, y, r, farben }) => ({ x, y, r, farben })); hg.laubBahn = bahn; }
   return hg;
 };
@@ -773,4 +775,16 @@ window.zeichneKorbObenDetail = function (c, x, y, dx, z, winter) {
   p(x + dx - rx + 1, ringY + ry - (ry > 1 ? 1 : 0), G[3], Math.max(1, Math.round(g)), 1);
   p(x + dx, ringY, M[4]);
   if (winter) ellipse(x + dx, ringY - 1, rx - 1, Math.max(1, ry - 1), KORB.schnee, -1);
+};
+
+// Farben [hell, dunkel] der Blätter, die beim Treffer an der Stelle (Meter) aus der Krone fliegen:
+// die des getroffenen Baums; kahle Bäume im Winter stäuben Schnee. null = klassische Grafik
+window.blattFarbenAn = function (bild, x, y) {
+  const liste = bild && bild.baumFarben;
+  if (!liste || !liste.length) return null;
+  let best = null, bd = Infinity;
+  for (const b of liste) { const d = Math.hypot(b.x - x, b.y - y) - b.r; if (d < bd) { bd = d; best = b; } }
+  if (best.kahl) return ["#f4f8ff", "#c4d0e2"];
+  const f = best.farben;
+  return best.kiefer ? [f[3], f[1]] : f.bluete ? [f[4], f[2]] : [f[3], f[1]];
 };
