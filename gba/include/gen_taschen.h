@@ -35,12 +35,26 @@ namespace gen
     constexpr scheibe s3_tasche[] = {
         {"Katana", scheiben_typ::driver, {53248}, {20480}, {-12288}, {12288}, false},
         {"Trace", scheiben_typ::driver, {45056}, {20480}, {-4096}, {8192}, false},
-        {"Heat", scheiben_typ::driver, {36864}, {12288}, {-12288}, {4096}, true},
-        {"River", scheiben_typ::fairway, {28672}, {28672}, {-4096}, {4096}, false},
+        {"Photon", scheiben_typ::driver, {45056}, {20480}, {-4096}, {10240}, false},
+        {"Avenger SS", scheiben_typ::driver, {40960}, {20480}, {-12288}, {4096}, false},
+        {"Heat", scheiben_typ::driver, {36864}, {24576}, {-12288}, {4096}, true},
         {"Valkyrie", scheiben_typ::driver, {36864}, {16384}, {-8192}, {8192}, false},
+        {"Inertia", scheiben_typ::driver, {36864}, {20480}, {-8192}, {8192}, false},
+        {"Fireball", scheiben_typ::driver, {36864}, {12288}, {0}, {14336}, false},
+        {"Firebird", scheiben_typ::driver, {36864}, {12288}, {0}, {16384}, false},
+        {"Stalker", scheiben_typ::fairway, {28672}, {20480}, {-4096}, {8192}, false},
+        {"TL", scheiben_typ::fairway, {28672}, {20480}, {0}, {4096}, false},
+        {"Servo", scheiben_typ::fairway, {28672}, {20480}, {-4096}, {8192}, false},
+        {"TeeBird", scheiben_typ::fairway, {28672}, {20480}, {0}, {8192}, false},
+        {"River", scheiben_typ::fairway, {28672}, {28672}, {-4096}, {4096}, false},
+        {"Crave", scheiben_typ::fairway, {26624}, {20480}, {-4096}, {4096}, false},
+        {"Archer", scheiben_typ::fairway, {24576}, {20480}, {-12288}, {4096}, false},
+        {"Axis", scheiben_typ::midrange, {20480}, {20480}, {-4096}, {4096}, false},
+        {"Mako3", scheiben_typ::midrange, {20480}, {16384}, {0}, {0}, false},
         {"Method", scheiben_typ::midrange, {20480}, {20480}, {0}, {12288}, false},
-        {"Mako3", scheiben_typ::midrange, {20480}, {20480}, {0}, {0}, false},
         {"Svea", scheiben_typ::midrange, {20480}, {24576}, {-4096}, {0}, false},
+        {"Entropy", scheiben_typ::midrange, {16384}, {12288}, {0}, {12288}, false},
+        {"Pilot", scheiben_typ::putter, {8192}, {20480}, {-4096}, {4096}, false},
         {"Hydrogen", scheiben_typ::putter, {4096}, {8192}, {0}, {0}, false}
     };
 
@@ -64,7 +78,7 @@ namespace gen
         { // Gunnar
             "Gunnar", 0x7173, false, false, {4096},
             {false, {4096}, {4096}}, {false, {4096}, {4096}}, {false, {4096}, {4096}}, {false, {4096}, {4096}}, {true, {1843}, {4096}}, {true, {3277}, {4301}},
-            2, s3_tasche, 9
+            4, s3_tasche, 23
         }
     };
 }
