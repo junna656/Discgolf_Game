@@ -16,7 +16,7 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ZIEL = join(WURZEL, "tests", "referenz.json");
 // Arten von Würfen (Anzahl): freie Würfe überall, Annäherungen kurz vor dem Korb,
 // und gezielte Fälle für Bowlingbahn und Mauern, damit jede Regel getestet wird
-const ARTEN = [["frei", 340], ["annaeherung", 120], ["bowling", 60], ["mauer", 80]];
+const ARTEN = [["frei", 300], ["annaeherung", 120], ["bowling", 60], ["mauer", 120]];
 const FORMAT = 1; // erhöhen, wenn sich der Aufbau der Datei ändert
 
 // --- Spieldateien laden, wie im Browser (window = globales Objekt) ---
