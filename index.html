@@ -273,7 +273,7 @@
 
       <h3>Wind, Bäume und OB</h3>
       <ul>
-        <li><b>Wind</b> (oben rechts): Der Pfeil zeigt, wohin der Wind weht, die Zahl die Stärke in m/s. Jede Bahn bekommt neuen Wind (1–6 m/s), dazu kleine Böen bei jedem Wurf.
+        <li><b>Wind</b> (oben rechts): Der Pfeil zeigt, wohin der Wind weht, die Zahl die Stärke in m/s. Jede Bahn bekommt neuen Wind (1–6 m/s), dazu kleine Böen bei jedem Wurf. Im Training (Freies Werfen oder eine einzelne Bahn) würfelst du mit Tippen auf die Windanzeige (Taste <kbd>N</kbd>) neuen Wind aus.
           <ul>
             <li><b>Gegenwind:</b> kürzer (bei 5 m/s etwa 15 %, höchstens 30 %) und instabiler – deutlich mehr Turn, am Ende auch etwas mehr Fade.</li>
             <li><b>Rückenwind:</b> etwas weiter (höchstens 15 %) und stabiler – weniger Turn und weniger Fade, die Scheibe fliegt gerader.</li>
@@ -857,6 +857,25 @@ function neuesSpiel() {
   starteBahn();
 }
 
+function wuerfleWind(zz = Math.random) {
+  const st = 1 + zz() * 5, ri = zz() * Math.PI * 2;
+  wind = { x: Math.cos(ri) * st, y: Math.sin(ri) * st };
+}
+// Im Training (Freies Werfen, einzelne Bahn) neuen Wind per Tippen auf die Windanzeige oder Taste N (#6)
+const windWechselbar = () => modus === "frei" || (nurEine && modus !== "online");
+function neuerWind() {
+  if (!windWechselbar() || gesperrt() || (zustand !== "zielen" && zustand !== "putt")) return false;
+  wuerfleWind();
+  sfx.wurf();
+  aktualisierePanel();
+  return true;
+}
+function aufWindanzeige(e) {
+  const r = cv.getBoundingClientRect();
+  const sx = (e.clientX - r.left) / r.width * SW, sy = (e.clientY - r.top) / r.height * SH;
+  return sx >= SW - 28 && sy <= 42;
+}
+
 function starteBahn() {
   spielNr++;
   kamera = null;
@@ -871,9 +890,7 @@ function starteBahn() {
     s.scheibe = startScheibe(s.tasche);
   }
   // online würfeln alle Geräte denselben Wind aus (gemeinsamer Startwert)
-  const zz = modus === "online" ? mpWindZufall() : Math.random;
-  const st = 1 + zz() * 5, ri = zz() * Math.PI * 2;
-  wind = { x: Math.cos(ri) * st, y: Math.sin(ri) * st };
+  wuerfleWind(modus === "online" ? mpWindZufall() : Math.random);
   puttStil = "spin";
   banner = null;
   fertigText = null;
@@ -1357,6 +1374,8 @@ function zeichneWind() {
   }
   text(st.toFixed(1), cx, y + 21, "#bfe4ff", "center");
   text("WIND", x - 4, y + 31, "#d8ecff", "left");
+  // im Training lässt sich der Wind neu würfeln: kleiner Hinweis unter der Anzeige
+  if (windWechselbar() && (zustand === "zielen" || zustand === "putt")) text(hochkant ? "TIPPEN" : "N", x + 21, y + 40, "#ffe08a", "right");
 }
 
 function zeichneKraftbalken() {
@@ -1907,6 +1926,7 @@ cv.addEventListener("pointerdown", e => {
   }
   if (zustand === "ende") { weiterKlick(); return; }
   if (gesperrt()) return;
+  if (windWechselbar() && aufWindanzeige(e) && neuerWind()) return;
   if (zustand === "putt") { putten(); return; }
   zieleAuf(e);
   startLaden(e);
@@ -1933,6 +1953,7 @@ window.addEventListener("keydown", e => {
   else if (k === "e" || k === "E") setzeWinkel(winkel - 5);
   else if (k === "w" || k === "W") setzeWinkel(0);
   else if (k === "p" || k === "P") wechsleModus();
+  else if (k === "n" || k === "N") neuerWind();
   else if (k === "f" || k === "F") { if (zustand === "zielen") setzeWurfart(ich().wurfart === "vorhand" ? "rueckhand" : "vorhand"); }
   else if (k === "s" || k === "S") { if (zustand === "putt") { puttStil = puttStil === "spin" ? "push" : "spin"; aktualisierePanel(); } }
   else if ((k === "r" || k === "R") && modus !== "online") neuesSpiel();
