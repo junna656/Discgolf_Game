@@ -433,7 +433,7 @@ window.zeichneLaubfall = function (c, bild, dt, wind) {
     const b = baeume[Math.floor(Math.random() * baeume.length)], w = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * b.r * 0.9, f = b.farben;
     laubfall.teile.push({
       x: b.x + Math.cos(w) * d, y: b.y + Math.sin(w) * d, h: 3 + Math.random() * 5, v: 0.5 + Math.random() * 0.6,
-      phase: Math.random() * 6.3, farbe: f[2 + Math.floor(Math.random() * 3)], rand: f[1], liegt: 0,
+      phase: Math.random() * 6.3, farbe: f[2 + Math.floor(Math.random() * 2)], rand: f[1], liegt: 0, // Farben wie in der Krone
     });
   }
   const wx = ((wind && wind.x) || 0) * 0.35, wy = ((wind && wind.y) || 0) * 0.35, pz = Math.max(1, Math.round(S / 5));
@@ -488,7 +488,7 @@ window.JAHRESZEITEN = {
       ["#5a2a10", "#a4501c", "#d07828", "#e8a038", "#f4c860"],
       ["#4a1414", "#8a2a1e", "#b84028", "#d8642e", "#ec9040"],
       ["#5a4a10", "#a08a20", "#c8b030", "#e4cc48", "#f4e478"],
-      ["#2a3a14", "#4a5a1e", "#6a7428", "#8a8a34", "#aaa448"],
+      ["#3a2410", "#5e3e1c", "#7e5828", "#9a7436", "#b8944e"], // braun (Eiche)
     ][Math.floor(h * 4)],
     kiefer: ["#0c2e22", "#163f2e", "#1f5438", "#2c6a44", "#4a8a52"],
     blumen: { dichte: 0.008, farben: ["#f6f4ea"] },
