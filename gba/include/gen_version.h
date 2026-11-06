@@ -2,6 +2,6 @@
 #ifndef GEN_VERSION_H
 #define GEN_VERSION_H
 
-#define BG_VERSION "0.5.0"
+#define BG_VERSION "0.6.0"
 
 #endif
