@@ -104,6 +104,10 @@
   .kurswahl h2 { text-align: center; font-size: 13px; color: #ffe08a; }
   .kurs { text-align: left; font-size: 14px; padding: 10px 12px; background: #22302a; border-width: 3px; }
   .kurs small { display: block; font-size: 10px; color: var(--leise); margin-top: 3px; }
+  .bestenliste { display: grid; grid-template-columns: auto 14px 1fr auto; gap: 8px 10px; align-items: center; font-size: 14px; }
+  .bestenliste .punkt { width: 12px; height: 12px; display: inline-block; }
+  .bestenliste .wert { text-align: right; }
+  .bestenliste small { display: block; font-size: 10px; color: var(--leise); margin-top: 2px; }
   .person canvas.mini { width: 48px; height: 48px; border: 2px solid var(--rand); aspect-ratio: auto; flex-shrink: 0; cursor: pointer; }
   /* Spielerkarte im Sammelkarten-Stil */
   .spielerkarte { border: 4px solid var(--farbe); background: linear-gradient(#1f2630, #141820); padding: 12px; box-shadow: 0 0 0 3px #0a0c10, 6px 6px 0 #0a0c10; }
@@ -231,6 +235,7 @@
       <button class="gross" id="zu-online">Online spielen<small>Bis zu vier Handys live in einer Runde</small></button>
       <button class="gross" id="zu-doku" style="font-size:12px;padding:10px 16px;margin-top:8px">Anleitung<small>Steuerung, Regeln und Tipps</small></button>
       <button class="gross" id="zu-bags" style="font-size:12px;padding:10px 16px">Spieler & Bags<small>Spielerkarten ansehen, Scheiben im Bag bearbeiten</small></button>
+      <button class="gross" id="zu-bestenliste" style="font-size:12px;padding:10px 16px">Bestenliste<small>Beste ganze Runde jeder Person – für alle Geräte</small></button>
       <button class="gross" id="zu-einstellungen" style="font-size:12px;padding:10px 16px">Einstellungen<small>Wurfart an jeder Bahn</small></button>
       <button class="gross" id="zu-dev" style="font-size:12px;padding:10px 16px;border-color:#ff9a5a" hidden>Entwicklung<small>Parameter einstellen – nur in der Vorschau</small></button>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="#" id="melde-fehler" style="color:var(--leise)">Fehler melden</a> · <a href="#" id="melde-wunsch" style="color:var(--leise)">Idee vorschlagen</a></p>
@@ -245,6 +250,7 @@
         <li><b>Freies Werfen:</b> Sportplatz mit Fußballfeld und Entfernungsmarken alle 25 m, Korb in 130 m. Jeder Wurf startet am Abwurf, es wird nicht gezählt. Kreuze zeigen, wo deine Scheiben gelandet sind; der weiteste Wurf ist gold.</li>
         <li><b>Single Flight:</b> eine Person spielt die Runde.</li>
         <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Für jede Person wählst du, ob ein Mensch spielt oder der Computer – <b>Locker</b>, <b>Solide</b> oder <b>Profi</b>. Mindestens eine Person muss ein Mensch sein. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat.</li>
+        <li><b>Bestenliste:</b> Nach jeder ganzen Runde (alle Bahnen, Single, Vierer oder online) wird das Ergebnis jeder Person hochgeladen. In der Bestenliste im Hauptmenü steht für jede Person die beste Runde – für alle Geräte gemeinsam. Runden des Computers zählen nicht. Ohne Internet wird das Ergebnis später nachgeschickt.</li>
         <li><b>Online spielen:</b> Bis zu vier Handys spielen live zusammen. Eine Person tippt „Raum eröffnen“ und sagt den anderen den 4-Buchstaben-Code; die anderen geben ihn unter „Beitreten“ ein. Jeder wählt seine Figur (mit dem eigenen Bag), freie Figuren kann der Gastgeber vom Computer spielen lassen. Der Gastgeber wählt die Bahnen und startet. Alle sehen jeden Wurf live; wer dran ist, wirft auf seinem Handy. Bricht eine Verbindung ab, übernimmt der Computer, bis das Handy wieder da ist – nach dem Neuladen kommst du automatisch zurück in den Raum. Weiter zur nächsten Bahn und Bahn wählen kann nur der Gastgeber.</li>
         <li><b>Kurs:</b> Nach Single oder Vierer Flight wählst du den Kurs und ob die ganze Runde oder eine einzelne Bahn gespielt wird (online macht das der Gastgeber in der Lobby). Bisher gibt es den Hyzernauts Discgolfparcours im Volkspark Potsdam – weitere Kurse folgen.</li>
         <li><b>Bahn wählen (Training):</b> Spielst du nur eine einzelne Bahn, kannst du im Spiel (Handy: unter „Menü“, Rechner: rechts) direkt auf jede andere Bahn springen. In einer ganzen Runde geht das nicht – dort werden die Bahnen der Reihe nach gespielt, damit keine Bahn wiederholt werden kann.</li>
@@ -363,6 +369,13 @@
         <select id="rundenwahl"></select></label>
       <button class="gross" id="kurs-weiter" style="text-align:center">Weiter</button>
       <button id="kurs-zurueck">← Zurück</button>
+    </div>
+    <div id="menue-bestenliste" class="liste" style="gap:10px" hidden>
+      <h2 style="text-align:center;font-size:13px">Ewige Bestenliste</h2>
+      <p class="klein" id="bl-kurs" style="margin:0;text-align:center"></p>
+      <div id="bl-liste" class="bestenliste"></div>
+      <p class="klein" style="margin:0">Zählt die beste ganze Runde (alle Bahnen) jeder Person – egal auf welchem Gerät, ob Single, Vierer oder online. Runden des Computers zählen nicht.</p>
+      <button id="bestenliste-zurueck">← Zurück</button>
     </div>
     <div id="menue-einstellungen" class="liste" style="gap:8px" hidden>
       <h2 style="text-align:center;font-size:13px">Einstellungen</h2>
@@ -858,6 +871,8 @@ function startScheibe(tasche) {
 let runde = [], rundenIndex = 0, startIndex = 0, nurEine = false;
 
 function neuesSpiel() {
+  blRunde = Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
+  blErgebnis = {};
   if (modus === "online") { spieler = mpSpieler(); rundenIndex = startIndex; starteBahn(); return; }
   spieler = teilnehmer.map(i => SPIELER[i]).map(s => ({
     name: s.name, farbe: s.farbe, hand: s.hand || "rechts", tasche: s.tasche,
@@ -926,6 +941,7 @@ function naechster() {
     for (const s of spieler) s.karte[rundenIndex] = s.wuerfe;
     zustand = "ende";
     banner = null;
+    if (rundeVorbei() && ganzeRunde()) blMeldeRunde();
     aktualisierePanel();
     return;
   }
@@ -1559,6 +1575,10 @@ function zeichneEnde() {
       text(g.w + " (" + plusMinus(g.d) + ")", 240, y, PAL.weiss, "right");
     } else text(s.wuerfe + "  (" + plusMinus(s.wuerfe - bahn.par) + ")", 236, y, PAL.weiss, "right");
   });
+  if (letzte && ganz) {
+    const neu = spieler.filter(s => blErgebnis[s.name] && blErgebnis[s.name].neu).map(s => s.name.toUpperCase());
+    if (neu.length) text("★ NEUE BESTLEISTUNG: " + neu.join(", "), 160, 116, "#ffe08a", "center");
+  }
   if (modus === "online" && !mpIchHost()) text("WARTEN AUF GASTGEBER …", 160, 128, PAL.weiss, "center");
   else text(letzte ? (hochkant ? "TIPPEN: NOCHMAL" : "R / KLICK: NOCHMAL") : (hochkant ? "TIPPEN: NÄCHSTE BAHN" : "KLICK: NÄCHSTE BAHN"), 160, 128, PAL.weiss, "center");
   text(hochkant ? "HAUPTMENÜ: UNTER MENÜ" : "M: HAUPTMENÜ", 160, 140, "#d0d8e2", "center");
@@ -2185,6 +2205,7 @@ function zeigeMenue() {
   el("menue-kurs").hidden = true;
   el("menue-dev").hidden = true;
   el("menue-einstellungen").hidden = true;
+  el("menue-bestenliste").hidden = true;
   el("menue").hidden = false;
 }
 
@@ -2202,6 +2223,78 @@ document.querySelectorAll("[data-wurfartwahl]").forEach(b => b.addEventListener(
 }));
 el("zu-einstellungen").addEventListener("click", () => { zeigeEinstellungen(); el("menue-start").hidden = true; el("menue-einstellungen").hidden = false; el("menue").scrollTop = 0; });
 el("einstellungen-zurueck").addEventListener("click", () => { el("menue-einstellungen").hidden = true; el("menue-start").hidden = false; el("menue").scrollTop = 0; });
+// ---------- Ewige Bestenliste (#5) ----------
+// Nach einer ganzen Runde lädt jedes Gerät die Ergebnisse seiner menschlichen Spieler zum Server
+// (server/src/index.js). Pro Person zählt dort die beste Runde. Ohne Verbindung wartet die Meldung
+// im Browser und wird beim nächsten Mal nachgeschickt.
+let blRunde = "", blErgebnis = {}, blAktuell = new Set(); // blAktuell: Kennungen der gerade beendeten Runde
+const BL_OFFEN = "discgolf-bestenliste-offen";
+const blAdresse = () => mpServer().replace(/^ws/, "http") + "/bestenliste";
+function blOffene() { try { return JSON.parse(localStorage.getItem(BL_OFFEN) || "[]"); } catch (e) { return []; } }
+function blSpeichereOffene(l) { try { localStorage.setItem(BL_OFFEN, JSON.stringify(l.slice(-40))); } catch (e) { /* egal */ } }
+function blMeldeRunde() {
+  if (runde !== kurs.bahnen) return; // nur der ganze Kurs
+  const par = runde.reduce((a, b) => a + b.par, 0);
+  const meldungen = spieler.filter(s => {
+    if (s.karte.length !== runde.length || s.karte.some(w => !Number.isInteger(w))) return false;
+    if (modus === "online") return online && s.besitzer === online.ich && !s.ki; // jedes Gerät meldet nur seine eigenen
+    return (s.steuerung || "mensch") === "mensch";
+  }).map(s => ({
+    kurs: kurs.id, name: s.name, karte: [...s.karte], par,
+    // online: gleiche Kennung auf jedem Gerät und nach Neuladen, damit nichts doppelt zählt
+    runde: modus === "online" && online && online.start ? "o" + online.start.seed + "-" + s.karte.join(".") : blRunde,
+  }));
+  if (!meldungen.length) return;
+  blAktuell = new Set(meldungen.map(m => m.runde));
+  blSpeichereOffene([...blOffene(), ...meldungen]);
+  blSchickeOffene();
+}
+let blSchickt = false;
+async function blSchickeOffene() {
+  if (blSchickt) return;
+  blSchickt = true;
+  try {
+    let offen = blOffene();
+    while (offen.length) {
+      const m = offen[0];
+      const r = await fetch(blAdresse(), { method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify(m) });
+      if (r.status >= 500) break; // später nochmal
+      const d = r.ok ? await r.json() : null;
+      if (d && blAktuell.has(m.runde)) blErgebnis[m.name] = d; // für die Anzeige am Rundenende
+      offen = blOffene().filter(x => !(x.runde === m.runde && x.name === m.name));
+      blSpeichereOffene(offen);
+    }
+  } catch (e) { /* keine Verbindung: bleibt gespeichert */ }
+  blSchickt = false;
+}
+async function zeigeBestenliste() {
+  el("menue-start").hidden = true;
+  el("menue-bestenliste").hidden = false;
+  el("menue").scrollTop = 0;
+  const par = kurs.bahnen.reduce((a, b) => a + b.par, 0);
+  el("bl-kurs").textContent = kurs.name + " · " + kurs.bahnen.length + " Bahnen · Par " + par;
+  const liste = el("bl-liste");
+  liste.innerHTML = `<p class="klein" style="grid-column:1/-1;margin:0">Lädt …</p>`;
+  await blSchickeOffene();
+  try {
+    const r = await fetch(blAdresse() + "?kurs=" + encodeURIComponent(kurs.id), { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    if (!d.eintraege.length) { liste.innerHTML = `<p class="klein" style="grid-column:1/-1;margin:0">Noch keine ganze Runde gespielt.</p>`; return; }
+    liste.innerHTML = d.eintraege.map((e, i) => {
+      const sp = SPIELER.find(x => x.name === e.name), datum = e.datum ? e.datum.split("-").reverse().join(".") : "";
+      return `<span>${i + 1}.</span><span class="punkt" style="background:${sp ? sp.farbe : "#888"}"></span>
+        <span>${e.name.replace(/[<>&]/g, "")}<small>${datum} · ${e.runden} ${e.runden === 1 ? "Runde" : "Runden"}</small></span>
+        <span class="wert">${e.wuerfe} (${plusMinus(e.wuerfe - e.par)})</span>`;
+    }).join("");
+  } catch (e) {
+    liste.innerHTML = `<p class="klein" style="grid-column:1/-1;margin:0">Keine Verbindung zur Bestenliste. Bitte später nochmal versuchen.</p>`;
+  }
+}
+el("zu-bestenliste").addEventListener("click", zeigeBestenliste);
+el("bestenliste-zurueck").addEventListener("click", () => { el("menue-bestenliste").hidden = true; el("menue-start").hidden = false; el("menue").scrollTop = 0; });
+setTimeout(() => { if (blOffene().length) blSchickeOffene(); }, 3000); // liegengebliebene Meldungen nachschicken
+
 // ---------- Kursauswahl (weitere Kurse kommen in bahnen.js unter KURSE dazu) ----------
 let kurs = KURSE[0];
 try { kurs = KURSE.find(k => k.id === localStorage.getItem("discgolf-kurs")) || KURSE[0]; } catch (e) { /* egal */ }

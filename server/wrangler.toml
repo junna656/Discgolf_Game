@@ -8,9 +8,18 @@ workers_dev = true
 name = "RAUM"
 class_name = "Raum"
 
+[[durable_objects.bindings]]
+name = "BESTENLISTE"
+class_name = "Bestenliste"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Raum"]
+
+# ewige Bestenliste (ein Objekt für alle)
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Bestenliste"]
 
 [vars]
 # erlaubte Herkunft der Spielseite (Komma-getrennt); leer = alle

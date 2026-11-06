@@ -2,6 +2,7 @@
 // Ein Raum (Durable Object) pro 4-stelligem Code. Bis zu 4 Geräte. Der Server merkt sich
 // Mitglieder, Gastgeber, die Startnachricht und den letzten Spielstand und leitet alle
 // Spielnachrichten an die anderen weiter. Gerechnet wird auf den Geräten.
+// Dazu die ewige Bestenliste (ein Durable Object für alle): beste ganze Runde pro Person und Kurs.
 
 const MAX = 4;
 const CODE = /^[A-Z]{4}$/;
@@ -15,6 +16,16 @@ export default {
     if (herkunft && erlaubt.length && !erlaubt.includes(herkunft)) return new Response("Herkunft nicht erlaubt", { status: 403 });
 
     if (url.pathname === "/" || url.pathname === "/status") return new Response("Boogie Garanten Multiplayer läuft", { headers: { "content-type": "text/plain; charset=utf-8" } });
+
+    if (url.pathname === "/bestenliste") {
+      const cors = { "access-control-allow-origin": herkunft || "*", "access-control-allow-methods": "GET, POST, OPTIONS", "access-control-allow-headers": "content-type", "vary": "Origin" };
+      if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+      if (req.method !== "GET" && req.method !== "POST") return new Response("Methode nicht erlaubt", { status: 405, headers: cors });
+      const antwort = await env.BESTENLISTE.get(env.BESTENLISTE.idFromName("alle")).fetch(req);
+      const h = new Headers(antwort.headers);
+      for (const [k, v] of Object.entries(cors)) h.set(k, v);
+      return new Response(antwort.body, { status: antwort.status, headers: h });
+    }
 
     const m = url.pathname.match(/^\/raum\/([A-Za-z]{4})$/);
     if (!m) return new Response("Nicht gefunden", { status: 404 });
@@ -156,4 +167,58 @@ export class Raum {
     await this.ctx.storage.deleteAll();
     this._d = null;
   }
+}
+
+// ---------- Ewige Bestenliste ----------
+// GET  /bestenliste?kurs=<id>  -> { kurs, eintraege: [{ name, wuerfe, par, karte, datum, runden }] } (beste zuerst)
+// POST /bestenliste  { kurs, name, karte: [Würfe je Bahn], par, runde }  -> { neu, platz, bisher }
+// Pro Person und Kurs zählt die beste ganze Runde (wenigste Würfe; bei Gleichstand die frühere).
+// „runde“ ist eine Kennung der gespielten Runde, damit dieselbe Runde nicht doppelt zählt.
+const KURS_ID = /^[a-z0-9-]{1,40}$/;
+const NAME = /^[\p{L}][\p{L} .'-]{0,19}$/u;
+const json = (d, status = 200) => new Response(JSON.stringify(d), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
+
+export class Bestenliste {
+  constructor(ctx, env) {
+    this.ctx = ctx;
+    this.env = env;
+  }
+
+  async fetch(req) {
+    const url = new URL(req.url);
+    if (req.method === "GET") {
+      const kurs = url.searchParams.get("kurs") || "";
+      if (!KURS_ID.test(kurs)) return json({ fehler: "kurs fehlt" }, 400);
+      const liste = (await this.ctx.storage.get("kurs:" + kurs)) || {};
+      return json({ kurs, eintraege: sortiert(liste) });
+    }
+    let m;
+    try { m = JSON.parse(await req.text()); } catch (e) { return json({ fehler: "ungültig" }, 400); }
+    const { kurs, name, karte, par } = m || {};
+    const runde = typeof m.runde === "string" ? m.runde.slice(0, 60) : "";
+    if (!KURS_ID.test(kurs || "") || typeof name !== "string" || !NAME.test(name)) return json({ fehler: "ungültig" }, 400);
+    if (!Array.isArray(karte) || karte.length < 1 || karte.length > 30 || !karte.every(w => Number.isInteger(w) && w >= 1 && w <= 30)) return json({ fehler: "karte ungültig" }, 400);
+    if (!Number.isInteger(par) || par < karte.length * 2 || par > karte.length * 6) return json({ fehler: "par ungültig" }, 400);
+    const wuerfe = karte.reduce((a, b) => a + b, 0);
+
+    const schluessel = "kurs:" + kurs;
+    const liste = (await this.ctx.storage.get(schluessel)) || {};
+    const alt = liste[name];
+    const runden = alt ? alt.runden || 1 : 0;
+    const ids = alt && Array.isArray(alt.ids) ? alt.ids : [];
+    if (runde && ids.includes(runde)) {
+      return json({ neu: false, doppelt: true, platz: sortiert(liste).findIndex(e => e.name === name) + 1, bisher: alt.wuerfe });
+    }
+    const neu = !alt || wuerfe < alt.wuerfe;
+    const eintrag = neu ? { wuerfe, par, karte, datum: new Date().toISOString().slice(0, 10) } : { wuerfe: alt.wuerfe, par: alt.par, karte: alt.karte, datum: alt.datum };
+    liste[name] = { ...eintrag, runden: runden + 1, ids: runde ? [...ids, runde].slice(-30) : ids };
+    await this.ctx.storage.put(schluessel, liste);
+    return json({ neu, platz: sortiert(liste).findIndex(e => e.name === name) + 1, bisher: alt ? alt.wuerfe : null });
+  }
+}
+
+function sortiert(liste) {
+  return Object.entries(liste)
+    .map(([name, e]) => ({ name, wuerfe: e.wuerfe, par: e.par, karte: e.karte, datum: e.datum, runden: e.runden || 1 }))
+    .sort((a, b) => a.wuerfe - b.wuerfe || (a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0));
 }
