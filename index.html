@@ -1437,9 +1437,16 @@ function zeichneSpieler() {
     const q = zuSchirm(s.lie);
     const x = q.x + (n - 1) * 4 - (key === Math.round(bahn.abwurf.x * 2) + ":" + Math.round(bahn.abwurf.y * 2) ? 6 : 0);
     const y = q.y;
-    if (i === aktiv && zustand !== "flug") {
-      if (Math.floor(uhr * 3) % 2) { ctx.fillStyle = PAL.weiss; ctx.fillRect(x, y - 10, 3, 1); ctx.fillRect(x + 1, y - 9, 1, 1); }
+    const marke = i === aktiv && zustand !== "flug" && Math.floor(uhr * 3) % 2;
+    // hohe Auflösung: feinere Figur in echten Pixeln (grafik.js), gleich groß wie die 8-Bit-Figur
+    if (AUF > 1 && window.zeichneFigurDetail) {
+      const inHand = i === aktiv && zustand !== "flug" && s.tasche[s.scheibe] ? TYPFARBE[s.tasche[s.scheibe].typ] : null;
+      ctx.setTransform(1, 0, 0, 1, -kx * AUF, -ky * AUF);
+      zeichneFigurDetail(ctx, x * AUF, y * AUF, s, marke, AUF, inHand);
+      figurTransform();
+      return;
     }
+    if (marke) { ctx.fillStyle = PAL.weiss; ctx.fillRect(x, y - 10, 3, 1); ctx.fillRect(x + 1, y - 9, 1, 1); }
     const a = s.aussehen || {}, kopf = a.kopf || {};
     ctx.fillStyle = PAL.schatten; ctx.fillRect(x, y + 1, 4, 2);
     ctx.fillStyle = s.farbe; ctx.fillRect(x - 1, y + 1, 5, 1); // Spielerfarbe als Sockel

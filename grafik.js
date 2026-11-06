@@ -793,3 +793,57 @@ window.blattFarbenAn = function (bild, x, y) {
   const f = best.farben;
   return best.kiefer ? [f[3], f[1]] : f.bluete ? [f[4], f[2]] : [f[3], f[1]];
 };
+
+// ============================================================
+//  SPIELERFIGUR IN HOHER AUFLÖSUNG
+// ============================================================
+// Gleich groß wie die 8-Bit-Figur (3 × 8 Spielpixel), aber in echten Pixeln (6 × 16 bei AUF = 2) –
+// mit Frisur, Bart, Brille, Kopfbedeckung, Jacke/Weste, Hose und Schuhen aus "aussehen" (taschen.js).
+// x, y: Fuß der Figur in echten Pixeln; scheibe: Farbe der Scheibe in der Hand (nur wer dran ist) oder null
+const hellerDunkler = (h, f) => { const p = rgb(h).map(v => Math.max(0, Math.min(255, Math.round(f > 0 ? v + (255 - v) * f : v * (1 + f))))); return "rgb(" + p.join(",") + ")"; };
+window.zeichneFigurDetail = function (c, x, y, s, marke, auf, scheibe) {
+  const a = s.aussehen || {}, kopf = a.kopf || {}, u = auf / 2; // u: Maßstab, falls AUF einmal größer als 2 wird
+  const p = (dx, dy, f, w = 1, h = 1) => { c.fillStyle = f; c.fillRect(Math.round(x + dx * u), Math.round(y + dy * u), Math.max(1, Math.round(w * u)), Math.max(1, Math.round(h * u))); };
+  const haut = a.haut || "#f0c8a0", haare = a.haare || "#5a3a24", jacke = a.jacke || s.farbe, jacke2 = a.jacke2 || "#2a2e3a";
+  // Schatten und Sockel in der Spielerfarbe
+  c.fillStyle = "rgba(0,20,0,.35)";
+  for (let i = -1; i <= 8; i++) if (i & 1 || i < 1 || i > 6) p(i, 4, c.fillStyle); else p(i, 3, c.fillStyle, 1, 2);
+  p(-2, 2, s.farbe, 10, 1); p(-1, 3, hellerDunkler(s.farbe, -0.35), 8, 1);
+  // Schuhe und Hose
+  p(0, 0, "#1a1a1e", 2, 2); p(4, 0, "#1a1a1e", 2, 2); p(0, 0, "#4a4a52"); p(4, 0, "#4a4a52");
+  const hose = a.weste ? "#2a2e3a" : hellerDunkler(jacke2, -0.1);
+  p(0, -3, hose, 2, 3); p(4, -3, hose, 2, 3); p(2, -3, hose, 2, 1); p(1, -3, hellerDunkler(hose, 0.2), 1, 3);
+  // Oberkörper: Licht links, Schatten rechts; Ärmel mit Händen
+  p(0, -9, jacke, 6, 6);
+  p(0, -9, hellerDunkler(jacke, 0.25), 1, 6); p(5, -9, hellerDunkler(jacke, -0.3), 1, 6);
+  if (a.weste) { p(1, -9, jacke2, 4, 6); p(2, -9, hellerDunkler(jacke2, 0.2), 1, 5); }
+  if (a.fleece) for (let i = 0; i < 6; i += 2) p(1 + (i % 4), -8 + i, hellerDunkler(jacke, 0.12));
+  if (a.reissverschluss) p(3, -9, a.reissverschluss, 1, 6);
+  if (a.kordel) { p(2, -8, a.kordel, 1, 2); p(3, -8, a.kordel, 1, 2); }
+  if (a.riemen) for (let i = 0; i < 6; i++) p(5 - i, -9 + i, a.riemen);
+  p(-1, -8, hellerDunkler(jacke, -0.15), 1, 4); p(6, -8, hellerDunkler(jacke, -0.4), 1, 4); // Ärmel
+  p(-1, -4, haut); p(6, -4, haut); // Hände
+  if (scheibe) { p(6, -5, PAL.schwarz, 3, 3); p(7, -4, scheibe, 2, 1); p(7, -5, hellerDunkler(scheibe, 0.4)); }
+  // Kopf: Gesicht, Haare, Augen, Bart, Brille, Kopfbedeckung
+  p(1, -15, haut, 4, 6); p(0, -14, haut, 6, 4);
+  p(0, -14, hellerDunkler(haut, 0.12), 1, 3); p(5, -13, hellerDunkler(haut, -0.18), 1, 3);
+  p(1, -16, haare, 4, 1); p(0, -15, haare, 6, 1);
+  if (a.frisur === "geheimratsecken") { p(1, -15, haut); p(4, -15, haut); }
+  else { p(0, -14, haare); p(5, -14, haare); }
+  if (a.frisur === "zerzaust") { p(0, -17, haare); p(3, -17, haare); p(6, -16, haare); p(-1, -15, haare); }
+  const auge = a.augen || PAL.schwarz;
+  p(1, -13, PAL.weiss); p(4, -13, PAL.weiss); p(2, -13, auge); p(3, -13, auge);
+  if (a.brille) { p(0, -13, a.brille); p(5, -13, a.brille); p(1, -14, a.brille, 4, 1); }
+  const bart = a.bartfarbe || haare;
+  if (a.bart === "vollbart") { p(0, -11, bart, 6, 2); p(1, -12, bart); p(4, -12, bart); p(2, -11, hellerDunkler(haut, -0.25), 2, 1); }
+  else if (a.bart === "kurz") { p(0, -12, bart, 1, 2); p(5, -12, bart, 1, 2); p(1, -10, bart, 4, 1); p(2, -11, hellerDunkler(haut, -0.25), 2, 1); }
+  else if (a.bart === "schnurrbart") { p(1, -11, bart, 4, 1); p(2, -10, hellerDunkler(haut, -0.25), 2, 1); }
+  else if (a.bart === "stoppeln") { p(1, -10, bart); p(3, -10, bart); p(0, -11, bart); p(5, -11, bart); }
+  else p(2, -11, hellerDunkler(haut, -0.25), 2, 1);
+  if (kopf.typ === "cap") {
+    p(0, -17, kopf.farbe, 6, 2); p(4, -15, kopf.farbe, 4, 1); p(1, -17, hellerDunkler(kopf.farbe, 0.25), 2, 1);
+    if (kopf.abzeichen) p(2, -16, kopf.abzeichen);
+  } else if (kopf.typ === "stirnband") { p(0, -15, kopf.farbe, 6, 1); p(-1, -14, kopf.farbe); }
+  // Markierung, wer dran ist: kleiner Pfeil über dem Kopf
+  if (marke) { p(0, -22, PAL.schwarz, 6, 1); p(0, -21, PAL.weiss, 6, 1); p(1, -20, PAL.weiss, 4, 1); p(2, -19, PAL.weiss, 2, 1); }
+};

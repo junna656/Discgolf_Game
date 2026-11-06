@@ -47,6 +47,12 @@ Blumen, Laub oder Schnee; im Herbst fallen auch hier Blätter. Ohne Jahreszeit (
 Quer und mit Detailgrafik ist das Canvas 640 × 360 statt 320 × 180 echte Pixel (`AUF = 2` in index.html).
 Bahnbild, Bäume, Korb und fallendes Laub werden in doppelter Pixeldichte gezeichnet; Schrift, Figuren,
 Scheibe und Anzeigen bleiben im 8-Bit-Raster (scharf verdoppelt), Eingaben rechnen weiter in Spielpixeln.
+Auch die Spielerfiguren werden dann in echten Pixeln gezeichnet (6 × 16 statt 3 × 8, gleiche Größe):
+Frisur, Bart, Brille, Cap/Stirnband, Jacke mit Weste/Gurt/Kordel/Reißverschluss, Hose, Schuhe; wer dran ist,
+hält die gewählte Scheibe in ihrer Typfarbe.
+
+![Figuren](bilder/figuren_hd.png)
+
 Hochkant, klassische Grafik und GBA: unverändert. Abschaltbar unter Einstellungen → Hohe Auflösung im Querformat.
 Bahnbild am Rechner: Übersicht 50–140 ms, nah (im Leerlauf vorbereitet) 0,3–0,5 s.
 
