@@ -395,12 +395,12 @@
         </div>
         <button class="gross" data-grafikwahl="klassisch">Klassische Grafik<small>Das einfachere Bild wie bisher</small></button>
       </div>
-      <h3 style="font-size:12px;margin:6px 0 0">Hohe Auflösung im Querformat</h3>
+      <h3 style="font-size:12px;margin:6px 0 0">Hohe Auflösung</h3>
       <div class="knoepfe" id="hd-wahl">
         <button data-hdwahl="an">An</button>
         <button data-hdwahl="aus">Aus</button>
       </div>
-      <p class="klein" style="margin:0">Bahn, Bäume und Korb doppelt so fein (nur quer und nicht mit klassischer Grafik). Auf langsamen Handys ggf. ausschalten.</p>
+      <p class="klein" style="margin:0">Bahn, Bäume, Korb und Figuren doppelt so fein (quer und hochkant, nicht mit klassischer Grafik). Auf langsamen Handys ggf. ausschalten.</p>
       <p class="klein" style="margin:0">Wird in diesem Browser gespeichert.</p>
       <button id="einstellungen-zurueck">← Zurück</button>
     </div>
@@ -556,11 +556,11 @@ let kamera = null, kx = 0, ky = 0;
 let zoomManuell = null, umsehen = false, zieh = null;
 // Handy hochkant: Bahn um 90° drehen (Abwurf unten, Korb oben). SW/SH = Bildschirmgröße in Pixeln
 let hochkant = false, SW = W, SH = H;
-// AUF: echte Pixel je Spielpixel. 2 = hohe Auflösung (nur quer mit Detailgrafik): Bahnbild, Korb und Laub
+// AUF: echte Pixel je Spielpixel. 2 = hohe Auflösung (quer und hochkant, nur mit Detailgrafik): Bahnbild, Korb und Laub
 // doppelt so fein; Schrift, Figuren und Anzeigen bleiben im 8-Bit-Raster (scharf verdoppelt)
 let AUF = 1;
 function hoheAufloesung() {
-  try { return !hochkant && einstellungen.hd !== false && !!aktuelleJahreszeit(); } catch (e) { return false; } // Einstellungen noch nicht geladen
+  try { return einstellungen.hd !== false && !!aktuelleJahreszeit(); } catch (e) { return false; } // Einstellungen noch nicht geladen
 }
 const hochMQ = matchMedia("(max-width: 860px) and (orientation: portrait), (pointer: coarse) and (orientation: portrait)");
 function pruefeAusrichtung() {
