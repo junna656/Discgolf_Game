@@ -236,7 +236,7 @@
       <button class="gross" id="zu-doku" style="font-size:12px;padding:10px 16px;margin-top:8px">Anleitung<small>Steuerung, Regeln und Tipps</small></button>
       <button class="gross" id="zu-bags" style="font-size:12px;padding:10px 16px">Spieler & Bags<small>Spielerkarten ansehen, Scheiben im Bag bearbeiten</small></button>
       <button class="gross" id="zu-bestenliste" style="font-size:12px;padding:10px 16px">Bestenliste<small>Beste ganze Runde jeder Person – für alle Geräte</small></button>
-      <button class="gross" id="zu-einstellungen" style="font-size:12px;padding:10px 16px">Einstellungen<small>Wurfart an jeder Bahn</small></button>
+      <button class="gross" id="zu-einstellungen" style="font-size:12px;padding:10px 16px">Einstellungen<small>Wurfart, Grafik und Jahreszeit</small></button>
       <button class="gross" id="zu-dev" style="font-size:12px;padding:10px 16px;border-color:#ff9a5a" hidden>Entwicklung<small>Parameter einstellen – nur in der Vorschau</small></button>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="#" id="melde-fehler" style="color:var(--leise)">Fehler melden</a> · <a href="#" id="melde-wunsch" style="color:var(--leise)">Idee vorschlagen</a></p>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="impressum.html" style="color:var(--leise)">Impressum</a> · <a href="datenschutz.html" style="color:var(--leise)">Datenschutz</a></p>
@@ -384,12 +384,23 @@
         <button class="gross" data-wurfartwahl="letzte">Letzte Auswahl behalten<small>Wer auf Vorhand umstellt, wirft auch an der nächsten Bahn Vorhand</small></button>
         <button class="gross" data-wurfartwahl="liebling">Lieblingswurf der Person<small>An jeder Bahn wieder Rückhand bzw. Vorhand laut Spielerkarte</small></button>
       </div>
+      <h3 style="font-size:12px;margin:6px 0 0">Grafik und Jahreszeit</h3>
+      <div class="liste" id="grafik-wahl" style="gap:8px">
+        <button class="gross" data-grafikwahl="auto">Nach Datum<small id="grafik-auto-info">Jahreszeit wie draußen</small></button>
+        <div class="knoepfe">
+          <button data-grafikwahl="fruehling">Frühling</button>
+          <button data-grafikwahl="sommer">Sommer</button>
+          <button data-grafikwahl="herbst">Herbst</button>
+          <button data-grafikwahl="winter">Winter</button>
+        </div>
+        <button class="gross" data-grafikwahl="klassisch">Klassische Grafik<small>Das einfachere Bild wie bisher</small></button>
+      </div>
       <p class="klein" style="margin:0">Wird in diesem Browser gespeichert.</p>
       <button id="einstellungen-zurueck">← Zurück</button>
     </div>
     <div id="menue-dev" class="liste" style="gap:8px" hidden>
       <h2 style="text-align:center;font-size:13px">Entwicklung – Parameter</h2>
-      <p class="klein" style="margin:0">Nur in der Vorschau (/dev/). Änderungen gelten sofort und bleiben auf diesem Gerät gespeichert. Mit „Werte kopieren“ kannst du sie mir schicken.</p>
+      <p class="klein" style="margin:0">Nur in der Vorschau (/dev/, /dev-graphic/). Änderungen gelten sofort und bleiben auf diesem Gerät gespeichert. Mit „Werte kopieren“ kannst du sie mir schicken.</p>
       <div class="devregler liste" style="gap:6px"></div>
       <button id="dev-zurueck">← Zurück</button>
     </div>
@@ -520,6 +531,7 @@
 <script src="bahnen.js?v=0.5.0"></script>
 <script src="physik.js?v=0.5.0"></script>
 <script src="portraets.js?v=0.5.0"></script>
+<script src="grafik.js?v=0.5.0"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -661,8 +673,20 @@ function linienFlaeche(o) {
 // Bahnbild für Zoomstufe z: mehr Bildpunkte pro Meter = mehr Details beim Reinzoomen
 const stufenBilder = {};
 function bahnBild(z) {
-  if (!stufenBilder[z]) { const alt = S; S = S0 * z; stufenBilder[z] = zeichneHintergrund(z); S = alt; }
+  if (!stufenBilder[z]) {
+    const alt = S; S = S0 * z;
+    const jz = aktuelleJahreszeit();
+    stufenBilder[z] = jz ? zeichneHintergrundDetail(z, { jahreszeit: jz }) : zeichneHintergrund(z);
+    S = alt;
+  }
   return stufenBilder[z];
+}
+
+// Jahreszeit fürs Bahnbild laut Einstellung: "auto" = nach Datum; null = klassische Grafik
+function aktuelleJahreszeit() {
+  const g = einstellungen.grafik || "auto";
+  if (g === "klassisch" || !window.zeichneHintergrundDetail) return null;
+  return g === "auto" ? jahreszeitNachDatum() : g;
 }
 
 function zeichneHintergrund(z) {
@@ -704,32 +728,7 @@ function zeichneHintergrund(z) {
     d[i] = f[0]; d[i + 1] = f[1]; d[i + 2] = f[2]; d[i + 3] = 255;
   }
   c.putImageData(bild, 0, 0);
-  // Entfernungsmarken: gepunktete Linien quer über die Bahn
-  if (bahn.distanzmarken) {
-    c.fillStyle = "rgba(255,255,255,.55)";
-    const fy = bahn.fairway.map(p => p[1]), oben = Math.min(...fy) * S, unten = Math.max(...fy) * S;
-    for (let dm = bahn.distanzmarken; bahn.abwurf.x + dm < bahn.korb.x - 5; dm += bahn.distanzmarken) {
-      const px = Math.round((bahn.abwurf.x + dm) * S);
-      for (let py = Math.round(oben); py < unten; py += 3) c.fillRect(px, py, 1, 1);
-    }
-  }
-  // Spielfeldlinien (weiß) und Tore (grau) – nur Bild
-  const punkt = (x, y, f) => { c.fillStyle = f; c.fillRect(Math.round(x * S), Math.round(y * S), zr, zr); };
-  const strecke = (a, b, f) => { const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) * S); for (let k = 0; k <= n; k++) punkt(a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n, f); };
-  const kreisbogen = (cx, cy, r, von, bis, f) => { const n = Math.ceil(r * S * (bis - von)); for (let k = 0; k <= n; k++) { const a = von + (bis - von) * k / n; punkt(cx + Math.cos(a) * r, cy + Math.sin(a) * r, f); } };
-  for (const l of bahn.linien || []) {
-    const f = "rgba(240,240,232,.85)";
-    if (l.kreis) kreisbogen(l.kreis[0], l.kreis[1], l.kreis[2], 0, Math.PI * 2, f);
-    else if (l.bogen) { const [bx, by, r, s] = l.bogen, w = 0.93; kreisbogen(bx, by, r, s > 0 ? -w : Math.PI - w, s > 0 ? w : Math.PI + w, f); }
-    else l.punkte.forEach((a, i) => { const b = l.punkte[i + 1] || (l.zu ? l.punkte[0] : null); if (b) strecke(a, b, f); });
-  }
-  for (const [a, b] of bahn.tore || []) {
-    c.fillStyle = "rgba(230,230,225,.9)";
-    const x0 = Math.round(Math.min(a[0], b[0]) * S), y0 = Math.round(Math.min(a[1], b[1]) * S), x1 = Math.round(Math.max(a[0], b[0]) * S), y1 = Math.round(Math.max(a[1], b[1]) * S);
-    c.fillRect(x0, y0, x1 - x0 + zr, zr); c.fillRect(x0, y1, x1 - x0 + zr, zr); c.fillRect(x0, y0, zr, y1 - y0); c.fillRect(x1, y0, zr, y1 - y0 + zr);
-    c.fillStyle = "rgba(230,230,225,.35)";
-    for (let y = y0 + 2 * zr; y < y1; y += 2 * zr) c.fillRect(x0, y, x1 - x0, 1);
-  }
+  zeichneLinien(c, z);
   // Rand der Spielfläche ist OB: gestrichelte weiße Linie mit Pflöcken
   c.fillStyle = PAL.weiss;
   for (let px = 0; px < BW; px += 6) { c.fillRect(px, 0, 3, 1); c.fillRect(px, BH - 1, 3, 1); }
@@ -782,7 +781,64 @@ function zeichneHintergrund(z) {
   c.fillStyle = "#5a5a5a"; c.fillRect(ax - tw / 2, ay - th / 2, tw, th);
   c.fillStyle = "#8c8c88"; c.fillRect(ax - tw / 2 + 1, ay - th / 2 + 1, tw - 2, th - 2);
   c.fillStyle = "#a8a8a2"; c.fillRect(ax - tw / 2 + 1, ay - th / 2 + 1, tw - 2, zr);
-  // Dropzone: Box mit gelbem Rand (nach OB geht es hier weiter)
+  zeichneBauten(c, z);
+  // Bäume: Schatten, dann Kronen
+  // kleine Bäume zuerst, große (höhere) darüber – so wie man sie von oben sieht
+  const baeumeSortiert = [...bahn.baeume].sort((a, b) => a.r - b.r);
+  for (const b of baeumeSortiert) pixelKreis(c, b.x * S + 2 * z, b.y * S + 2 * z, b.r * S, PAL.schatten);
+  for (const b of baeumeSortiert) {
+    const r = b.r * S;
+    pixelKreis(c, b.x * S, b.y * S, r, PAL.baum1);
+    pixelKreis(c, b.x * S - r * 0.2, b.y * S - r * 0.2, r * 0.75, PAL.baum2);
+    pixelKreis(c, b.x * S - r * 0.4, b.y * S - r * 0.4, r * 0.3, PAL.baum3);
+    // Blätter-Dither
+    const rr = zufall(Math.round(b.x * 100 + b.y));
+    for (let i = 0; i < r * 3; i++) {
+      const a = rr() * Math.PI * 2, dd = rr() * r * 0.9;
+      c.fillStyle = rr() < 0.5 ? PAL.baum1 : PAL.baum3;
+      c.fillRect(Math.round(b.x * S + Math.cos(a) * dd), Math.round(b.y * S + Math.sin(a) * dd), 1, 1);
+    }
+  }
+  zeichneMando(c, z);
+  return hg;
+}
+
+// Teile des Bahnbilds, die das klassische und das detaillierte Bild (grafik.js) gemeinsam haben
+// Entfernungsmarken, Spielfeldlinien und Tore
+function zeichneLinien(c, z) {
+  const zr = Math.max(1, Math.round(z));
+  // Entfernungsmarken: gepunktete Linien quer über die Bahn
+  if (bahn.distanzmarken) {
+    c.fillStyle = "rgba(255,255,255,.55)";
+    const fy = bahn.fairway.map(p => p[1]), oben = Math.min(...fy) * S, unten = Math.max(...fy) * S;
+    for (let dm = bahn.distanzmarken; bahn.abwurf.x + dm < bahn.korb.x - 5; dm += bahn.distanzmarken) {
+      const px = Math.round((bahn.abwurf.x + dm) * S);
+      for (let py = Math.round(oben); py < unten; py += 3) c.fillRect(px, py, 1, 1);
+    }
+  }
+  // Spielfeldlinien (weiß) und Tore (grau) – nur Bild
+  const punkt = (x, y, f) => { c.fillStyle = f; c.fillRect(Math.round(x * S), Math.round(y * S), zr, zr); };
+  const strecke = (a, b, f) => { const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) * S); for (let k = 0; k <= n; k++) punkt(a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n, f); };
+  const kreisbogen = (cx, cy, r, von, bis, f) => { const n = Math.ceil(r * S * (bis - von)); for (let k = 0; k <= n; k++) { const a = von + (bis - von) * k / n; punkt(cx + Math.cos(a) * r, cy + Math.sin(a) * r, f); } };
+  for (const l of bahn.linien || []) {
+    const f = "rgba(240,240,232,.85)";
+    if (l.kreis) kreisbogen(l.kreis[0], l.kreis[1], l.kreis[2], 0, Math.PI * 2, f);
+    else if (l.bogen) { const [bx, by, r, s] = l.bogen, w = 0.93; kreisbogen(bx, by, r, s > 0 ? -w : Math.PI - w, s > 0 ? w : Math.PI + w, f); }
+    else l.punkte.forEach((a, i) => { const b = l.punkte[i + 1] || (l.zu ? l.punkte[0] : null); if (b) strecke(a, b, f); });
+  }
+  for (const [a, b] of bahn.tore || []) {
+    c.fillStyle = "rgba(230,230,225,.9)";
+    const x0 = Math.round(Math.min(a[0], b[0]) * S), y0 = Math.round(Math.min(a[1], b[1]) * S), x1 = Math.round(Math.max(a[0], b[0]) * S), y1 = Math.round(Math.max(a[1], b[1]) * S);
+    c.fillRect(x0, y0, x1 - x0 + zr, zr); c.fillRect(x0, y1, x1 - x0 + zr, zr); c.fillRect(x0, y0, zr, y1 - y0); c.fillRect(x1, y0, zr, y1 - y0 + zr);
+    c.fillStyle = "rgba(230,230,225,.35)";
+    for (let y = y0 + 2 * zr; y < y1; y += 2 * zr) c.fillRect(x0, y, x1 - x0, 1);
+  }
+}
+// Dropzones, Mauern und Holzbalken
+function zeichneBauten(c, z) {
+  const zr = Math.max(1, Math.round(z));
+  // Dropzone: Box mit gelbem Rand (nach OB geht es hier weiter), so groß wie der Abwurf
+  const tw = Math.max(12, Math.round(3.2 * S)), th = Math.max(9, Math.round(2.2 * S));
   for (const dz of [bahn.dropzone, bahn.mando && bahn.mando.dropzone].filter(Boolean)) {
     const dx = Math.round(dz.x * S), dy = Math.round(dz.y * S);
     c.fillStyle = "#e8c030"; c.fillRect(dx - tw / 2, dy - th / 2, tw, th);
@@ -812,23 +868,9 @@ function zeichneHintergrund(z) {
   // Holzbalken
   c.strokeStyle = PAL.brett; c.lineWidth = Math.max(2, 0.6 * S); c.lineCap = "butt";
   for (const bl of bahn.balken || []) { c.beginPath(); bl.forEach(([x, y], i) => i ? c.lineTo(x * S, y * S) : c.moveTo(x * S, y * S)); c.stroke(); }
-  // Bäume: Schatten, dann Kronen
-  // kleine Bäume zuerst, große (höhere) darüber – so wie man sie von oben sieht
-  const baeumeSortiert = [...bahn.baeume].sort((a, b) => a.r - b.r);
-  for (const b of baeumeSortiert) pixelKreis(c, b.x * S + 2 * z, b.y * S + 2 * z, b.r * S, PAL.schatten);
-  for (const b of baeumeSortiert) {
-    const r = b.r * S;
-    pixelKreis(c, b.x * S, b.y * S, r, PAL.baum1);
-    pixelKreis(c, b.x * S - r * 0.2, b.y * S - r * 0.2, r * 0.75, PAL.baum2);
-    pixelKreis(c, b.x * S - r * 0.4, b.y * S - r * 0.4, r * 0.3, PAL.baum3);
-    // Blätter-Dither
-    const rr = zufall(Math.round(b.x * 100 + b.y));
-    for (let i = 0; i < r * 3; i++) {
-      const a = rr() * Math.PI * 2, dd = rr() * r * 0.9;
-      c.fillStyle = rr() < 0.5 ? PAL.baum1 : PAL.baum3;
-      c.fillRect(Math.round(b.x * S + Math.cos(a) * dd), Math.round(b.y * S + Math.sin(a) * dd), 1, 1);
-    }
-  }
+}
+// Mando: Linie durch die Lücke und Pfeile an den Bäumen
+function zeichneMando(c, z) {
   // Mando: gestrichelte gelbe Linie durch die Lücke, rote Pfeile an beiden Bäumen zeigen hinein
   if (bahn.mando) {
     const [ax, ay] = bahn.mando.a, [bx, by] = bahn.mando.b, len = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / len, uy = (by - ay) / len;
@@ -847,7 +889,6 @@ function zeichneHintergrund(z) {
     pfeil(ax + ux * rand(ax, ay), ay + uy * rand(ax, ay), ux, uy);
     if (!bahn.mando.einseitig) pfeil(bx - ux * rand(bx, by), by - uy * rand(bx, by), -ux, -uy);
   }
-  return hg;
 }
 
 // ---------- Spielzustand ----------
@@ -860,7 +901,7 @@ let modus = "vierer", teilnehmer = SPIELER.map((_, i) => i), marken = [], spielN
 let online = null;
 // Einstellungen (in diesem Browser gespeichert); Menü dazu weiter unten
 const EINSTELLUNGEN_SPEICHER = "discgolf-einstellungen";
-const einstellungen = { wurfart: "letzte" };
+const einstellungen = { wurfart: "letzte", grafik: "auto" };
 try { Object.assign(einstellungen, JSON.parse(localStorage.getItem(EINSTELLUNGEN_SPEICHER) || "{}")); } catch (e) { /* egal */ }
 function spaeter(fn, ms) {
   const nr = spielNr;
@@ -2287,9 +2328,18 @@ el("zu-doku").addEventListener("click", () => { el("menue-start").hidden = true;
 document.querySelectorAll(".doku-zurueck").forEach(b => b.addEventListener("click", () => { el("menue-doku").hidden = true; el("menue-start").hidden = false; el("menue").scrollTop = 0; }));
 let gewaehlterModus = null;
 // ---------- Einstellungen (in diesem Browser gespeichert) ----------
+const JAHRESZEIT_NAME = { fruehling: "Frühling", sommer: "Sommer", herbst: "Herbst", winter: "Winter" };
 function zeigeEinstellungen() {
   document.querySelectorAll("[data-wurfartwahl]").forEach(b => b.classList.toggle("an", b.dataset.wurfartwahl === einstellungen.wurfart));
+  document.querySelectorAll("[data-grafikwahl]").forEach(b => b.classList.toggle("an", b.dataset.grafikwahl === (einstellungen.grafik || "auto")));
+  el("grafik-auto-info").textContent = "Jahreszeit wie draußen – gerade " + JAHRESZEIT_NAME[jahreszeitNachDatum()];
 }
+document.querySelectorAll("[data-grafikwahl]").forEach(b => b.addEventListener("click", () => {
+  einstellungen.grafik = b.dataset.grafikwahl;
+  try { localStorage.setItem(EINSTELLUNGEN_SPEICHER, JSON.stringify(einstellungen)); } catch (e) { /* egal */ }
+  for (const k in stufenBilder) delete stufenBilder[k]; // Bahnbild beim nächsten Zeichnen neu erzeugen
+  zeigeEinstellungen();
+}));
 document.querySelectorAll("[data-wurfartwahl]").forEach(b => b.addEventListener("click", () => {
   einstellungen.wurfart = b.dataset.wurfartwahl;
   try { localStorage.setItem(EINSTELLUNGEN_SPEICHER, JSON.stringify(einstellungen)); } catch (e) { /* egal */ }
@@ -2552,12 +2602,13 @@ el("personen").addEventListener("click", e => {
 });
 el("zurueck").addEventListener("click", () => { el(gewaehlterModus === "single" ? "menue-kurs" : "menue-start").hidden = false; el("menue-wahl").hidden = true; });
 el("zummenue").addEventListener("click", hauptmenueKlick);
-// Vorschau des dev-Branchs (www.discgolf-game.de/dev/) deutlich kennzeichnen
-const IST_VORSCHAU = /^\/dev(\/|$)/.test(location.pathname);
+// Vorschau der Branches dev und dev-graphic (www.discgolf-game.de/dev/ bzw. /dev-graphic/) deutlich kennzeichnen
+const VORSCHAU_PFAD = (location.pathname.match(/^\/(dev(?:-graphic)?)(\/|$)/) || [])[1];
+const IST_VORSCHAU = !!VORSCHAU_PFAD;
 const ENTWICKLUNG = IST_VORSCHAU || location.protocol === "file:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 if (IST_VORSCHAU) {
   const v = document.querySelector(".untertitel span");
-  if (v) { v.textContent += " · VORSCHAU (DEV)"; v.style.color = "#ff9a5a"; }
+  if (v) { v.textContent += " · VORSCHAU (" + VORSCHAU_PFAD.toUpperCase() + ")"; v.style.color = "#ff9a5a"; }
 }
 
 // ---------- Entwicklung: Parameter einstellen (nur Vorschau/lokal) ----------

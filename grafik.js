@@ -1,9 +1,11 @@
 // ============================================================
-//  GRAFIK-VORSCHAU (Prototyp, noch nicht im Spiel eingebunden)
+//  DETAILGRAFIK MIT JAHRESZEITEN
 // ============================================================
 //  Detailliertere Pixelgrafik für das Bahnbild. Läuft im Kontext von index.html
-//  und nutzt dessen Hilfsfunktionen (maske, polygonPfad, zufall, pixelKreis …).
-//  Aufruf: werkzeuge/grafik_vorschau.mjs rendert damit Vorher/Nachher-Bilder.
+//  und nutzt dessen Hilfsfunktionen (maske, polygonPfad, zufall, pixelKreis,
+//  zeichneLinien, zeichneBauten, zeichneMando …). Die klassische Grafik
+//  (zeichneHintergrund in index.html) bleibt für die GBA-Version unverändert.
+//  Vorher/Nachher-Bilder: node werkzeuge/grafik_vorschau.mjs [bahn] [ordner]
 //
 //  Ideen darin:
 //   - Paletten mit 4–6 Stufen statt 2–3, Schatten bläulicher, Lichter gelblicher
@@ -69,6 +71,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   const R = a => a.map(rgb);
   const JZ = JAHRESZEITEN[opt.jahreszeit] || JAHRESZEITEN.sommer, winter = !!JZ.schnee;
   const GRAS = R(JZ.gras), AUS = R(JZ.aus), FAIR = R(JZ.fair), WEG = R(JZ.weg);
+  const HALME = R(["#4a3e2a", "#7a6a46", "#a8945e"]);
   const ERDE = R(["#5a4228", "#735634", "#8c6c42"]);
   const DECK = R(["#5e3c1e", "#7a5530", "#9a6e3a", "#b88a4c", "#cfa262", "#e0bc7c"]);
 
@@ -88,6 +91,8 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
     return false;
   };
   const ab = bahn.abwurf;
+  // Wurfrichtung (Abwurf → Korb): Mähstreifen laufen in diese Richtung, die abgelaufene Stelle liegt davor
+  const rl = Math.hypot(bahn.korb.x - ab.x, bahn.korb.y - ab.y) || 1, ux = (bahn.korb.x - ab.x) / rl, uy = (bahn.korb.y - ab.y) / rl;
 
   // ---------- Bodenschicht pixelweise ----------
   const bild = c.createImageData(BW, BH), d = bild.data;
@@ -133,7 +138,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
         if (ringsum > 0 && ringsum < 4) imFair = (ringsum + (imFair ? 1 : 0)) / 5 > bay(px, py) * 0.6 + 0.2 + (fein - 0.5) * 0.3;
       }
       // abgelaufene Stelle direkt vor dem Abwurf
-      const dxAb = (x - (ab.x + 2.6)) / 2.6, dyAb = (y - ab.y) / 1.6;
+      const lx = x - ab.x - ux * 2.6, ly = y - ab.y - uy * 2.6, dxAb = (lx * ux + ly * uy) / 2.6, dyAb = (-lx * uy + ly * ux) / 1.6;
       const abgelaufen = dxAb * dxAb + dyAb * dyAb + (vnoise(x * 1.5, y * 1.5, 7) - 0.5) * 0.9 < 1;
       if (abgelaufen && !zone) {
         const t = vnoise(x * 3, y * 3, 8);
@@ -141,7 +146,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
         else f = FAIR[stufe(FAIR.length, 0.75 + (t - 0.5) * 0.4, px, py)], a = 2;
       } else if (imFair) {
         // Mähstreifen in Wurfrichtung (je 2,2 m), weich gedithert
-        const band = Math.floor(y / 2.2) % 2;
+        const band = ((Math.floor((-x * uy + y * ux) / 2.2) % 2) + 2) % 2;
         let t = 0.35 + band * 0.25 + (n - 0.5) * 0.45 - schatten * 0.2;
         if (zone) t -= 0.35;
         f = FAIR[stufe(FAIR.length, t, px, py)]; a = 2;
@@ -166,7 +171,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
       const px = Math.floor(rnd() * BW), py = Math.floor(rnd() * BH), a = artBei(px, py);
       if (a !== 0 && a !== 1) continue;
       // im Winter: trockene Halme, die aus dem Schnee ragen
-      const P = winter ? R(["#4a3e2a", "#7a6a46", "#a8945e"]) : a ? AUS : GRAS, hell = P[P.length - 1], mittel = P[P.length - 2], dunkel = P[0];
+      const P = winter ? HALME : a ? AUS : GRAS, hell = P[P.length - 1], mittel = P[P.length - 2], dunkel = P[0];
       setze(px, py + 1, dunkel); setze(px - 1, py, dunkel);
       setze(px, py, mittel); setze(px - 1, py - 1, hell); setze(px + 1, py - 1, mittel); setze(px, py - 2, hell);
     }
@@ -216,6 +221,11 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   c.fillStyle = PAL.weiss;
   for (let px = 0; px < BW; px += 6) { c.fillRect(px, 0, 3, 1); c.fillRect(px, BH - 1, 3, 1); }
   for (let py = 0; py < BH; py += 6) { c.fillRect(0, py, 1, 3); c.fillRect(BW - 1, py, 1, 3); }
+  c.fillStyle = "#e84030";
+  for (let px = 12; px < BW; px += 24) { c.fillRect(px, 1, 2, 2); c.fillRect(px, BH - 3, 2, 2); }
+  for (let py = 12; py < BH; py += 24) { c.fillRect(1, py, 2, 2); c.fillRect(BW - 3, py, 2, 2); }
+
+  zeichneLinien(c, z);
 
   // ---------- OB-Grenzen: Zaun mit Pfosten und Maschen, Linie mit Pflöcken ----------
   const am = (v, m) => v <= 0.01 || v >= m - 0.01;
@@ -278,28 +288,62 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
     rechteck(x0 + tw - 2 * zr, y0 + zr, zr, th - 2 * zr, "#e8e4d0");
   }
 
-  // ---------- Deko: Bahnschild und Bank am Abwurf ----------
-  if (opt.deko && S >= 5) {
-    // Bahnschild links hinter dem Abwurf: Pfosten, Holzrahmen, grüne Tafel mit "1"
-    const sx = Math.round((ab.x - 4.2) * S), sy = Math.round((ab.y - 3.4) * S), sw = Math.round(2.2 * S), sh = Math.round(1.4 * S);
-    rechteck(sx + sw / 2 - zr, sy + sh, 2 * zr, Math.round(0.7 * S), "#5a3a1c");
-    rechteck(sx + zr * 2, sy + zr * 2, sw, sh, "rgba(0,20,0,.45)");
-    rechteck(sx, sy, sw, sh, "#6b4422");
-    rechteck(sx + zr, sy + zr, sw - 2 * zr, sh - 2 * zr, "#1f6b3a");
-    rechteck(sx + zr, sy + zr, sw - 2 * zr, zr, "#2f8a4c");
-    // Ziffer 1 (3×5) und kleine Linie als Bahnverlauf
-    const ziffer = ["010", "110", "010", "010", "111"], pz = Math.max(1, Math.round(S / 9));
-    ziffer.forEach((zeile, j) => [...zeile].forEach((q, i) => { if (q === "1") rechteck(sx + 3 * zr + i * pz, sy + 3 * zr + j * pz, pz, pz, "#f4f4f0"); }));
-    for (let i = 0; i < sw - 10 * zr; i += zr) rechteck(sx + 7 * zr + i, sy + sh / 2 + Math.round(Math.sin(i / sw * 3) * zr), zr, zr, "#d8e8c0");
-    // Bank rechts unter dem Abwurf: drei Latten, Füße, Schatten
-    const bx = Math.round((ab.x - 3.5) * S), by = Math.round((ab.y + 3.6) * S), bw = Math.round(2 * S), lh = Math.max(1, Math.round(0.16 * S));
-    rechteck(bx + 2 * zr, by + 2 * zr, bw, lh * 4, "rgba(0,20,0,.45)");
-    rechteck(bx + zr, by - zr, 2 * zr, lh * 4 + 2 * zr, "#3c3c38"); rechteck(bx + bw - 3 * zr, by - zr, 2 * zr, lh * 4 + 2 * zr, "#3c3c38");
-    for (let i = 0; i < 3; i++) { rechteck(bx, by + i * (lh + Math.max(1, lh / 2)), bw, lh, "#9a6a36"); rechteck(bx, by + i * (lh + Math.max(1, lh / 2)), bw, 1, "#c08a4a"); }
-    // Mülleimer neben der Bank
-    const mx = Math.round((ab.x - 0.6) * S), my = Math.round((ab.y + 4.3) * S), mr = Math.max(2, Math.round(0.35 * S));
-    pixelKreis(c, mx + zr, my + zr, mr, "rgba(0,20,0,.45)");
-    pixelKreis(c, mx, my, mr, "#2c4a34"); pixelKreis(c, mx, my, Math.max(1, mr - 2), "#121a14");
+  zeichneBauten(c, z);
+
+  // ---------- Deko: Bahnschild, Bank und Mülleimer am Abwurf ----------
+  // Plätze links/rechts hinter dem Abwurf (bezogen auf die Wurfrichtung); belegt ist, was auf Weg, Fairway,
+  // im Aus, unter einem Baum oder auf dem Abwurf läge
+  const frei = (x, y, r) => {
+    for (let k = 0; k < 9; k++) {
+      const qx = x + r * Math.cos(k * 0.8) * (k ? 1 : 0), qy = y + r * Math.sin(k * 0.8) * (k ? 1 : 0), px = Math.round(qx * S), py = Math.round(qy * S);
+      if (!inBild(px, py) || art[py * BW + px] !== 0) return false;
+      if (baeume.some(b => Math.hypot(b.x - qx, b.y - qy) < b.r + 0.5)) return false;
+      if (Math.abs(qx - ab.x) < 2.4 && Math.abs(qy - ab.y) < 1.9) return false;
+    }
+    return true;
+  };
+  const platz = (r, ...kandidaten) => {
+    for (const [vor, seit] of kandidaten) {
+      const x = ab.x + ux * vor - uy * seit, y = ab.y + uy * vor + ux * seit;
+      if (frei(x, y, r)) return { x, y };
+    }
+    return null;
+  };
+  if (opt.deko && S >= 5 && bahn.nummer) {
+    // Bahnschild: Pfosten, Holzrahmen, grüne Tafel mit Nummer und kleiner Bahnlinie
+    const schild = platz(1.4, [-2.5, -3.4], [-2.5, 3.4], [-4, -3], [-4, 3], [0, -4], [0, 4]);
+    if (schild) {
+      const sw = Math.round(2.2 * S), sh = Math.round(1.4 * S), sx = Math.round(schild.x * S - sw / 2), sy = Math.round(schild.y * S - sh / 2);
+      rechteck(sx + sw / 2 - zr, sy + sh, 2 * zr, Math.round(0.7 * S), "#5a3a1c");
+      rechteck(sx + zr * 2, sy + zr * 2, sw, sh, "rgba(0,20,0,.45)");
+      rechteck(sx, sy, sw, sh, "#6b4422");
+      rechteck(sx + zr, sy + zr, sw - 2 * zr, sh - 2 * zr, "#1f6b3a");
+      rechteck(sx + zr, sy + zr, sw - 2 * zr, zr, "#2f8a4c");
+      const pz = Math.max(1, Math.round(S / 9));
+      let ende = sx + 3 * zr;
+      for (const ch of String(bahn.nummer)) {
+        ZIFFERN[ch].forEach((zeile, j) => [...zeile].forEach((q, i) => { if (q === "1") rechteck(ende + i * pz, sy + 3 * zr + j * pz, pz, pz, "#f4f4f0"); }));
+        ende += 4 * pz;
+      }
+      for (let i = 0; ende + zr + i < sx + sw - 2 * zr; i += zr) rechteck(ende + zr + i, sy + sh / 2 + Math.round(Math.sin(i / sw * 3) * zr), zr, zr, "#d8e8c0");
+    }
+    // Bank: drei Latten, Füße, Schatten
+    const bank = platz(1.3, [-2, 3.8], [-2, -3.8], [-4.5, 2.5], [-4.5, -2.5], [1, 4.5], [1, -4.5]);
+    if (bank) {
+      const bw = Math.round(2 * S), lh = Math.max(1, Math.round(0.16 * S)), bx = Math.round(bank.x * S - bw / 2), by = Math.round(bank.y * S - lh * 2);
+      rechteck(bx + 2 * zr, by + 2 * zr, bw, lh * 4, "rgba(0,20,0,.45)");
+      rechteck(bx + zr, by - zr, 2 * zr, lh * 4 + 2 * zr, "#3c3c38"); rechteck(bx + bw - 3 * zr, by - zr, 2 * zr, lh * 4 + 2 * zr, "#3c3c38");
+      for (let i = 0; i < 3; i++) {
+        const ly = by + i * (lh + Math.max(1, lh / 2));
+        rechteck(bx, ly, bw, lh, "#9a6a36"); rechteck(bx, ly, bw, 1, winter ? "#f4f8ff" : "#c08a4a");
+      }
+      // Mülleimer neben der Bank
+      const mx = Math.round(bank.x * S + bw / 2 + 0.7 * S), my = Math.round(bank.y * S), mr = Math.max(2, Math.round(0.35 * S));
+      if (frei(mx / S, my / S, 0.4)) {
+        pixelKreis(c, mx + zr, my + zr, mr, "rgba(0,20,0,.45)");
+        pixelKreis(c, mx, my, mr, "#2c4a34"); pixelKreis(c, mx, my, Math.max(1, mr - 2), "#121a14");
+      }
+    }
   }
 
   // ---------- Bäume ----------
@@ -371,6 +415,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
       }
     }
   }
+  zeichneMando(c, z);
   return hg;
 };
 
@@ -425,4 +470,18 @@ window.JAHRESZEITEN = {
     blumen: { dichte: 0, farben: [] },
     klee: false, bueschel: 0.35, laub: null,
   },
+};
+
+// Ziffern 3×5 für das Bahnschild
+const ZIFFERN = {
+  0: ["111", "101", "101", "101", "111"], 1: ["010", "110", "010", "010", "111"], 2: ["111", "001", "111", "100", "111"],
+  3: ["111", "001", "011", "001", "111"], 4: ["101", "101", "111", "001", "001"], 5: ["111", "100", "111", "001", "111"],
+  6: ["111", "100", "111", "101", "111"], 7: ["111", "001", "010", "010", "010"], 8: ["111", "101", "111", "101", "111"],
+  9: ["111", "101", "111", "001", "111"],
+};
+
+// Jahreszeit nach Datum (meteorologisch): Dez–Feb Winter, März–Mai Frühling, Juni–Aug Sommer, Sep–Nov Herbst
+window.jahreszeitNachDatum = (datum = new Date()) => {
+  const m = datum.getMonth();
+  return m === 11 || m < 2 ? "winter" : m < 5 ? "fruehling" : m < 8 ? "sommer" : "herbst";
 };

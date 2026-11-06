@@ -1,8 +1,12 @@
-# Grafik-Update: Vorschläge für Bahn 1 (Webversion)
+# Grafik-Update: Detailgrafik mit Jahreszeiten (Webversion)
 
-Prototyp: `werkzeuge/grafik_vorschau.js` (noch **nicht** im Spiel eingebunden).
+Code: `grafik.js`, im Spiel eingebunden auf dem Branch `dev-graphic`
+(Vorschau: www.discgolf-game.de/dev-graphic/). Gilt für alle Bahnen und das freie Feld.
 Vorschau-Bilder neu erzeugen: `node werkzeuge/grafik_vorschau.mjs 1 docs/bilder`
 (Spiellogik, Physik und Bahndaten bleiben unverändert, nur das Bild ändert sich).
+
+**Einstellungen → Grafik und Jahreszeit:** „Nach Datum“ (Standard; Dez–Feb Winter, März–Mai Frühling,
+Juni–Aug Sommer, Sep–Nov Herbst), eine feste Jahreszeit oder „Klassische Grafik“.
 
 ![Vergleich](bilder/grafik_bahn1_vergleich.png)
 
@@ -17,7 +21,7 @@ Vorschau-Bilder neu erzeugen: `node werkzeuge/grafik_vorschau.mjs 1 docs/bilder`
 | 5 | **Bäume** | Krone aus mehreren Blättergruppen mit Kontur und Licht von links oben; ~30 % Kiefern (bläulich, Nadelbüschel); Schatten als dunklere Palettenstufe nach rechts unten |
 | 6 | **Bowling-Deck** | Querdielen mit Fugen, Maserung, Nägeln, Schatten; Bowling-Pfeile als Dreiecke |
 | 7 | **Abwurf** | Betonplatte mit Kante, Sprenkeln, Abwurflinie und Schatten |
-| 8 | **Deko** | Bahnschild „1“, Bank und Mülleimer am Abwurf; Herbstlaub unter Laubbäumen |
+| 8 | **Deko** | Bahnschild mit Bahnnummer, Bank und Mülleimer am Abwurf – sie suchen sich einen freien Platz neben dem Abwurf (nicht auf Weg, Fairway, OB oder unter Bäumen) |
 
 ## Vier Jahreszeiten
 
@@ -33,7 +37,6 @@ Paletten und Deko stehen in `JAHRESZEITEN` am Ende von `werkzeuge/grafik_vorscha
 | Herbst | olivgrün | orange, rot, gelb, braungrün gemischt | viel Laub am Boden, kaum Blumen |
 | Winter | Schnee mit bläulichen Schatten, Wege matschig | Laubbäume kahl mit Ästen und Astschatten, Kiefern verschneit | trockene Halme im Schnee, Schnee auf dem Deck |
 
-Ideen zur Auswahl im Spiel: nach echtem Datum, zufällig pro Runde oder als Einstellung im Menü.
 Die Physik ändert sich nicht (Schnee bremst die Scheibe z. B. nicht stärker) – das wäre ein eigener Schritt.
 
 ## Weitere Ideen (noch nicht gebaut)
@@ -48,6 +51,7 @@ Die Physik ändert sich nicht (Schnee bremst die Scheibe z. B. nicht stärker) �
 
 ## Offene Punkte
 
-- Laufzeit: das Bahnbild wird pro Zoomstufe einmal vorgerendert – der Prototyp ist langsamer
-  als bisher, sollte vor dem Einbau auf dem Handy gemessen werden.
+- Laufzeit: das Bahnbild wird pro Zoomstufe einmal vorgerendert. Am Rechner 12–65 ms (Übersicht)
+  bzw. 100–310 ms (nah, im Leerlauf vorbereitet) je Bahn – auf dem Handy noch messen.
+- Putt-Ansicht (Nahansicht am Korb) hat noch die Sommerfarben.
 - GBA-Version ist davon nicht betroffen.

@@ -1,13 +1,15 @@
 # Veröffentlicht die Seite auf GitHub Pages:
 #   main -> https://www.discgolf-game.de/        (live)
 #   dev  -> https://www.discgolf-game.de/dev/    (Vorschau zum Testen vor dem Release)
+#   dev-graphic -> https://www.discgolf-game.de/dev-graphic/  (Vorschau des Grafik-Updates)
 # Voraussetzung: Settings -> Pages -> Source "GitHub Actions" und unter
-# Settings -> Environments -> github-pages ist auch der Branch "dev" erlaubt.
+# Settings -> Environments -> github-pages sind auch die Branches "dev" und "dev-graphic" erlaubt.
+# Gibt es den Branch dev-graphic nicht (mehr), fällt die Vorschau einfach weg.
 name: Pages (live + Vorschau)
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main, dev, dev-graphic]
   workflow_dispatch:
 
 permissions:
@@ -33,6 +35,12 @@ jobs:
         with:
           ref: dev
           path: dev
+      - name: dev-graphic auschecken (falls vorhanden)
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: dev-graphic
+          path: dev-graphic
       - name: Seite zusammenstellen
         run: |
           kopiere() {
@@ -40,12 +48,17 @@ jobs:
             for f in $(cd "$1" && ls -A | grep -vxE '\.git|\.github|server|docs|werkzeuge|tests|gba|CNAME|README\.md'); do cp -r "$1/$f" "$2/"; done
           }
           kopiere main site
-          kopiere dev site/dev
-          # Vorschau: jeder Stand bekommt eigene Skript-Adressen (?v=…-<commit>), damit Handys nichts Altes mischen
-          sha=$(cd dev && git rev-parse --short HEAD)
-          sed -i -E "s/\?v=([0-9.]+)\"/?v=\1-$sha\"/g" site/dev/index.html
-          # Vorschau nicht in Suchmaschinen
-          sed -i 's#<head>#<head>\n<meta name="robots" content="noindex, nofollow">#' site/dev/*.html
+          # Vorschauen: jeder Stand bekommt eigene Skript-Adressen (?v=…-<commit>), damit Handys nichts Altes mischen,
+          # und keine Vorschau landet in Suchmaschinen
+          vorschau() {
+            [ -f "$1/index.html" ] || return 0
+            kopiere "$1" "site/$1"
+            sha=$(cd "$1" && git rev-parse --short HEAD)
+            sed -i -E "s/\?v=([0-9.]+)\"/?v=\1-$sha\"/g" "site/$1/index.html"
+            sed -i 's#<head>#<head>\n<meta name="robots" content="noindex, nofollow">#' "site/$1"/*.html
+          }
+          vorschau dev
+          vorschau dev-graphic
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
