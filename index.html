@@ -162,6 +162,11 @@
     height: min(calc(100vh - 200px), calc((100vw - 24px) * 16 / 9));
     height: min(calc(100dvh - 200px), calc((100vw - 24px) * 16 / 9));
   }
+  /* Nah am Korb, aber normal werfen: Platz für „Zurück zum Putten“ unter den Wurf-Knöpfen lassen */
+  body.wechsel canvas.hoch {
+    height: min(calc(100vh - 242px), calc((100vw - 24px) * 16 / 9));
+    height: min(calc(100dvh - 242px), calc((100vw - 24px) * 16 / 9));
+  }
   /* Touch-Geräte (Handy und Tablet): kein Markieren/Kopieren-Menü beim langen Drücken */
   @media (pointer: coarse) {
     .rahmen, .tabs, button, canvas { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -1745,6 +1750,7 @@ function aktualisierePanel() {
   if (zustand === "ende") {
     el("werfen").disabled = el("werfen2").disabled = true;
     el("modus").hidden = true;
+    document.body.classList.remove("wechsel");
     return;
   }
   const s = ich();
@@ -1776,6 +1782,7 @@ function aktualisierePanel() {
   el("werfen").textContent = puttModus ? "Putten (klick)" : "Werfen (halten)";
   el("werfen2").textContent = puttModus ? "Putten" : "Werfen";
   document.body.classList.toggle("putt", !!puttModus);
+  document.body.classList.toggle("wechsel", nah && !puttModus);
   el("werfen").disabled = el("werfen2").disabled = gesperrt() || !(zustand === "zielen" || zustand === "laden" || zustand === "putt");
   if (kiAmZug()) el("werfen").textContent = el("werfen2").textContent = "CPU …";
   else if (fernAmZug()) el("werfen").textContent = el("werfen2").textContent = ich().name + " …";
