@@ -200,6 +200,7 @@ function mpSpieler() {
       name: sp.name, farbe: sp.farbe, hand: sp.hand || "rechts",
       tasche: Array.isArray(t.tasche) && t.tasche.length ? t.tasche : sp.tasche,
       wurfart: sp.wurfart || "rueckhand",
+      lieblingswurf: sp.wurfart || "rueckhand",
       ruf: sp.ruf || "",
       staerken: sp.staerken || {},
       lieblingsscheibe: t.lieblingsscheibe ?? ((sp.karte || {}).lieblingsscheibe || ""),

@@ -231,6 +231,7 @@
       <button class="gross" id="zu-online">Online spielen<small>Bis zu vier Handys live in einer Runde</small></button>
       <button class="gross" id="zu-doku" style="font-size:12px;padding:10px 16px;margin-top:8px">Anleitung<small>Steuerung, Regeln und Tipps</small></button>
       <button class="gross" id="zu-bags" style="font-size:12px;padding:10px 16px">Spieler & Bags<small>Spielerkarten ansehen, Scheiben im Bag bearbeiten</small></button>
+      <button class="gross" id="zu-einstellungen" style="font-size:12px;padding:10px 16px">Einstellungen<small>Wurfart an jeder Bahn</small></button>
       <button class="gross" id="zu-dev" style="font-size:12px;padding:10px 16px;border-color:#ff9a5a" hidden>Entwicklung<small>Parameter einstellen – nur in der Vorschau</small></button>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="#" id="melde-fehler" style="color:var(--leise)">Fehler melden</a> · <a href="#" id="melde-wunsch" style="color:var(--leise)">Idee vorschlagen</a></p>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="impressum.html" style="color:var(--leise)">Impressum</a> · <a href="datenschutz.html" style="color:var(--leise)">Datenschutz</a></p>
@@ -265,6 +266,7 @@
         <li><b>Anhyzer</b> kippt nach innen: Sie zieht nach rechts.</li>
         <li>Erstes Tippen auf Hyzer oder Anhyzer = 5°, jedes weitere Tippen +5° bis 30°, danach wieder 5°.</li>
         <li><b>Vorhand</b> spiegelt alle Kurven (Hyzer nach rechts), fliegt etwas kürzer und streut mehr.</li>
+        <li><b>Wurfart an der nächsten Bahn:</b> Normalerweise bleibt deine letzte Auswahl. Unter „Einstellungen“ im Hauptmenü kannst du festlegen, dass an jeder Bahn wieder der Lieblingswurf der Person laut Spielerkarte gewählt ist.</li>
         <li>Linkshänder (in taschen.js) spiegeln ebenfalls alle Kurven.</li>
       </ul>
 
@@ -360,6 +362,16 @@
         <select id="rundenwahl"></select></label>
       <button class="gross" id="kurs-weiter" style="text-align:center">Weiter</button>
       <button id="kurs-zurueck">← Zurück</button>
+    </div>
+    <div id="menue-einstellungen" class="liste" style="gap:8px" hidden>
+      <h2 style="text-align:center;font-size:13px">Einstellungen</h2>
+      <h3 style="font-size:12px;margin:6px 0 0">Wurfart an jeder Bahn</h3>
+      <div class="liste" id="wurfart-wahl" style="gap:8px">
+        <button class="gross" data-wurfartwahl="letzte">Letzte Auswahl behalten<small>Wer auf Vorhand umstellt, wirft auch an der nächsten Bahn Vorhand</small></button>
+        <button class="gross" data-wurfartwahl="liebling">Lieblingswurf der Person<small>An jeder Bahn wieder Rückhand bzw. Vorhand laut Spielerkarte</small></button>
+      </div>
+      <p class="klein" style="margin:0">Wird in diesem Browser gespeichert.</p>
+      <button id="einstellungen-zurueck">← Zurück</button>
     </div>
     <div id="menue-dev" class="liste" style="gap:8px" hidden>
       <h2 style="text-align:center;font-size:13px">Entwicklung – Parameter</h2>
@@ -825,6 +837,10 @@ let spieler, aktiv, zustand, wind, ziel, winkel, ladeZeit, kraft, flug, banner, 
 let modus = "vierer", teilnehmer = SPIELER.map((_, i) => i), marken = [], spielNr = 0;
 // Online-Multiplayer (mehrspieler.js): null, solange nicht verbunden
 let online = null;
+// Einstellungen (in diesem Browser gespeichert); Menü dazu weiter unten
+const EINSTELLUNGEN_SPEICHER = "discgolf-einstellungen";
+const einstellungen = { wurfart: "letzte" };
+try { Object.assign(einstellungen, JSON.parse(localStorage.getItem(EINSTELLUNGEN_SPEICHER) || "{}")); } catch (e) { /* egal */ }
 function spaeter(fn, ms) {
   const nr = spielNr;
   setTimeout(() => { if (nr === spielNr) fn(); }, ms);
@@ -845,6 +861,7 @@ function neuesSpiel() {
   spieler = teilnehmer.map(i => SPIELER[i]).map(s => ({
     name: s.name, farbe: s.farbe, hand: s.hand || "rechts", tasche: s.tasche,
     wurfart: s.wurfart || "rueckhand",
+    lieblingswurf: s.wurfart || "rueckhand",
     ruf: s.ruf || "",
     staerken: s.staerken || {},
     lieblingsscheibe: (s.karte || {}).lieblingsscheibe || "",
@@ -888,6 +905,9 @@ function starteBahn() {
     s.fertig = false;
     s.mandoOk = false;
     s.scheibe = startScheibe(s.tasche);
+    // Einstellung „Lieblingswurf“: an jeder Bahn wieder die Wurfart laut Spielerkarte (#4);
+    // online nur für die eigenen Figuren, die anderen Geräte schicken ihre Wurfart selbst
+    if (einstellungen.wurfart === "liebling" && s.lieblingswurf && (modus !== "online" || (online && s.besitzer === online.ich))) s.wurfart = s.lieblingswurf;
   }
   // online würfeln alle Geräte denselben Wind aus (gemeinsamer Startwert)
   wuerfleWind(modus === "online" ? mpWindZufall() : Math.random);
@@ -2151,12 +2171,24 @@ function zeigeMenue() {
   el("menue-online").hidden = true;
   el("menue-kurs").hidden = true;
   el("menue-dev").hidden = true;
+  el("menue-einstellungen").hidden = true;
   el("menue").hidden = false;
 }
 
 el("zu-doku").addEventListener("click", () => { el("menue-start").hidden = true; el("menue-doku").hidden = false; el("menue").scrollTop = 0; });
 document.querySelectorAll(".doku-zurueck").forEach(b => b.addEventListener("click", () => { el("menue-doku").hidden = true; el("menue-start").hidden = false; el("menue").scrollTop = 0; }));
 let gewaehlterModus = null;
+// ---------- Einstellungen (in diesem Browser gespeichert) ----------
+function zeigeEinstellungen() {
+  document.querySelectorAll("[data-wurfartwahl]").forEach(b => b.classList.toggle("an", b.dataset.wurfartwahl === einstellungen.wurfart));
+}
+document.querySelectorAll("[data-wurfartwahl]").forEach(b => b.addEventListener("click", () => {
+  einstellungen.wurfart = b.dataset.wurfartwahl;
+  try { localStorage.setItem(EINSTELLUNGEN_SPEICHER, JSON.stringify(einstellungen)); } catch (e) { /* egal */ }
+  zeigeEinstellungen();
+}));
+el("zu-einstellungen").addEventListener("click", () => { zeigeEinstellungen(); el("menue-start").hidden = true; el("menue-einstellungen").hidden = false; el("menue").scrollTop = 0; });
+el("einstellungen-zurueck").addEventListener("click", () => { el("menue-einstellungen").hidden = true; el("menue-start").hidden = false; el("menue").scrollTop = 0; });
 // ---------- Kursauswahl (weitere Kurse kommen in bahnen.js unter KURSE dazu) ----------
 let kurs = KURSE[0];
 try { kurs = KURSE.find(k => k.id === localStorage.getItem("discgolf-kurs")) || KURSE[0]; } catch (e) { /* egal */ }
