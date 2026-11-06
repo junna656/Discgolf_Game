@@ -19,9 +19,26 @@ Vorschau-Bilder neu erzeugen: `node werkzeuge/grafik_vorschau.mjs 1 docs/bilder`
 | 7 | **Abwurf** | Betonplatte mit Kante, Sprenkeln, Abwurflinie und Schatten |
 | 8 | **Deko** | Bahnschild „1“, Bank und Mülleimer am Abwurf; Herbstlaub unter Laubbäumen |
 
+## Vier Jahreszeiten
+
+`zeichneHintergrundDetail(z, { jahreszeit })` mit `fruehling`, `sommer`, `herbst` oder `winter`.
+Paletten und Deko stehen in `JAHRESZEITEN` am Ende von `werkzeuge/grafik_vorschau.js`.
+
+![Jahreszeiten](bilder/grafik_bahn1_jahreszeiten.png)
+
+| Jahreszeit | Boden | Bäume | Deko |
+|---|---|---|---|
+| Frühling | frisches Gelbgrün | hellgrün, ~30 % blühen rosa | viele Blumen (weiß, gelb, lila, blau), Blütenblätter unter Blütenbäumen |
+| Sommer | sattes Grün (Standard) | dunkelgrün | Gänseblümchen, Löwenzahn, Klee |
+| Herbst | olivgrün | orange, rot, gelb, braungrün gemischt | viel Laub am Boden, kaum Blumen |
+| Winter | Schnee mit bläulichen Schatten, Wege matschig | Laubbäume kahl mit Ästen und Astschatten, Kiefern verschneit | trockene Halme im Schnee, Schnee auf dem Deck |
+
+Ideen zur Auswahl im Spiel: nach echtem Datum, zufällig pro Runde oder als Einstellung im Menü.
+Die Physik ändert sich nicht (Schnee bremst die Scheibe z. B. nicht stärker) – das wäre ein eigener Schritt.
+
 ## Weitere Ideen (noch nicht gebaut)
 
-- **Jahreszeiten/Tageszeit**: Laubfarbe (Frühling/Sommer/Herbst) und abendliches Licht als Paletten-Tausch
+- **Tageszeit**: abendliches Licht als Paletten-Tausch
 - **Animation**: Wind bewegt Baumkronen und Gras leicht (2–3 Frames), Blätter fallen
 - **Zaun**: höher wirkender Maschendraht mit deutlicheren Pfosten (im Prototyp noch zu dezent)
 - **Detailstufen**: Deko erst ab Zoomstufe „mittel“ zeigen (Übersicht bleibt ruhig – schon so umgesetzt ab 5 px/m)

@@ -15,11 +15,13 @@
 //     Laubbäume und Kiefern; Schatten als dunklere Palettenstufe statt Transparenz
 //   - Holzdeck aus Querdielen mit Fugen, Nägeln und Maserung, Zaun mit Pfosten und Maschen
 //   - Abwurf aus Beton mit Bahnschild und Bank
+//   - vier Jahreszeiten (optionen.jahreszeit: fruehling, sommer, herbst, winter):
+//     eigene Paletten für Boden und Bäume, Blüten, Herbstlaub, Schnee und kahle Äste
 // ============================================================
 "use strict";
 
 window.zeichneHintergrundDetail = function (z, optionen = {}) {
-  const opt = Object.assign({ deko: true, kiefern: true, laub: true }, optionen);
+  const opt = Object.assign({ deko: true, kiefern: true, jahreszeit: "sommer" }, optionen);
   const BW = Math.round(W * z), BH = Math.round(H * z);
   const hg = document.createElement("canvas");
   hg.width = BW; hg.height = BH;
@@ -65,18 +67,21 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
 
   // ---------- Paletten (dunkel → hell) ----------
   const R = a => a.map(rgb);
-  const GRAS = R(["#174a26", "#1f5a2a", "#276b2c", "#2f7d32", "#3a8c36", "#4c9c3c"]);
-  const AUS = R(["#123a20", "#183f24", "#1d4c27", "#22572a", "#2a632d", "#336e30"]);
-  const FAIR = R(["#2f7d32", "#45953e", "#52a646", "#5fb54c", "#6cc152", "#7ccc5c"]);
-  const WEG = R(["#6e5232", "#8a6a3e", "#a3804c", "#b8955a", "#c9a86c", "#d8bb80"]);
+  const JZ = JAHRESZEITEN[opt.jahreszeit] || JAHRESZEITEN.sommer, winter = !!JZ.schnee;
+  const GRAS = R(JZ.gras), AUS = R(JZ.aus), FAIR = R(JZ.fair), WEG = R(JZ.weg);
   const ERDE = R(["#5a4228", "#735634", "#8c6c42"]);
   const DECK = R(["#5e3c1e", "#7a5530", "#9a6e3a", "#b88a4c", "#cfa262", "#e0bc7c"]);
 
   // Bäume vorbereiten: Typ (Laub/Kiefer) aus der Lage, damit er immer gleich bleibt
-  const baeume = [...bahn.baeume].sort((a, b) => a.r - b.r).map(b => ({ ...b, kiefer: opt.kiefern && hash(Math.round(b.x * 10), Math.round(b.y * 10), 5) < 0.3 }));
+  const baeume = [...bahn.baeume].sort((a, b) => a.r - b.r).map(b => {
+    const kiefer = opt.kiefern && hash(Math.round(b.x * 10), Math.round(b.y * 10), 5) < 0.3;
+    const h = hash(Math.round(b.x * 10), Math.round(b.y * 10), 6);
+    return { ...b, kiefer, kahl: winter && !kiefer, farben: kiefer ? JZ.kiefer : JZ.laubbaum(h) };
+  });
   // Schatten fallen nach rechts unten (Licht von links oben)
   const imSchatten = (x, y) => {
     for (const b of baeume) {
+      if (b.kahl) continue;
       const dx = x - (b.x + b.r * 0.35), dy = (y - (b.y + b.r * 0.45)) * 1.15;
       if (dx * dx + dy * dy < b.r * b.r * 1.02) return true;
     }
@@ -108,6 +113,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
       if (up % dp === 0) t = 0.2; else if (up % dp === 1) t += 0.14;
       if (hash(diele, Math.floor(v / 0.9), 6) < 0.08 && Math.abs((v % 0.9) - 0.45) < 0.06) t = 0.25; // Nagel
       if (v < 0.3 || v > l.breite - 0.3) t = 0.1;
+      if (winter && fbm(x * 1.2, y * 1.2, 12) + (fein - 0.5) * 0.15 > 0.52) { f = GRAS[stufe(GRAS.length, 0.75 + (fein - 0.5) * 0.3, px, py)]; a = 4; art[py * BW + px] = a; const i = (py * BW + px) * 4; d[i] = f[0]; d[i + 1] = f[1]; d[i + 2] = f[2]; d[i + 3] = 255; continue; }
       f = DECK[stufe(DECK.length, t, px, py)]; a = 4;
     } else if (zone && zone.w !== undefined && !zone.art) {
       f = WEG[stufe(WEG.length, 0.4 + n * 0.4, px, py)]; a = 3;
@@ -156,22 +162,23 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   if (S >= 5) {
     const flaeche = (bahn.welt.breite * bahn.welt.hoehe);
     // Grasbüschel
-    for (let i = 0; i < flaeche * 0.9; i++) {
+    for (let i = 0; i < flaeche * JZ.bueschel; i++) {
       const px = Math.floor(rnd() * BW), py = Math.floor(rnd() * BH), a = artBei(px, py);
       if (a !== 0 && a !== 1) continue;
-      const P = a ? AUS : GRAS, hell = P[P.length - 1], mittel = P[P.length - 2], dunkel = P[0];
+      // im Winter: trockene Halme, die aus dem Schnee ragen
+      const P = winter ? R(["#4a3e2a", "#7a6a46", "#a8945e"]) : a ? AUS : GRAS, hell = P[P.length - 1], mittel = P[P.length - 2], dunkel = P[0];
       setze(px, py + 1, dunkel); setze(px - 1, py, dunkel);
       setze(px, py, mittel); setze(px - 1, py - 1, hell); setze(px + 1, py - 1, mittel); setze(px, py - 2, hell);
     }
-    // Blumen (Gänseblümchen, Löwenzahn) und Klee, nur im Rough
-    for (let i = 0; i < flaeche * 0.07; i++) {
+    // Blumen je nach Jahreszeit, nur im Rough: Kreuz aus Blütenblättern mit gelber Mitte, oder einzelner Löwenzahn
+    for (let i = 0; i < flaeche * JZ.blumen.dichte; i++) {
       const px = Math.floor(rnd() * BW), py = Math.floor(rnd() * BH);
       if (artBei(px, py) !== 0) continue;
-      const gelb = rnd() < 0.35, blatt = rgb("#f6f4ea"), mitte = rgb("#f2c62e");
-      if (gelb) { setze(px, py, mitte); setze(px + 1, py, rgb("#d9a520")); setze(px, py + 1, GRAS[1]); }
-      else { setze(px - 1, py, blatt); setze(px + 1, py, blatt); setze(px, py - 1, blatt); setze(px, py + 1, blatt); setze(px, py, mitte); }
+      const farbe = rgb(JZ.blumen.farben[Math.floor(rnd() * JZ.blumen.farben.length)]), mitte = rgb("#f2c62e");
+      if (farbe[0] === mitte[0] && farbe[1] === mitte[1]) { setze(px, py, mitte); setze(px + 1, py, rgb("#d9a520")); setze(px, py + 1, GRAS[1]); }
+      else { setze(px - 1, py, farbe); setze(px + 1, py, farbe); setze(px, py - 1, farbe); setze(px, py + 1, farbe); setze(px, py, mitte); }
     }
-    for (let i = 0; i < flaeche * 0.05; i++) {
+    if (JZ.klee) for (let i = 0; i < flaeche * 0.05; i++) {
       const cx = rnd() * BW, cy = rnd() * BH;
       if (artBei(Math.floor(cx), Math.floor(cy)) !== 0) continue;
       for (let k = 0; k < 14; k++) {
@@ -190,15 +197,14 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
         setze(px + xx, py + yy, ERDE[q < 0.3 && xx + yy < 0 ? 2 : q < 0.7 ? 1 : 0]);
       }
     }
-    // Herbstlaub unter den Laubbäumen
-    if (opt.laub) for (const b of baeume) {
-      if (b.kiefer) continue;
-      const anz = Math.round(b.r * b.r * S * 0.25);
-      const LAUB = [rgb("#c8782a"), rgb("#d9a030"), rgb("#a4522a"), rgb("#8a6a2a")];
+    // Laub unter den Laubbäumen (Herbst) bzw. Blütenblätter (Frühling)
+    if (JZ.laub) for (const b of baeume) {
+      if (b.kiefer || (JZ.laub.nurBluete && !b.farben.bluete)) continue;
+      const anz = Math.round(b.r * b.r * S * JZ.laub.dichte), LAUB = R(JZ.laub.farben);
       for (let i = 0; i < anz; i++) {
-        const w = rnd() * Math.PI * 2, rr = b.r * (0.9 + rnd() * 0.6);
+        const w = rnd() * Math.PI * 2, rr = b.r * (0.9 + rnd() * 0.7);
         const px = Math.round((b.x + Math.cos(w) * rr) * S), py = Math.round((b.y + Math.sin(w) * rr) * S), a = artBei(px, py);
-        if (a === 0 || a === 1 || a === 2) setze(px, py, LAUB[Math.floor(rnd() * LAUB.length)]);
+        if (a === 0 || a === 1 || a === 2) { const f = LAUB[Math.floor(rnd() * LAUB.length)]; setze(px, py, f); if (rnd() < 0.4) setze(px + 1, py, f); }
       }
     }
   }
@@ -298,11 +304,29 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
 
   // ---------- Bäume ----------
   // Laubbaum: Krone aus mehreren Blättergruppen, jede mit Kontur, Grund, Mitte, Licht
-  const LB = ["#0e3a1a", "#1c5a24", "#2a7a30", "#3c9a3c", "#62b44c"];
-  const KI = ["#0c2e22", "#163f2e", "#1f5438", "#2c6a44", "#4a8a52"];
   for (const b of baeume) {
-    const r = b.r * S, cx = b.x * S, cy = b.y * S, rr = zufall(Math.round(b.x * 100 + b.y * 7));
-    if (b.kiefer) {
+    const r = b.r * S, cx = b.x * S, cy = b.y * S, rr = zufall(Math.round(b.x * 100 + b.y * 7)), LB = b.farben, KI = b.farben;
+    if (b.kahl) {
+      // Winter: kahle Krone aus Ästen, Schatten als Äste auf dem Schnee, Schnee auf der Lichtseite
+      const aeste = [];
+      const ast = (x, y, w, len, tiefe) => {
+        const n = Math.max(2, Math.round(len));
+        for (let k = 0; k <= n; k++) aeste.push({ x: x + Math.cos(w) * len * k / n, y: y + Math.sin(w) * len * k / n, d: tiefe });
+        if (tiefe < 3) for (let j = 0; j < 2; j++) {
+          const t = 0.45 + rr() * 0.45;
+          ast(x + Math.cos(w) * len * t, y + Math.sin(w) * len * t, w + (j ? 1 : -1) * (0.4 + rr() * 0.5), len * (0.45 + rr() * 0.15), tiefe + 1);
+        }
+      };
+      const anz = 6 + Math.floor(rr() * 3);
+      for (let i = 0; i < anz; i++) ast(cx, cy, (i / anz) * Math.PI * 2 + rr() * 0.5, r * (0.5 + rr() * 0.15), 0);
+      const dick = q => q.d === 0 ? Math.max(1, zr + 1) : q.d === 1 ? zr : 1;
+      c.fillStyle = "rgba(60,80,120,.35)";
+      for (const q of aeste) c.fillRect(Math.round(q.x + r * 0.3), Math.round(q.y + r * 0.4), dick(q), dick(q));
+      for (const q of aeste) { c.fillStyle = q.d < 2 ? "#3a2e24" : "#5a4a3c"; c.fillRect(Math.round(q.x), Math.round(q.y), dick(q), dick(q)); }
+      c.fillStyle = "#f4f8ff";
+      for (const q of aeste) if (q.d < 3 && rr() < 0.25) c.fillRect(Math.round(q.x), Math.round(q.y) - 1, dick(q), 1);
+      pixelKreis(c, cx, cy, Math.max(1, zr + 1), "#2a2018");
+    } else if (b.kiefer) {
       // Kiefer: Nadelbüschel strahlenförmig um die Mitte, bläulicheres Grün
       const buschel = [];
       for (let ring = 0; ring < 3; ring++) {
@@ -316,10 +340,11 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
       for (const q of buschel) pixelKreis(c, q.x, q.y, q.r, KI[1]);
       for (const q of buschel) pixelKreis(c, q.x - q.r * 0.2, q.y - q.r * 0.25, q.r * 0.65, KI[2]);
       for (const q of buschel) pixelKreis(c, q.x - q.r * 0.35, q.y - q.r * 0.4, q.r * 0.3, KI[3]);
+      if (winter) for (const q of buschel) { pixelKreis(c, q.x - q.r * 0.3, q.y - q.r * 0.35, q.r * 0.42, "#c4d0e2"); pixelKreis(c, q.x - q.r * 0.4, q.y - q.r * 0.45, q.r * 0.25, "#f4f8ff"); }
       // Nadeln: kurze Striche nach außen
       for (let i = 0; i < r * 5; i++) {
         const w = rr() * Math.PI * 2, dd = rr() * r * 0.95, lx = Math.cos(w), ly = Math.sin(w);
-        c.fillStyle = rr() < 0.4 ? KI[4] : KI[0];
+        c.fillStyle = rr() < 0.4 ? (winter ? "#f4f8ff" : KI[4]) : KI[0];
         for (let k = 0; k < Math.max(1, zr * 1.5); k++) c.fillRect(Math.round(cx + lx * (dd + k)), Math.round(cy + ly * (dd + k)), 1, 1);
       }
     } else {
@@ -338,13 +363,66 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
         pixelKreis(c, q.x - q.r * 0.36, q.y - q.r * 0.4, q.r * 0.36, LB[3]);
         if (q.r * 0.14 >= 1) pixelKreis(c, q.x - q.r * 0.45, q.y - q.r * 0.5, q.r * 0.14, LB[4]);
       }
-      // Blätter-Dither an den Übergängen
-      for (let i = 0; i < r * 4; i++) {
+      // Blätter-Dither an den Übergängen, bei Blütenbäumen helle Blüten
+      for (let i = 0; i < r * (LB.bluete ? 9 : 4); i++) {
         const w = rr() * Math.PI * 2, dd = Math.sqrt(rr()) * r * 0.92;
-        c.fillStyle = rr() < 0.55 ? LB[1] : LB[3];
+        c.fillStyle = LB.bluete ? (rr() < 0.5 ? LB[4] : "#ffffff") : rr() < 0.55 ? LB[1] : LB[3];
         c.fillRect(Math.round(cx + Math.cos(w) * dd), Math.round(cy + Math.sin(w) * dd), 1, 1);
       }
     }
   }
   return hg;
+};
+
+// Paletten und Deko je Jahreszeit (Farben dunkel → hell)
+const mitBluete = p => Object.assign(p, { bluete: true });
+window.JAHRESZEITEN = {
+  fruehling: {
+    gras: ["#1c5426", "#286a2a", "#378234", "#47983a", "#5aac40", "#70bc48"],
+    aus: ["#163f22", "#1d4e27", "#255e2b", "#2e6c2f", "#397a32", "#468636"],
+    fair: ["#3a8a34", "#4ea03c", "#5eb244", "#6ec04c", "#80cc56", "#94d862"],
+    weg: ["#6e5232", "#8a6a3e", "#a3804c", "#b8955a", "#c9a86c", "#d8bb80"],
+    laubbaum: h => h < 0.3 ? mitBluete(["#7a3a5a", "#c06a92", "#de8eb2", "#f2b6ce", "#fde4ee"]) : ["#123f1a", "#2a7028", "#3e9234", "#58ac40", "#86ca5a"],
+    kiefer: ["#0c2e22", "#163f2e", "#1f5438", "#2c6a44", "#4a8a52"],
+    blumen: { dichte: 0.2, farben: ["#f6f4ea", "#f6f4ea", "#f2c62e", "#a070d0", "#6a8ce8"] },
+    klee: true, bueschel: 0.9,
+    laub: { dichte: 0.12, farben: ["#f2b6ce", "#fde4ee", "#de8eb2"], nurBluete: true },
+  },
+  sommer: {
+    gras: ["#174a26", "#1f5a2a", "#276b2c", "#2f7d32", "#3a8c36", "#4c9c3c"],
+    aus: ["#123a20", "#183f24", "#1d4c27", "#22572a", "#2a632d", "#336e30"],
+    fair: ["#2f7d32", "#45953e", "#52a646", "#5fb54c", "#6cc152", "#7ccc5c"],
+    weg: ["#6e5232", "#8a6a3e", "#a3804c", "#b8955a", "#c9a86c", "#d8bb80"],
+    laubbaum: () => ["#0e3a1a", "#1c5a24", "#2a7a30", "#3c9a3c", "#62b44c"],
+    kiefer: ["#0c2e22", "#163f2e", "#1f5438", "#2c6a44", "#4a8a52"],
+    blumen: { dichte: 0.07, farben: ["#f6f4ea", "#f6f4ea", "#f2c62e"] },
+    klee: true, bueschel: 0.9, laub: null,
+  },
+  herbst: {
+    gras: ["#28441e", "#345428", "#3f622c", "#4b6e30", "#587a36", "#6a863e"],
+    aus: ["#1e361a", "#253f1e", "#2d4a22", "#355526", "#3e5f2a", "#48692e"],
+    fair: ["#3a6a2e", "#4a7a34", "#58883a", "#649240", "#709c46", "#7ea64e"],
+    weg: ["#5e4428", "#7a5a34", "#937040", "#a8844e", "#ba9860", "#caac74"],
+    laubbaum: h => [
+      ["#5a2a10", "#a4501c", "#d07828", "#e8a038", "#f4c860"],
+      ["#4a1414", "#8a2a1e", "#b84028", "#d8642e", "#ec9040"],
+      ["#5a4a10", "#a08a20", "#c8b030", "#e4cc48", "#f4e478"],
+      ["#2a3a14", "#4a5a1e", "#6a7428", "#8a8a34", "#aaa448"],
+    ][Math.floor(h * 4)],
+    kiefer: ["#0c2e22", "#163f2e", "#1f5438", "#2c6a44", "#4a8a52"],
+    blumen: { dichte: 0.008, farben: ["#f6f4ea"] },
+    klee: false, bueschel: 0.7,
+    laub: { dichte: 0.6, farben: ["#c8782a", "#d9a030", "#a4522a", "#8a6a2a", "#b84028"] },
+  },
+  winter: {
+    schnee: true,
+    gras: ["#7f90b0", "#9eb0cc", "#bccadf", "#d4deec", "#e6edf6", "#f6f9fd"],
+    aus: ["#71829f", "#8c9ebc", "#a8b8d2", "#c2cfe3", "#d8e1ee", "#e8eef6"],
+    fair: ["#647e74", "#94a8bc", "#b0c0d4", "#c8d4e4", "#dae3ee", "#e8eef6"],
+    weg: ["#4e4440", "#665a52", "#7e7266", "#968a7c", "#aea494", "#c6beb2"],
+    laubbaum: () => ["#3a2e24"],
+    kiefer: ["#0a281e", "#123628", "#1a4832", "#24583c", "#3a7448"],
+    blumen: { dichte: 0, farben: [] },
+    klee: false, bueschel: 0.35, laub: null,
+  },
 };

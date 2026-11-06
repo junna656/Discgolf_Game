@@ -1,6 +1,6 @@
 // Rendert Vorher/Nachher-Bilder einer Bahn mit dem Prototyp aus grafik_vorschau.js.
 // Aufruf: node werkzeuge/grafik_vorschau.mjs [bahnnummer] [zielordner]
-// Ergebnis: <ziel>/grafik_bahn<n>_{vorher,nachher}_z{1,3}.png (Pixel 1:1)
+// Ergebnis: <ziel>/grafik_bahn<n>_{vorher,fruehling,sommer,herbst,winter}_z{1,3}.png (Pixel 1:1)
 import { createRequire } from "module";
 import { fileURLToPath, pathToFileURL } from "url";
 import path from "path";
@@ -22,9 +22,10 @@ for (const z of [1, 3]) {
   const bilder = await seite.evaluate(([nr, z]) => {
     bahn = BAHNEN.find(b => b.nummer === nr);
     const alt = S; S = S0 * z;
-    const vorher = zeichneHintergrund(z).toDataURL(), nachher = zeichneHintergrundDetail(z).toDataURL();
+    const bilder = { vorher: zeichneHintergrund(z).toDataURL() };
+    for (const jahreszeit of Object.keys(JAHRESZEITEN)) bilder[jahreszeit] = zeichneHintergrundDetail(z, { jahreszeit }).toDataURL();
     S = alt;
-    return { vorher, nachher };
+    return bilder;
   }, [nr, z]);
   for (const [name, url] of Object.entries(bilder)) {
     const datei = path.join(ziel, `grafik_bahn${nr}_${name}_z${z}.png`);
