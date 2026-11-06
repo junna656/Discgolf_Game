@@ -6,8 +6,8 @@
 namespace gen::einstellungen
 {
     constexpr double winkel = 1.7;
-    constexpr double turn = 1.6;
-    constexpr double fade = 1.6;
+    constexpr double turn = 3.0;
+    constexpr double fade = 2.0;
     constexpr double weite = 0.9;
     constexpr double streuung = 1.0;
     constexpr double wind = 0.7;
@@ -17,7 +17,7 @@ namespace gen::einstellungen
     constexpr double baum_abprallen = 0.45;
     constexpr double baum_bremsen = 0.3;
     constexpr double baum_radius = 0.8;
-    constexpr double fade_start = 0.5;
+    constexpr double fade_start = 0.3;
     constexpr double fade_rund = 1.0;
 }
 

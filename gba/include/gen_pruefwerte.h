@@ -12,9 +12,9 @@ namespace gen::pruefwerte
     constexpr double ob_punkte = 285;
     constexpr double korb_y = 571.4;
     constexpr double par = 49;
-    constexpr double scheiben = 26;
-    constexpr double turn = -22;
-    constexpr double speed = 181;
+    constexpr double scheiben = 40;
+    constexpr double turn = -36;
+    constexpr double speed = 280.5;
 }
 
 #endif

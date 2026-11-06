@@ -90,15 +90,30 @@ window.SPIELER = [
     farbe: "#9c5ce0",
     hand: "rechts",
     tasche: [
-      { name: "Katana",      typ: "Driver",   speed: 13, glide: 5, turn: -3, fade: 3 },
-      { name: "Trace", typ: "Driver", speed: 11, glide: 5, turn: -1, fade: 2 }, // Streamline Discs Trace (Neutron)
-      { name: "Heat",      typ: "Driver",   speed: 9, glide: 3, turn: -3, fade: 1, standard: true }, // Lieblingsscheibe
-      { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1 }, // Latitude 64°
-      { name: "Valkyrie", typ: "Driver", speed: 9, glide: 4, turn: -2, fade: 2 }, // Innova
-      { name: "Method", typ: "Midrange", speed: 5, glide: 5, turn: 0, fade: 3 },  // Discmania Method
-      { name: "Mako3", typ: "Midrange", speed: 5, glide: 5, turn: 0, fade: 0 },   // Innova Mako3
-      { name: "Svea", typ: "Midrange", speed: 5, glide: 6, turn: -1, fade: 0 },   // Kastaplast Svea – Flugzahlen bitte prüfen
-      { name: "Hydrogen", typ: "Putter", speed: 1, glide: 2, turn: 0, fade: 0 },  // Loft Discs Hydrogen
+      // Bag laut MyDiscBag („Main“, Stand 04.11.2026), dazu River und Svea
+      { name: "Katana", typ: "Driver", speed: 13, glide: 5, turn: -3, fade: 3 },     // Innova
+      { name: "Trace", typ: "Driver", speed: 11, glide: 5, turn: -1, fade: 2 },      // Streamline Discs
+      { name: "Photon", typ: "Driver", speed: 11, glide: 5, turn: -1, fade: 2.5 },   // MVP
+      { name: "Avenger SS", typ: "Driver", speed: 10, glide: 5, turn: -3, fade: 1 }, // Discraft
+      { name: "Heat", typ: "Driver", speed: 9, glide: 6, turn: -3, fade: 1, standard: true }, // Lieblingsscheibe
+      { name: "Valkyrie", typ: "Driver", speed: 9, glide: 4, turn: -2, fade: 2 },    // Innova
+      { name: "Inertia", typ: "Driver", speed: 9, glide: 5, turn: -2, fade: 2 },     // Innova
+      { name: "Fireball", typ: "Driver", speed: 9, glide: 3, turn: 0, fade: 3.5 },   // Innova
+      { name: "Firebird", typ: "Driver", speed: 9, glide: 3, turn: 0, fade: 4 },     // Innova
+      { name: "Stalker", typ: "Fairway", speed: 7, glide: 5, turn: -1, fade: 2 },    // Discraft
+      { name: "TL", typ: "Fairway", speed: 7, glide: 5, turn: 0, fade: 1 },          // Innova
+      { name: "Servo", typ: "Fairway", speed: 7, glide: 5, turn: -1, fade: 2 },      // Innova
+      { name: "TeeBird", typ: "Fairway", speed: 7, glide: 5, turn: 0, fade: 2 },     // Innova
+      { name: "River", typ: "Fairway", speed: 7, glide: 7, turn: -1, fade: 1 },      // Latitude 64°
+      { name: "Crave", typ: "Fairway", speed: 6.5, glide: 5, turn: -1, fade: 1 },    // Axiom
+      { name: "Archer", typ: "Fairway", speed: 6, glide: 5, turn: -3, fade: 1 },     // Innova
+      { name: "Axis", typ: "Midrange", speed: 5, glide: 5, turn: -1, fade: 1 },      // MVP
+      { name: "Mako3", typ: "Midrange", speed: 5, glide: 4, turn: 0, fade: 0 },      // Innova
+      { name: "Method", typ: "Midrange", speed: 5, glide: 5, turn: 0, fade: 3 },     // Discmania
+      { name: "Svea", typ: "Midrange", speed: 5, glide: 6, turn: -1, fade: 0 },      // Kastaplast – Flugzahlen bitte prüfen
+      { name: "Entropy", typ: "Midrange", speed: 4, glide: 3, turn: 0, fade: 3 },    // Discmania
+      { name: "Pilot", typ: "Putter", speed: 2, glide: 5, turn: -1, fade: 1 },       // Streamline Discs
+      { name: "Hydrogen", typ: "Putter", speed: 1, glide: 2, turn: 0, fade: 0 },     // Loft Discs
     ],
   },
 ];

@@ -104,6 +104,10 @@
   .kurswahl h2 { text-align: center; font-size: 13px; color: #ffe08a; }
   .kurs { text-align: left; font-size: 14px; padding: 10px 12px; background: #22302a; border-width: 3px; }
   .kurs small { display: block; font-size: 10px; color: var(--leise); margin-top: 3px; }
+  .bestenliste { display: grid; grid-template-columns: auto 14px 1fr auto; gap: 8px 10px; align-items: center; font-size: 14px; }
+  .bestenliste .punkt { width: 12px; height: 12px; display: inline-block; }
+  .bestenliste .wert { text-align: right; }
+  .bestenliste small { display: block; font-size: 10px; color: var(--leise); margin-top: 2px; }
   .person canvas.mini { width: 48px; height: 48px; border: 2px solid var(--rand); aspect-ratio: auto; flex-shrink: 0; cursor: pointer; }
   /* Spielerkarte im Sammelkarten-Stil */
   .spielerkarte { border: 4px solid var(--farbe); background: linear-gradient(#1f2630, #141820); padding: 12px; box-shadow: 0 0 0 3px #0a0c10, 6px 6px 0 #0a0c10; }
@@ -162,6 +166,11 @@
     height: min(calc(100vh - 200px), calc((100vw - 24px) * 16 / 9));
     height: min(calc(100dvh - 200px), calc((100vw - 24px) * 16 / 9));
   }
+  /* Nah am Korb, aber normal werfen: Platz für „Zurück zum Putten“ unter den Wurf-Knöpfen lassen */
+  body.wechsel canvas.hoch {
+    height: min(calc(100vh - 242px), calc((100vw - 24px) * 16 / 9));
+    height: min(calc(100dvh - 242px), calc((100vw - 24px) * 16 / 9));
+  }
   /* Touch-Geräte (Handy und Tablet): kein Markieren/Kopieren-Menü beim langen Drücken */
   @media (pointer: coarse) {
     .rahmen, .tabs, button, canvas { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -218,7 +227,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.4.4</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.5.0</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -226,6 +235,8 @@
       <button class="gross" id="zu-online">Online spielen<small>Bis zu vier Handys live in einer Runde</small></button>
       <button class="gross" id="zu-doku" style="font-size:12px;padding:10px 16px;margin-top:8px">Anleitung<small>Steuerung, Regeln und Tipps</small></button>
       <button class="gross" id="zu-bags" style="font-size:12px;padding:10px 16px">Spieler & Bags<small>Spielerkarten ansehen, Scheiben im Bag bearbeiten</small></button>
+      <button class="gross" id="zu-bestenliste" style="font-size:12px;padding:10px 16px">Bestenliste<small>Beste ganze Runde jeder Person – für alle Geräte</small></button>
+      <button class="gross" id="zu-einstellungen" style="font-size:12px;padding:10px 16px">Einstellungen<small>Wurfart an jeder Bahn</small></button>
       <button class="gross" id="zu-dev" style="font-size:12px;padding:10px 16px;border-color:#ff9a5a" hidden>Entwicklung<small>Parameter einstellen – nur in der Vorschau</small></button>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="#" id="melde-fehler" style="color:var(--leise)">Fehler melden</a> · <a href="#" id="melde-wunsch" style="color:var(--leise)">Idee vorschlagen</a></p>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="impressum.html" style="color:var(--leise)">Impressum</a> · <a href="datenschutz.html" style="color:var(--leise)">Datenschutz</a></p>
@@ -238,7 +249,8 @@
       <ul>
         <li><b>Freies Werfen:</b> Sportplatz mit Fußballfeld und Entfernungsmarken alle 25 m, Korb in 130 m. Jeder Wurf startet am Abwurf, es wird nicht gezählt. Kreuze zeigen, wo deine Scheiben gelandet sind; der weiteste Wurf ist gold.</li>
         <li><b>Single Flight:</b> eine Person spielt die Runde.</li>
-        <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Für jede Person wählst du, ob ein Mensch spielt oder der Computer – <b>Locker</b>, <b>Solide</b> oder <b>Profi</b>. Mindestens eine Person muss ein Mensch sein. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat.</li>
+        <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Für jede Person wählst du, ob ein Mensch spielt oder der Computer – <b>Locker</b>, <b>Solide</b> oder <b>Profi</b>. Mindestens eine Person muss ein Mensch sein. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat. Spielen alle vier an einer Bahn ein Birdie (oder besser), gibt es einen <b>Star Frame</b> – mit eigenem Feier-Bildschirm.</li>
+        <li><b>Bestenliste:</b> Nach jeder ganzen Runde (alle Bahnen, Single, Vierer oder online) wird das Ergebnis jeder Person hochgeladen. In der Bestenliste im Hauptmenü steht für jede Person die beste Runde – für alle Geräte gemeinsam. Runden des Computers zählen nicht. Ohne Internet wird das Ergebnis später nachgeschickt.</li>
         <li><b>Online spielen:</b> Bis zu vier Handys spielen live zusammen. Eine Person tippt „Raum eröffnen“ und sagt den anderen den 4-Buchstaben-Code; die anderen geben ihn unter „Beitreten“ ein. Jeder wählt seine Figur (mit dem eigenen Bag), freie Figuren kann der Gastgeber vom Computer spielen lassen. Der Gastgeber wählt die Bahnen und startet. Alle sehen jeden Wurf live; wer dran ist, wirft auf seinem Handy. Bricht eine Verbindung ab, übernimmt der Computer, bis das Handy wieder da ist – nach dem Neuladen kommst du automatisch zurück in den Raum. Weiter zur nächsten Bahn und Bahn wählen kann nur der Gastgeber.</li>
         <li><b>Kurs:</b> Nach Single oder Vierer Flight wählst du den Kurs und ob die ganze Runde oder eine einzelne Bahn gespielt wird (online macht das der Gastgeber in der Lobby). Bisher gibt es den Hyzernauts Discgolfparcours im Volkspark Potsdam – weitere Kurse folgen.</li>
         <li><b>Bahn wählen (Training):</b> Spielst du nur eine einzelne Bahn, kannst du im Spiel (Handy: unter „Menü“, Rechner: rechts) direkt auf jede andere Bahn springen. In einer ganzen Runde geht das nicht – dort werden die Bahnen der Reihe nach gespielt, damit keine Bahn wiederholt werden kann.</li>
@@ -249,6 +261,7 @@
         <li><b>Zielen:</b> Handy – dorthin tippen, wohin der Wurf gehen soll. Rechner – Maus bewegen oder <kbd>←</kbd> <kbd>→</kbd>.</li>
         <li><b>Kraft:</b> gedrückt halten (Spielfeld, „Werfen“ oder <kbd>Leertaste</kbd>), der Kraftbalken pendelt, beim Loslassen wird geworfen.</li>
         <li><b>Richtung beim Halten:</b> Solange du gedrückt hältst, kannst du noch ziehen und so die Richtung bis zum Loslassen ändern – auf dem Spielfeld folgt die Ziellinie dem Finger, beim Werfen-Knopf dreht seitliches Ziehen die Richtung.</li>
+        <li><b>Wurf abbrechen:</b> Halte einfach weiter gedrückt. Die Kraft steigt bis zum Maximum und fällt wieder auf 0 – dort bleibt sie stehen, und Loslassen bricht den Wurf ab, ohne dass er zählt.</li>
         <li><b>Richtung am Handy:</b> die Knöpfe <b>&lt;</b> und <b>&gt;</b> neben „Werfen“ drehen die Wurfrichtung, gedrückt halten dreht schneller.</li>
         <li><b>Streuung:</b> Je mehr Kraft, desto stärker weichen Richtung, Weite und Winkel ab. Im roten Bereich wird es wild.</li>
         <li><b>Scheibe:</b> Das Spiel wählt passend zur Entfernung (Driver weit weg, Putter nah). Du kannst jederzeit selbst wechseln (Handy: unter „Menü“).</li>
@@ -260,6 +273,7 @@
         <li><b>Anhyzer</b> kippt nach innen: Sie zieht nach rechts.</li>
         <li>Erstes Tippen auf Hyzer oder Anhyzer = 5°, jedes weitere Tippen +5° bis 30°, danach wieder 5°.</li>
         <li><b>Vorhand</b> spiegelt alle Kurven (Hyzer nach rechts), fliegt etwas kürzer und streut mehr.</li>
+        <li><b>Wurfart an der nächsten Bahn:</b> Normalerweise bleibt deine letzte Auswahl. Unter „Einstellungen“ im Hauptmenü kannst du festlegen, dass an jeder Bahn wieder der Lieblingswurf der Person laut Spielerkarte gewählt ist.</li>
         <li>Linkshänder (in taschen.js) spiegeln ebenfalls alle Kurven.</li>
       </ul>
 
@@ -268,7 +282,7 @@
 
       <h3>Wind, Bäume und OB</h3>
       <ul>
-        <li><b>Wind</b> (oben rechts): Der Pfeil zeigt, wohin der Wind weht, die Zahl die Stärke in m/s. Jede Bahn bekommt neuen Wind (1–6 m/s), dazu kleine Böen bei jedem Wurf.
+        <li><b>Wind</b> (oben rechts): Der Pfeil zeigt, wohin der Wind weht, die Zahl die Stärke in m/s. Jede Bahn bekommt neuen Wind (1–6 m/s), dazu kleine Böen bei jedem Wurf. Im Training (Freies Werfen oder eine einzelne Bahn) würfelst du mit Tippen auf die Windanzeige (Taste <kbd>N</kbd>) neuen Wind aus.
           <ul>
             <li><b>Gegenwind:</b> kürzer (bei 5 m/s etwa 15 %, höchstens 30 %) und instabiler – deutlich mehr Turn, am Ende auch etwas mehr Fade.</li>
             <li><b>Rückenwind:</b> etwas weiter (höchstens 15 %) und stabiler – weniger Turn und weniger Fade, die Scheibe fliegt gerader.</li>
@@ -355,6 +369,23 @@
         <select id="rundenwahl"></select></label>
       <button class="gross" id="kurs-weiter" style="text-align:center">Weiter</button>
       <button id="kurs-zurueck">← Zurück</button>
+    </div>
+    <div id="menue-bestenliste" class="liste" style="gap:10px" hidden>
+      <h2 style="text-align:center;font-size:13px">Ewige Bestenliste</h2>
+      <p class="klein" id="bl-kurs" style="margin:0;text-align:center"></p>
+      <div id="bl-liste" class="bestenliste"></div>
+      <p class="klein" style="margin:0">Zählt die beste ganze Runde (alle Bahnen) jeder Person – egal auf welchem Gerät, ob Single, Vierer oder online. Runden des Computers zählen nicht.</p>
+      <button id="bestenliste-zurueck">← Zurück</button>
+    </div>
+    <div id="menue-einstellungen" class="liste" style="gap:8px" hidden>
+      <h2 style="text-align:center;font-size:13px">Einstellungen</h2>
+      <h3 style="font-size:12px;margin:6px 0 0">Wurfart an jeder Bahn</h3>
+      <div class="liste" id="wurfart-wahl" style="gap:8px">
+        <button class="gross" data-wurfartwahl="letzte">Letzte Auswahl behalten<small>Wer auf Vorhand umstellt, wirft auch an der nächsten Bahn Vorhand</small></button>
+        <button class="gross" data-wurfartwahl="liebling">Lieblingswurf der Person<small>An jeder Bahn wieder Rückhand bzw. Vorhand laut Spielerkarte</small></button>
+      </div>
+      <p class="klein" style="margin:0">Wird in diesem Browser gespeichert.</p>
+      <button id="einstellungen-zurueck">← Zurück</button>
     </div>
     <div id="menue-dev" class="liste" style="gap:8px" hidden>
       <h2 style="text-align:center;font-size:13px">Entwicklung – Parameter</h2>
@@ -485,10 +516,10 @@
   <button data-ansicht="feld" class="zum-spiel">← Zurück zum Spiel</button>
 </nav>
 
-<script src="taschen.js?v=0.4.4"></script>
-<script src="bahnen.js?v=0.4.4"></script>
-<script src="physik.js?v=0.4.4"></script>
-<script src="portraets.js?v=0.4.4"></script>
+<script src="taschen.js?v=0.5.0"></script>
+<script src="bahnen.js?v=0.5.0"></script>
+<script src="physik.js?v=0.5.0"></script>
+<script src="portraets.js?v=0.5.0"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -576,6 +607,12 @@ const sfx = {
     ton(150, 0.5, "sawtooth", 0.06, 90, 0.7);
   },
   jubel: () => [523, 659, 784, 1046].forEach((f, i) => ton(f, 0.14, "square", 0.035, null, i * 0.1)),
+  // Star Frame: kleine Fanfare, Schlussakkord und Kettenrasseln
+  fanfare: () => {
+    [[523, 0], [523, 0.12], [523, 0.24], [659, 0.36], [784, 0.62], [659, 0.86], [784, 0.98]].forEach(([f, t]) => ton(f, 0.16, "square", 0.04, null, t));
+    for (const f of [523, 659, 784, 1046]) ton(f, 0.9, "square", 0.025, null, 1.2);
+    for (let i = 0; i < 14; i++) ton(1400 + Math.random() * 1800, 0.12, "triangle", 0.02, null, 1.2 + i * 0.05);
+  },
 };
 
 // ---------- Hintergrund (einmal vorgerendert) ----------
@@ -814,12 +851,17 @@ function zeichneHintergrund(z) {
 }
 
 // ---------- Spielzustand ----------
+let sternFrame = null; // Feier-Bildschirm nach einem Star Frame (alle vier mit Birdie)
 let spieler, aktiv, zustand, wind, ziel, winkel, ladeZeit, kraft, flug, banner, puttModus, puttStil, putt, uhr = 0, fertigText;
 
 // Modus: "frei" (Weitwurf auf dem Feld), "single" (eine Person), "vierer" (alle)
 let modus = "vierer", teilnehmer = SPIELER.map((_, i) => i), marken = [], spielNr = 0;
 // Online-Multiplayer (mehrspieler.js): null, solange nicht verbunden
 let online = null;
+// Einstellungen (in diesem Browser gespeichert); Menü dazu weiter unten
+const EINSTELLUNGEN_SPEICHER = "discgolf-einstellungen";
+const einstellungen = { wurfart: "letzte" };
+try { Object.assign(einstellungen, JSON.parse(localStorage.getItem(EINSTELLUNGEN_SPEICHER) || "{}")); } catch (e) { /* egal */ }
 function spaeter(fn, ms) {
   const nr = spielNr;
   setTimeout(() => { if (nr === spielNr) fn(); }, ms);
@@ -836,10 +878,13 @@ function startScheibe(tasche) {
 let runde = [], rundenIndex = 0, startIndex = 0, nurEine = false;
 
 function neuesSpiel() {
+  blRunde = Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
+  blErgebnis = {};
   if (modus === "online") { spieler = mpSpieler(); rundenIndex = startIndex; starteBahn(); return; }
   spieler = teilnehmer.map(i => SPIELER[i]).map(s => ({
     name: s.name, farbe: s.farbe, hand: s.hand || "rechts", tasche: s.tasche,
     wurfart: s.wurfart || "rueckhand",
+    lieblingswurf: s.wurfart || "rueckhand",
     ruf: s.ruf || "",
     staerken: s.staerken || {},
     lieblingsscheibe: (s.karte || {}).lieblingsscheibe || "",
@@ -852,8 +897,28 @@ function neuesSpiel() {
   starteBahn();
 }
 
+function wuerfleWind(zz = Math.random) {
+  const st = 1 + zz() * 5, ri = zz() * Math.PI * 2;
+  wind = { x: Math.cos(ri) * st, y: Math.sin(ri) * st };
+}
+// Im Training (Freies Werfen, einzelne Bahn) neuen Wind per Tippen auf die Windanzeige oder Taste N (#6)
+const windWechselbar = () => modus === "frei" || (nurEine && modus !== "online");
+function neuerWind() {
+  if (!windWechselbar() || gesperrt() || (zustand !== "zielen" && zustand !== "putt")) return false;
+  wuerfleWind();
+  sfx.wurf();
+  aktualisierePanel();
+  return true;
+}
+function aufWindanzeige(e) {
+  const r = cv.getBoundingClientRect();
+  const sx = (e.clientX - r.left) / r.width * SW, sy = (e.clientY - r.top) / r.height * SH;
+  return sx >= SW - 28 && sy <= 42;
+}
+
 function starteBahn() {
   spielNr++;
+  sternFrame = null;
   kamera = null;
   marken = [];
   flug = null;
@@ -864,11 +929,12 @@ function starteBahn() {
     s.fertig = false;
     s.mandoOk = false;
     s.scheibe = startScheibe(s.tasche);
+    // Einstellung „Lieblingswurf“: an jeder Bahn wieder die Wurfart laut Spielerkarte (#4);
+    // online nur für die eigenen Figuren, die anderen Geräte schicken ihre Wurfart selbst
+    if (einstellungen.wurfart === "liebling" && s.lieblingswurf && (modus !== "online" || (online && s.besitzer === online.ich))) s.wurfart = s.lieblingswurf;
   }
   // online würfeln alle Geräte denselben Wind aus (gemeinsamer Startwert)
-  const zz = modus === "online" ? mpWindZufall() : Math.random;
-  const st = 1 + zz() * 5, ri = zz() * Math.PI * 2;
-  wind = { x: Math.cos(ri) * st, y: Math.sin(ri) * st };
+  wuerfleWind(modus === "online" ? mpWindZufall() : Math.random);
   puttStil = "spin";
   banner = null;
   fertigText = null;
@@ -883,6 +949,12 @@ function naechster() {
     for (const s of spieler) s.karte[rundenIndex] = s.wuerfe;
     zustand = "ende";
     banner = null;
+    // Star Frame: im Vierer Flight spielen alle vier mindestens ein Birdie auf derselben Bahn
+    if ((modus === "vierer" || modus === "online") && spieler.length === 4 && spieler.every(s => s.wuerfe <= bahn.par - 1)) {
+      sternFrame = { t0: uhr, sterne: Array.from({ length: 28 }, () => ({ x: Math.random(), y: Math.random(), v: 0.3 + Math.random() * 0.7, p: Math.random() * 6 })) };
+      sfx.fanfare();
+    }
+    if (rundeVorbei() && ganzeRunde()) blMeldeRunde();
     aktualisierePanel();
     return;
   }
@@ -955,6 +1027,8 @@ function staerke(s) {
 
 // ladeZeiger: wo der Finger/die Maus beim Start des Ladens war (zum Richtung-Ziehen)
 let ladeZeiger = null;
+const LADE_HALB = 1.1; // Sekunden von 0 bis volle Kraft
+const ladeAbgebrochen = () => zustand === "laden" && uhr - ladeZeit >= 2 * LADE_HALB;
 function startLaden(e) {
   if (zustand !== "zielen") return;
   zustand = "laden";
@@ -978,6 +1052,13 @@ window.addEventListener("pointermove", e => {
 });
 function loslassen() {
   if (zustand !== "laden") return;
+  if (ladeAbgebrochen()) { // Kraftbalken wieder bei 0: kein Wurf, zurück zum Zielen
+    zustand = "zielen";
+    ladeZeiger = null;
+    kraft = 0;
+    aktualisierePanel();
+    return;
+  }
   const vorher = modus === "online" ? mpSchnappschuss() : null;
   const s = ich();
   const st = staerke(s);
@@ -1352,6 +1433,8 @@ function zeichneWind() {
   }
   text(st.toFixed(1), cx, y + 21, "#bfe4ff", "center");
   text("WIND", x - 4, y + 31, "#d8ecff", "left");
+  // im Training lässt sich der Wind neu würfeln: kleiner Hinweis unter der Anzeige
+  if (windWechselbar() && (zustand === "zielen" || zustand === "putt")) text(hochkant ? "TIPPEN" : "N", x + 21, y + 40, "#ffe08a", "right");
 }
 
 function zeichneKraftbalken() {
@@ -1368,7 +1451,9 @@ function zeichneKraftbalken() {
     ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.fillRect(x, y, Math.round(w * k), 6);
     ctx.fillStyle = PAL.weiss; ctx.fillRect(x + Math.round(w * k) - 1, y - 3, 2, 12);
   }
-  if (hochkant) {
+  // Balken zurück bei 0: statt der Beschriftung den Abbruch-Hinweis zeigen
+  if (ladeAbgebrochen()) text("LOSLASSEN = ABBRECHEN", x + w / 2, y - 11, "#ffe08a", "center");
+  else if (hochkant) {
     text("KRAFT", x, y - 11, PAL.weiss);
     text("STREUUNG", x + w, y - 11, "#c86050", "right");
   } else {
@@ -1462,7 +1547,8 @@ function zeichnePuttAnsicht() {
     } else {
       const t2 = Math.min(1, (t - 1) * 1.6);
       x = zx;
-      const boden = f.ergebnis === "drin" || f.ergebnis === "kurz" && Math.abs(f.o.x) < 13 ? K.y + 12 : by + 104;
+      // nur ein Treffer bleibt in der Korbschale liegen – ein zu kurzer Putt fällt davor ins Gras (#7)
+      const boden = f.ergebnis === "drin" ? K.y + 12 : by + 104;
       y = zy + (boden - zy) * t2;
       if (f.ergebnis === "hoch") { x = zx + t2 * 10; y = zy + (by + 98 - zy) * t2; }
     }
@@ -1487,6 +1573,63 @@ const plusMinus = d => d === 0 ? "E" : (d > 0 ? "+" : "") + d;
 const rundeVorbei = () => nurEine || rundenIndex >= runde.length - 1;
 const ganzeRunde = () => runde.length > 1 && !nurEine;
 
+// Feier-Bildschirm: Strahlen, funkelnde Sterne, großer Schriftzug und die vier Portraits mit Ergebnis
+const portraitBilder = new Map();
+function portraitBild(s) {
+  let b = portraitBilder.get(s.name);
+  if (!b) {
+    b = document.createElement("canvas"); b.width = 32; b.height = 32;
+    zeichnePortrait(b.getContext("2d"), s);
+    portraitBilder.set(s.name, b);
+  }
+  return b;
+}
+function pixelStern(x, y, r, farbe) {
+  ctx.fillStyle = farbe;
+  x = Math.round(x); y = Math.round(y);
+  ctx.fillRect(x - r, y, 2 * r + 1, 1); ctx.fillRect(x, y - r, 1, 2 * r + 1);
+  if (r > 1) ctx.fillRect(x - 1, y - 1, 3, 3);
+}
+function zeichneSternFrame() {
+  const t = uhr - sternFrame.t0;
+  schirmTransform();
+  ctx.fillStyle = "rgba(14,10,30,.9)"; ctx.fillRect(0, 0, SW, SH);
+  // Strahlen aus der Mitte, drehen sich langsam
+  const cx = SW / 2, cy = SH * 0.42, R = Math.hypot(SW, SH);
+  ctx.fillStyle = "rgba(255,216,74,.10)";
+  for (let i = 0; i < 12; i++) {
+    const a = i / 12 * Math.PI * 2 + t * 0.35, b = a + 0.12;
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.lineTo(cx + Math.cos(b) * R, cy + Math.sin(b) * R);
+    ctx.fill();
+  }
+  // Sterne fallen langsam und funkeln
+  for (const st of sternFrame.sterne) {
+    const y = ((st.y + t * st.v * 0.12) % 1) * SH, an = Math.sin(t * 6 + st.p) > -0.2;
+    if (an) pixelStern(st.x * SW, y, st.v > 0.7 ? 2 : 1, st.v > 0.6 ? "#ffd84a" : PAL.weiss);
+  }
+  mitteTransform();
+  // Schriftzug springt herein und blinkt
+  const rein = Math.min(1, t / 0.5), y0 = 22 - (1 - rein) * 40;
+  text("★ STAR FRAME ★", 160, y0, Math.floor(t * 4) % 2 ? PAL.weiss : "#ffd84a", "center", 16);
+  text("ALLE VIER MIT BIRDIE!", 160, y0 + 24, "#9be07a", "center");
+  // die vier Portraits nacheinander
+  const namen = { "-3": "ALBATROS", "-2": "EAGLE", "-1": "BIRDIE" };
+  spieler.forEach((s, i) => {
+    const ti = t - 0.6 - i * 0.25;
+    if (ti < 0) return;
+    const x = 160 - 79 + i * 42, hops = Math.max(0, 1 - ti * 3) * 12 + Math.abs(Math.sin(t * 3 + i)) * 2;
+    const y = 70 - hops;
+    ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 2, y - 2, 36, 36);
+    ctx.fillStyle = s.farbe; ctx.fillRect(x - 1, y - 1, 34, 34);
+    ctx.drawImage(portraitBild(s), x, y);
+    text(s.name.toUpperCase(), x + 16, 110, s.farbe, "center");
+    text(s.wuerfe === 1 ? "ACE" : namen[s.wuerfe - bahn.par] || "BIRDIE", x + 16, 120, "#ffd84a", "center");
+  });
+  if (t > 1.8) text(hochkant ? "TIPPEN: WEITER" : "KLICK: WEITER", 160, 150, PAL.weiss, "center");
+  schirmTransform();
+}
+
 function zeichneEnde() {
   const ganz = ganzeRunde(), letzte = rundeVorbei();
   ctx.fillStyle = "rgba(10,14,20,.88)"; ctx.fillRect(70, 26, 180, 128);
@@ -1502,6 +1645,10 @@ function zeichneEnde() {
       text(g.w + " (" + plusMinus(g.d) + ")", 240, y, PAL.weiss, "right");
     } else text(s.wuerfe + "  (" + plusMinus(s.wuerfe - bahn.par) + ")", 236, y, PAL.weiss, "right");
   });
+  if (letzte && ganz) {
+    const neu = spieler.filter(s => blErgebnis[s.name] && blErgebnis[s.name].neu).map(s => s.name.toUpperCase());
+    if (neu.length) text("★ NEUE BESTLEISTUNG: " + neu.join(", "), 160, 116, "#ffe08a", "center");
+  }
   if (modus === "online" && !mpIchHost()) text("WARTEN AUF GASTGEBER …", 160, 128, PAL.weiss, "center");
   else text(letzte ? (hochkant ? "TIPPEN: NOCHMAL" : "R / KLICK: NOCHMAL") : (hochkant ? "TIPPEN: NÄCHSTE BAHN" : "KLICK: NÄCHSTE BAHN"), 160, 128, PAL.weiss, "center");
   text(hochkant ? "HAUPTMENÜ: UNTER MENÜ" : "M: HAUPTMENÜ", 160, 140, "#d0d8e2", "center");
@@ -1597,7 +1744,8 @@ function schleife(jetzt) {
 
   if (dreh && zustand === "zielen" && uhr - drehStart > 0.3) ziel += dreh * 25 * DEG * dt;
   if (zustand === "laden") {
-    const ph = ((uhr - ladeZeit) / 1.1) % 2;
+    // einmal hoch und wieder runter; zurück bei 0 bleibt der Balken stehen – Loslassen bricht dann ab (#4)
+    const ph = Math.min(2, (uhr - ladeZeit) / LADE_HALB);
     kraft = ph < 1 ? ph : 2 - ph;
   }
 
@@ -1710,9 +1858,13 @@ function schleife(jetzt) {
     }
   }
   if (zustand === "ende") {
-    mitteTransform();
-    zeichneEnde();
-    schirmTransform();
+    if (sternFrame && !sternFrame.zu && uhr - sternFrame.t0 > 9) sternFrame.zu = true; // nach 9 s von selbst weiter
+    if (sternFrame && !sternFrame.zu) zeichneSternFrame();
+    else {
+      mitteTransform();
+      zeichneEnde();
+      schirmTransform();
+    }
   }
 
   requestAnimationFrame(schleife);
@@ -1745,6 +1897,7 @@ function aktualisierePanel() {
   if (zustand === "ende") {
     el("werfen").disabled = el("werfen2").disabled = true;
     el("modus").hidden = true;
+    document.body.classList.remove("wechsel");
     return;
   }
   const s = ich();
@@ -1776,6 +1929,7 @@ function aktualisierePanel() {
   el("werfen").textContent = puttModus ? "Putten (klick)" : "Werfen (halten)";
   el("werfen2").textContent = puttModus ? "Putten" : "Werfen";
   document.body.classList.toggle("putt", !!puttModus);
+  document.body.classList.toggle("wechsel", nah && !puttModus);
   el("werfen").disabled = el("werfen2").disabled = gesperrt() || !(zustand === "zielen" || zustand === "laden" || zustand === "putt");
   if (kiAmZug()) el("werfen").textContent = el("werfen2").textContent = "CPU …";
   else if (fernAmZug()) el("werfen").textContent = el("werfen2").textContent = ich().name + " …";
@@ -1897,8 +2051,9 @@ cv.addEventListener("pointerdown", e => {
     try { cv.setPointerCapture(e.pointerId); } catch (err) { /* egal */ }
     return;
   }
-  if (zustand === "ende") { weiterKlick(); return; }
+  if (zustand === "ende") { if (sternFrame && !sternFrame.zu) { sternFrame.zu = true; return; } weiterKlick(); return; }
   if (gesperrt()) return;
+  if (windWechselbar() && aufWindanzeige(e) && neuerWind()) return;
   if (zustand === "putt") { putten(); return; }
   zieleAuf(e);
   startLaden(e);
@@ -1914,7 +2069,7 @@ window.addEventListener("keydown", e => {
   if (k === " ") {
     e.preventDefault();
     if (e.repeat) return;
-    if (zustand === "putt") putten(); else if (zustand === "ende") weiterKlick(); else startLaden();
+    if (zustand === "putt") putten(); else if (zustand === "ende") { if (sternFrame && !sternFrame.zu) sternFrame.zu = true; else weiterKlick(); } else startLaden();
   } else if (k === "ArrowLeft" || k === "ArrowRight") {
     e.preventDefault();
     if (zustand === "zielen") ziel += (k === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 0.2 : 1) * DEG;
@@ -1925,6 +2080,7 @@ window.addEventListener("keydown", e => {
   else if (k === "e" || k === "E") setzeWinkel(winkel - 5);
   else if (k === "w" || k === "W") setzeWinkel(0);
   else if (k === "p" || k === "P") wechsleModus();
+  else if (k === "n" || k === "N") neuerWind();
   else if (k === "f" || k === "F") { if (zustand === "zielen") setzeWurfart(ich().wurfart === "vorhand" ? "rueckhand" : "vorhand"); }
   else if (k === "s" || k === "S") { if (zustand === "putt") { puttStil = puttStil === "spin" ? "push" : "spin"; aktualisierePanel(); } }
   else if ((k === "r" || k === "R") && modus !== "online") neuesSpiel();
@@ -1989,8 +2145,26 @@ const gesperrt = () => kiAmZug() || fernAmZug();
 
 // Computer plant einen Wurf: probiert Scheiben, Richtungen, Abwurfwinkel und Kräfte im Flugmodell durch.
 // Erst jeder Kandidat einmal grob, dann die besten mehrfach (so sieht der Profi auch das Risiko).
+// Mando noch offen und die gerade Linie zum Korb verfehlt die Lücke? Dann Richtung in die Lücke (sonst null).
+// Einseitige Mando (Bahn 14): etwas neben den Baum zielen; Lücke zwischen zwei Bäumen: in die Mitte (#8)
+function kiMandoRichtung(s) {
+  const m = bahn.mando;
+  if (!m || s.mandoOk) return null;
+  const [ax, ay] = m.a, [bx, by] = m.b, dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy);
+  const seite = p => dx * (p.y - ay) - dy * (p.x - ax);
+  const s0 = seite(s.lie), s1 = seite(bahn.korb);
+  if (s0 * seite(bahn.abwurf) <= 0 || s0 * s1 > 0) return null; // schon jenseits der Mando
+  // Wo kreuzt die gerade Linie zum Korb die Mando-Linie? Liegt das in der Lücke, reicht der direkte Weg
+  const f = s0 / (s0 - s1), x = s.lie.x + (bahn.korb.x - s.lie.x) * f, y = s.lie.y + (bahn.korb.y - s.lie.y) * f;
+  const u = ((x - ax) * dx + (y - ay) * dy) / (len * len);
+  if (u > 0.15 && u < 0.85) return null;
+  const t = m.einseitig ? Math.min(10, len / 2) / len : 0.5;
+  return Math.atan2(ay + dy * t - s.lie.y, ax + dx * t - s.lie.x);
+}
+
 function kiPlane(s, k) {
-  const d = abstand(s.lie, bahn.korb), basis = zumKorb(s.lie), alterWinkel = winkel, alteScheibe = s.scheibe;
+  const d = abstand(s.lie, bahn.korb), alterWinkel = winkel, alteScheibe = s.scheibe;
+  const basis = kiMandoRichtung(s) ?? zumKorb(s.lie);
   let scheiben = [s.scheibe];
   const nah = d < 40; // Annäherung an Circle 1: Putter oder Midrange, Kraft passend zur Entfernung
   if (k.alleScheiben) scheiben = s.tasche.map((_, i) => i).filter(i => {
@@ -2104,12 +2278,97 @@ function zeigeMenue() {
   el("menue-online").hidden = true;
   el("menue-kurs").hidden = true;
   el("menue-dev").hidden = true;
+  el("menue-einstellungen").hidden = true;
+  el("menue-bestenliste").hidden = true;
   el("menue").hidden = false;
 }
 
 el("zu-doku").addEventListener("click", () => { el("menue-start").hidden = true; el("menue-doku").hidden = false; el("menue").scrollTop = 0; });
 document.querySelectorAll(".doku-zurueck").forEach(b => b.addEventListener("click", () => { el("menue-doku").hidden = true; el("menue-start").hidden = false; el("menue").scrollTop = 0; }));
 let gewaehlterModus = null;
+// ---------- Einstellungen (in diesem Browser gespeichert) ----------
+function zeigeEinstellungen() {
+  document.querySelectorAll("[data-wurfartwahl]").forEach(b => b.classList.toggle("an", b.dataset.wurfartwahl === einstellungen.wurfart));
+}
+document.querySelectorAll("[data-wurfartwahl]").forEach(b => b.addEventListener("click", () => {
+  einstellungen.wurfart = b.dataset.wurfartwahl;
+  try { localStorage.setItem(EINSTELLUNGEN_SPEICHER, JSON.stringify(einstellungen)); } catch (e) { /* egal */ }
+  zeigeEinstellungen();
+}));
+el("zu-einstellungen").addEventListener("click", () => { zeigeEinstellungen(); el("menue-start").hidden = true; el("menue-einstellungen").hidden = false; el("menue").scrollTop = 0; });
+el("einstellungen-zurueck").addEventListener("click", () => { el("menue-einstellungen").hidden = true; el("menue-start").hidden = false; el("menue").scrollTop = 0; });
+// ---------- Ewige Bestenliste (#5) ----------
+// Nach einer ganzen Runde lädt jedes Gerät die Ergebnisse seiner menschlichen Spieler zum Server
+// (server/src/index.js). Pro Person zählt dort die beste Runde. Ohne Verbindung wartet die Meldung
+// im Browser und wird beim nächsten Mal nachgeschickt.
+let blRunde = "", blErgebnis = {}, blAktuell = new Set(); // blAktuell: Kennungen der gerade beendeten Runde
+const BL_OFFEN = "discgolf-bestenliste-offen";
+const blAdresse = () => mpServer().replace(/^ws/, "http") + "/bestenliste";
+function blOffene() { try { return JSON.parse(localStorage.getItem(BL_OFFEN) || "[]"); } catch (e) { return []; } }
+function blSpeichereOffene(l) { try { localStorage.setItem(BL_OFFEN, JSON.stringify(l.slice(-40))); } catch (e) { /* egal */ } }
+function blMeldeRunde() {
+  if (runde !== kurs.bahnen) return; // nur der ganze Kurs
+  const par = runde.reduce((a, b) => a + b.par, 0);
+  const meldungen = spieler.filter(s => {
+    if (s.karte.length !== runde.length || s.karte.some(w => !Number.isInteger(w))) return false;
+    if (modus === "online") return online && s.besitzer === online.ich && !s.ki; // jedes Gerät meldet nur seine eigenen
+    return (s.steuerung || "mensch") === "mensch";
+  }).map(s => ({
+    kurs: kurs.id, name: s.name, karte: [...s.karte], par,
+    // online: gleiche Kennung auf jedem Gerät und nach Neuladen, damit nichts doppelt zählt
+    runde: modus === "online" && online && online.start ? "o" + online.start.seed + "-" + s.karte.join(".") : blRunde,
+  }));
+  if (!meldungen.length) return;
+  blAktuell = new Set(meldungen.map(m => m.runde));
+  blSpeichereOffene([...blOffene(), ...meldungen]);
+  blSchickeOffene();
+}
+let blSchickt = false;
+async function blSchickeOffene() {
+  if (blSchickt) return;
+  blSchickt = true;
+  try {
+    let offen = blOffene();
+    while (offen.length) {
+      const m = offen[0];
+      const r = await fetch(blAdresse(), { method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify(m) });
+      if (r.status >= 500) break; // später nochmal
+      const d = r.ok ? await r.json() : null;
+      if (d && blAktuell.has(m.runde)) blErgebnis[m.name] = d; // für die Anzeige am Rundenende
+      offen = blOffene().filter(x => !(x.runde === m.runde && x.name === m.name));
+      blSpeichereOffene(offen);
+    }
+  } catch (e) { /* keine Verbindung: bleibt gespeichert */ }
+  blSchickt = false;
+}
+async function zeigeBestenliste() {
+  el("menue-start").hidden = true;
+  el("menue-bestenliste").hidden = false;
+  el("menue").scrollTop = 0;
+  const par = kurs.bahnen.reduce((a, b) => a + b.par, 0);
+  el("bl-kurs").textContent = kurs.name + " · " + kurs.bahnen.length + " Bahnen · Par " + par;
+  const liste = el("bl-liste");
+  liste.innerHTML = `<p class="klein" style="grid-column:1/-1;margin:0">Lädt …</p>`;
+  await blSchickeOffene();
+  try {
+    const r = await fetch(blAdresse() + "?kurs=" + encodeURIComponent(kurs.id), { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    if (!d.eintraege.length) { liste.innerHTML = `<p class="klein" style="grid-column:1/-1;margin:0">Noch keine ganze Runde gespielt.</p>`; return; }
+    liste.innerHTML = d.eintraege.map((e, i) => {
+      const sp = SPIELER.find(x => x.name === e.name), datum = e.datum ? e.datum.split("-").reverse().join(".") : "";
+      return `<span>${i + 1}.</span><span class="punkt" style="background:${sp ? sp.farbe : "#888"}"></span>
+        <span>${e.name.replace(/[<>&]/g, "")}<small>${datum} · ${e.runden} ${e.runden === 1 ? "Runde" : "Runden"}</small></span>
+        <span class="wert">${e.wuerfe} (${plusMinus(e.wuerfe - e.par)})</span>`;
+    }).join("");
+  } catch (e) {
+    liste.innerHTML = `<p class="klein" style="grid-column:1/-1;margin:0">Keine Verbindung zur Bestenliste. Bitte später nochmal versuchen.</p>`;
+  }
+}
+el("zu-bestenliste").addEventListener("click", zeigeBestenliste);
+el("bestenliste-zurueck").addEventListener("click", () => { el("menue-bestenliste").hidden = true; el("menue-start").hidden = false; el("menue").scrollTop = 0; });
+setTimeout(() => { if (blOffene().length) blSchickeOffene(); }, 3000); // liegengebliebene Meldungen nachschicken
+
 // ---------- Kursauswahl (weitere Kurse kommen in bahnen.js unter KURSE dazu) ----------
 let kurs = KURSE[0];
 try { kurs = KURSE.find(k => k.id === localStorage.getItem("discgolf-kurs")) || KURSE[0]; } catch (e) { /* egal */ }
@@ -2399,6 +2658,6 @@ requestAnimationFrame(schleife);
 // Als App installierbar / offline startbar
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => { /* egal */ });
 </script>
-<script src="mehrspieler.js?v=0.4.4"></script>
+<script src="mehrspieler.js?v=0.5.0"></script>
 </body>
 </html>
