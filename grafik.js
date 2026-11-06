@@ -686,3 +686,91 @@ window.zeichnePuttLaub = function (c, jz, bx, by, bw, bh, wind) {
   }
   c.restore();
 };
+
+// ============================================================
+//  KORB IM DETAIL (nur mit Jahreszeiten-Grafik)
+// ============================================================
+const KORB = {
+  gelb: ["#8a6a08", "#b08a10", "#f0c020", "#ffe066"],
+  metall: ["#3a3e42", "#5a6066", "#8a9096", "#b0b6bc", "#d8dce0", "#f2f4f6"],
+  schnee: "#f4f8ff",
+};
+const punktSetzen = (c, x, y, f, w = 1, h = 1) => { c.fillStyle = f; c.fillRect(Math.round(x), Math.round(y), w, h); };
+
+// Seitenansicht in der Putt-Ansicht. K = KETTEN (Mitte der Ketten), wx = Wackeln nach einem Treffer
+window.zeichnePuttKorb = function (c, K, wx, winter) {
+  const M = KORB.metall, G = KORB.gelb, p = (x, y, f, w, h) => punktSetzen(c, x, y, f, w, h);
+  const x0 = K.x, oben = K.y - 13, boden = K.y + 40;
+  // Schatten am Boden: flache Ellipse, gedithert
+  for (let j = 0; j < 3; j++) for (let i = -12 + j * 3; i <= 12 - j * 3; i++) if (((i + j) & 1) === 0 || j === 0) p(x0 + i + 2, boden + 1 - j, "rgba(0,20,0,.4)");
+  // Stange: links Licht, rechts Schatten; Fuß mit Bodenhülse
+  for (let y = oben + 1; y < boden; y++) { p(x0 - 1, y, M[3]); p(x0, y, M[4]); p(x0 + 1, y, M[1]); }
+  p(x0, oben + 2, M[5], 1, 6);
+  p(x0 - 2, boden - 3, M[1], 5, 3); p(x0 - 2, boden - 3, M[2], 5, 1); p(x0 - 3, boden, M[0], 7, 1);
+  // hintere Ketten (dunkler, hinter der Stange), dann vordere Ketten: hängen vom Ring zum Kragen
+  const kette = (xr, xk, y0, y1, hell, dunkel, wackel) => {
+    for (let y = y0; y <= y1; y++) {
+      const t = (y - y0) / (y1 - y0), x = xr + (xk - xr) * Math.pow(t, 2.2) + wackel * Math.sin(t * Math.PI);
+      p(x, y, (y + Math.round(xr)) % 2 ? hell : dunkel);
+    }
+  };
+  for (let i = -11; i <= 11; i += 2.75) kette(x0 + i, x0 + i * 0.4, oben + 5, K.y + 5, M[2], M[1], -wx * 0.6);
+  // Kragen, an dem die Ketten unten hängen
+  p(x0 - 6, K.y + 5, M[1], 13, 2); p(x0 - 6, K.y + 5, M[3], 13, 1);
+  for (let i = -12; i <= 12; i += 2.4) kette(x0 + i, x0 + i * 0.5, oben + 4, K.y + 6, M[5], M[3], wx * (Math.round(i) % 2 ? 1 : -1));
+  // Ring oben: Unterseite dunkel, Band gelb mit Licht und Schatten, abgerundete Enden
+  p(x0 - 12, oben + 4, M[0], 25, 1);
+  p(x0 - 13, oben, G[3], 27, 1); p(x0 - 14, oben + 1, G[2], 29, 2); p(x0 - 13, oben + 3, G[1], 27, 1);
+  p(x0 - 14, oben + 1, G[1], 1, 2); p(x0 + 14, oben + 1, G[0], 1, 2);
+  p(x0 - 10, oben + 1, G[3], 4, 1); // Glanz
+  if (winter) { p(x0 - 12, oben - 1, KORB.schnee, 25, 1); p(x0 - 7, oben - 2, KORB.schnee, 6, 1); p(x0 + 4, oben - 2, KORB.schnee, 4, 1); }
+  // Korb: Rand, Gitterstäbe vor dunklem Inneren, gelbes Band, Boden nach unten schmaler
+  const ky = K.y + 9;
+  p(x0 - 15, ky, M[4], 31, 1); p(x0 - 15, ky + 1, M[2], 31, 1);
+  for (let y = ky + 2; y < ky + 8; y++) {
+    const w = 14 - Math.floor((y - ky - 2) / 2);
+    p(x0 - w, y, M[0], 2 * w + 1, 1);
+    for (let x = -w; x <= w; x += 3) p(x0 + x, y, x < -w / 3 ? M[3] : x > w / 3 ? M[2] : M[4]);
+  }
+  p(x0 - 13, ky + 4, G[2], 27, 2); p(x0 - 13, ky + 4, G[3], 10, 1); p(x0 - 13, ky + 5, G[1], 27, 1);
+  p(x0 - 11, ky + 8, M[1], 23, 1); p(x0 - 9, ky + 9, M[0], 19, 1);
+  if (winter) p(x0 - 14, ky - 1, KORB.schnee, 29, 1);
+};
+
+// Draufsicht (leicht schräg) auf der Bahn; wird beim Reinzoomen größer und feiner.
+// x, y = Fuß am Boden (Bildschirm), dx = Wackeln, z = Zoomstufe
+window.zeichneKorbObenDetail = function (c, x, y, dx, z, winter) {
+  const M = KORB.metall, G = KORB.gelb, p = (px, py, f, w, h) => punktSetzen(c, px, py, f, w, h);
+  const g = z >= 2.5 ? 2 : z >= 1.5 ? 1.5 : 1;
+  const rx = Math.round(3.5 * g), ry = Math.max(1, Math.round(1.2 * g)), ringY = y - Math.round(11 * g), korbY = y - Math.round(5 * g);
+  const ellipse = (cx, cy, a, b, farbe, nurVorne = 0) => {
+    for (let w = 0; w < Math.PI * 2; w += 0.5 / Math.max(a, 1)) {
+      const s = Math.sin(w); if (nurVorne > 0 && s < 0) continue; if (nurVorne < 0 && s > 0) continue;
+      p(cx + Math.cos(w) * a, cy + s * b, farbe);
+    }
+  };
+  // Schatten nach rechts unten
+  for (let j = -ry; j <= ry; j++) for (let i = -rx; i <= rx; i++) if ((i * i) / (rx * rx) + (j * j) / (ry * ry) <= 1 && ((i + j) & 1) === 0) p(x + i + Math.round(3 * g), y + j + 1, "rgba(0,20,0,.45)");
+  // Stange
+  for (let yy = ringY; yy <= y; yy++) { p(x, yy, M[3]); if (g > 1) p(x + 1, yy, M[1]); }
+  // Korb unten: dunkles Inneres, Rand, gelbe Vorderkante
+  for (let j = -ry; j <= ry; j++) for (let i = -rx; i <= rx; i++) if ((i * i) / (rx * rx) + (j * j) / (ry * ry) <= 1) p(x + i, korbY + j, M[1]);
+  ellipse(x, korbY, rx, ry, M[3], -1);
+  ellipse(x, korbY, rx, ry, G[2], 1);
+  p(x - rx, korbY, M[4]);
+  // Ketten: vom Ring zur Mitte, Glieder abwechselnd hell/dunkel, vorne heller
+  for (let i = -rx + 1; i <= rx - 1; i += g >= 2 ? 1 : 2) {
+    const vorne = i % 2 === 0;
+    for (let yy = ringY + ry; yy < korbY - ry + 1; yy++) {
+      const t = (yy - ringY) / (korbY - ringY);
+      p(x + i * (1 - t * 0.6) + dx * (vorne ? 1 : -1), yy, (yy + i) % 2 ? (vorne ? M[5] : M[2]) : (vorne ? M[3] : M[1]));
+    }
+  }
+  // Ring oben: hinten dunkles Gelb, innen dunkel, vorne hell mit Glanz
+  for (let j = -ry + 1; j < ry; j++) for (let i = -rx + 1; i < rx; i++) if ((i * i) / ((rx - 1) * (rx - 1) || 1) + (j * j) / (ry * ry) < 1) p(x + i + dx, ringY + j, M[0]);
+  ellipse(x + dx, ringY, rx, ry, G[1], -1);
+  ellipse(x + dx, ringY, rx, ry, G[2], 1);
+  p(x + dx - rx + 1, ringY + ry - (ry > 1 ? 1 : 0), G[3], Math.max(1, Math.round(g)), 1);
+  p(x + dx, ringY, M[4]);
+  if (winter) ellipse(x + dx, ringY - 1, rx - 1, Math.max(1, ry - 1), KORB.schnee, -1);
+};

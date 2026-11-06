@@ -1393,6 +1393,8 @@ function text(t, x, y, farbe = PAL.weiss, ausr = "left", gr = 8, rand = true) {
 function zeichneKorbOben(wackel) {
   const { x, y } = zuSchirm(bahn.korb);
   const dx = wackel ? Math.round(Math.sin(uhr * 60)) : 0;
+  const jz = aktuelleJahreszeit();
+  if (jz && window.zeichneKorbObenDetail) { zeichneKorbObenDetail(ctx, x, y, dx, kamera ? kamera.z : 1, jz === "winter"); return; }
   ctx.fillStyle = PAL.schatten; ctx.fillRect(x - 2, y + 2, 7, 4);
   // Stange (leicht perspektivisch nach oben)
   ctx.fillStyle = "#6a6a6a"; ctx.fillRect(x, y - 6, 1, 7);
@@ -1543,8 +1545,9 @@ function zeichnePuttHintergrund(c, wx = 0, jahreszeit = null) {
     for (let y = by + 104; y < by + bh; y += 4) { c.fillStyle = PAL.fair2; c.fillRect(bx, y, bw, 2); }
   }
 
-  // Korb in Seitenansicht
+  // Korb in Seitenansicht (mit Jahreszeit im Detail aus grafik.js)
   const K = KETTEN;
+  if (jahreszeit && window.zeichnePuttKorb) { zeichnePuttKorb(c, K, wx, jahreszeit === "winter"); return; }
   c.fillStyle = "#606468"; c.fillRect(K.x - 1, K.y - 12, 3, 52);
   c.fillStyle = "#f0c020"; c.fillRect(K.x - 14, K.y - 13, 29, 4);
   c.fillStyle = "#b08a10"; c.fillRect(K.x - 14, K.y - 10, 29, 1);

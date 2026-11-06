@@ -21,6 +21,7 @@ Juni–Aug Sommer, Sep–Nov Herbst), eine feste Jahreszeit oder „Klassische G
 | 5 | **Bäume** | Krone aus mehreren Blättergruppen mit Kontur und Licht von links oben; ~30 % Kiefern (bläulich, Nadelbüschel); Schatten als dunklere Palettenstufe nach rechts unten |
 | 6 | **Bowling-Deck** | Querdielen mit Fugen, Maserung, Nägeln, Schatten; Bowling-Pfeile als Dreiecke |
 | 7 | **Abwurf** | Betonplatte mit Kante, Sprenkeln, Abwurflinie und Schatten |
+| 9 | **Korb** | Putt-Ansicht: runder Ring mit Licht und Schatten, Ketten in zwei Lagen mit einzelnen Gliedern bis zum Kragen, Korb mit Gitter und gelbem Band, glänzende Stange mit Fuß, Schatten; auf der Bahn schräg von oben mit Ring, Ketten und Korb, wird beim Reinzoomen größer und feiner; im Winter Schnee auf dem Ring |
 | 8 | **Deko** | Bahnschild mit Bahnnummer, Bank und Mülleimer am Abwurf – sie suchen sich einen freien Platz neben dem Abwurf (nicht auf Weg, Fairway, OB oder unter Bäumen) |
 
 ## Vier Jahreszeiten
