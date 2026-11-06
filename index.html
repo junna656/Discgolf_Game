@@ -249,7 +249,7 @@
       <ul>
         <li><b>Freies Werfen:</b> Sportplatz mit Fußballfeld und Entfernungsmarken alle 25 m, Korb in 130 m. Jeder Wurf startet am Abwurf, es wird nicht gezählt. Kreuze zeigen, wo deine Scheiben gelandet sind; der weiteste Wurf ist gold.</li>
         <li><b>Single Flight:</b> eine Person spielt die Runde.</li>
-        <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Für jede Person wählst du, ob ein Mensch spielt oder der Computer – <b>Locker</b>, <b>Solide</b> oder <b>Profi</b>. Mindestens eine Person muss ein Mensch sein. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat. Spielen alle vier an einer Bahn ein Birdie (oder besser), gibt es einen <b>Star Frame</b> – mit eigenem Feier-Bildschirm.</li>
+        <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Für jede Person wählst du, ob ein Mensch spielt oder der Computer – <b>Locker</b>, <b>Solide</b> oder <b>Profi</b>. Mindestens eine Person muss ein Mensch sein. An der ersten Bahn wird die Abwurf-Reihenfolge ausgelost. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat. Spielen alle vier an einer Bahn ein Birdie (oder besser), gibt es einen <b>Star Frame</b> – mit eigenem Feier-Bildschirm.</li>
         <li><b>Bestenliste:</b> Nach jeder ganzen Runde (alle Bahnen, Single, Vierer oder online) wird das Ergebnis jeder Person hochgeladen. In der Bestenliste im Hauptmenü steht für jede Person die beste Runde – für alle Geräte gemeinsam. Runden des Computers zählen nicht. Ohne Internet wird das Ergebnis später nachgeschickt.</li>
         <li><b>Online spielen:</b> Bis zu vier Handys spielen live zusammen. Eine Person tippt „Raum eröffnen“ und sagt den anderen den 4-Buchstaben-Code; die anderen geben ihn unter „Beitreten“ ein. Jeder wählt seine Figur (mit dem eigenen Bag), freie Figuren kann der Gastgeber vom Computer spielen lassen. Der Gastgeber wählt die Bahnen und startet. Alle sehen jeden Wurf live; wer dran ist, wirft auf seinem Handy. Bricht eine Verbindung ab, übernimmt der Computer, bis das Handy wieder da ist – nach dem Neuladen kommst du automatisch zurück in den Raum. Weiter zur nächsten Bahn und Bahn wählen kann nur der Gastgeber.</li>
         <li><b>Kurs:</b> Nach Single oder Vierer Flight wählst du den Kurs und ob die ganze Runde oder eine einzelne Bahn gespielt wird (online macht das der Gastgeber in der Lobby). Bisher gibt es den Hyzernauts Discgolfparcours im Volkspark Potsdam – weitere Kurse folgen.</li>
@@ -939,7 +939,9 @@ function neuesSpiel() {
   blRunde = Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
   blErgebnis = {};
   if (modus === "online") { spieler = mpSpieler(); rundenIndex = startIndex; starteBahn(); return; }
-  spieler = teilnehmer.map(i => SPIELER[i]).map(s => ({
+  // Vierer Flight: Startreihenfolge an der ersten Bahn bei jeder neuen Runde auslosen
+  const reihe = modus === "vierer" ? mische([...teilnehmer]) : teilnehmer;
+  spieler = reihe.map(i => SPIELER[i]).map(s => ({
     name: s.name, farbe: s.farbe, hand: s.hand || "rechts", tasche: s.tasche,
     wurfart: s.wurfart || "rueckhand",
     lieblingswurf: s.wurfart || "rueckhand",
@@ -2354,6 +2356,14 @@ el("bahnsprung").addEventListener("click", e => {
 });
 
 // ---------- Hauptbildschirm ----------
+// Vierer Flight: zufällige Startreihenfolge an der ersten Bahn (Fisher-Yates)
+function mische(liste) {
+  for (let i = liste.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [liste[i], liste[j]] = [liste[j], liste[i]];
+  }
+  return liste;
+}
 function starteModus(m, person) {
   modus = m;
   teilnehmer = m === "vierer" ? SPIELER.map((_, i) => i) : [person];
