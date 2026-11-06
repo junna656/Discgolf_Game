@@ -255,6 +255,7 @@
         <li><b>Zielen:</b> Handy – dorthin tippen, wohin der Wurf gehen soll. Rechner – Maus bewegen oder <kbd>←</kbd> <kbd>→</kbd>.</li>
         <li><b>Kraft:</b> gedrückt halten (Spielfeld, „Werfen“ oder <kbd>Leertaste</kbd>), der Kraftbalken pendelt, beim Loslassen wird geworfen.</li>
         <li><b>Richtung beim Halten:</b> Solange du gedrückt hältst, kannst du noch ziehen und so die Richtung bis zum Loslassen ändern – auf dem Spielfeld folgt die Ziellinie dem Finger, beim Werfen-Knopf dreht seitliches Ziehen die Richtung.</li>
+        <li><b>Wurf abbrechen:</b> Halte einfach weiter gedrückt. Die Kraft steigt bis zum Maximum und fällt wieder auf 0 – dort bleibt sie stehen, und Loslassen bricht den Wurf ab, ohne dass er zählt.</li>
         <li><b>Richtung am Handy:</b> die Knöpfe <b>&lt;</b> und <b>&gt;</b> neben „Werfen“ drehen die Wurfrichtung, gedrückt halten dreht schneller.</li>
         <li><b>Streuung:</b> Je mehr Kraft, desto stärker weichen Richtung, Weite und Winkel ab. Im roten Bereich wird es wild.</li>
         <li><b>Scheibe:</b> Das Spiel wählt passend zur Entfernung (Driver weit weg, Putter nah). Du kannst jederzeit selbst wechseln (Handy: unter „Menü“).</li>
@@ -997,6 +998,8 @@ function staerke(s) {
 
 // ladeZeiger: wo der Finger/die Maus beim Start des Ladens war (zum Richtung-Ziehen)
 let ladeZeiger = null;
+const LADE_HALB = 1.1; // Sekunden von 0 bis volle Kraft
+const ladeAbgebrochen = () => zustand === "laden" && uhr - ladeZeit >= 2 * LADE_HALB;
 function startLaden(e) {
   if (zustand !== "zielen") return;
   zustand = "laden";
@@ -1020,6 +1023,13 @@ window.addEventListener("pointermove", e => {
 });
 function loslassen() {
   if (zustand !== "laden") return;
+  if (ladeAbgebrochen()) { // Kraftbalken wieder bei 0: kein Wurf, zurück zum Zielen
+    zustand = "zielen";
+    ladeZeiger = null;
+    kraft = 0;
+    aktualisierePanel();
+    return;
+  }
   const vorher = modus === "online" ? mpSchnappschuss() : null;
   const s = ich();
   const st = staerke(s);
@@ -1412,7 +1422,9 @@ function zeichneKraftbalken() {
     ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.fillRect(x, y, Math.round(w * k), 6);
     ctx.fillStyle = PAL.weiss; ctx.fillRect(x + Math.round(w * k) - 1, y - 3, 2, 12);
   }
-  if (hochkant) {
+  // Balken zurück bei 0: statt der Beschriftung den Abbruch-Hinweis zeigen
+  if (ladeAbgebrochen()) text("LOSLASSEN = ABBRECHEN", x + w / 2, y - 11, "#ffe08a", "center");
+  else if (hochkant) {
     text("KRAFT", x, y - 11, PAL.weiss);
     text("STREUUNG", x + w, y - 11, "#c86050", "right");
   } else {
@@ -1642,7 +1654,8 @@ function schleife(jetzt) {
 
   if (dreh && zustand === "zielen" && uhr - drehStart > 0.3) ziel += dreh * 25 * DEG * dt;
   if (zustand === "laden") {
-    const ph = ((uhr - ladeZeit) / 1.1) % 2;
+    // einmal hoch und wieder runter; zurück bei 0 bleibt der Balken stehen – Loslassen bricht dann ab (#4)
+    const ph = Math.min(2, (uhr - ladeZeit) / LADE_HALB);
     kraft = ph < 1 ? ph : 2 - ph;
   }
 
