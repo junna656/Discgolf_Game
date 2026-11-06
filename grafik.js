@@ -18,7 +18,8 @@
 //   - Holzdeck aus Querdielen mit Fugen, Nägeln und Maserung, Zaun mit Pfosten und Maschen
 //   - Abwurf aus Beton mit Bahnschild und Bank
 //   - vier Jahreszeiten (optionen.jahreszeit: fruehling, sommer, herbst, winter):
-//     eigene Paletten für Boden und Bäume, Blüten, Herbstlaub, Schnee und kahle Äste
+//     eigene Paletten für Boden und Bäume, Blüten, Herbstlaub, Schnee und kahle Äste;
+//     im Herbst fallen bunte Blätter (zeichneLaubfall, jedes Bild in der Spielschleife)
 // ============================================================
 "use strict";
 
@@ -71,7 +72,6 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   const R = a => a.map(rgb);
   const JZ = JAHRESZEITEN[opt.jahreszeit] || JAHRESZEITEN.sommer, winter = !!JZ.schnee;
   const GRAS = R(JZ.gras), AUS = R(JZ.aus), FAIR = R(JZ.fair), WEG = R(JZ.weg);
-  const HALME = R(["#4a3e2a", "#7a6a46", "#a8945e"]);
   const ERDE = R(["#5a4228", "#735634", "#8c6c42"]);
   const DECK = R(["#5e3c1e", "#7a5530", "#9a6e3a", "#b88a4c", "#cfa262", "#e0bc7c"]);
 
@@ -170,8 +170,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
     for (let i = 0; i < flaeche * JZ.bueschel; i++) {
       const px = Math.floor(rnd() * BW), py = Math.floor(rnd() * BH), a = artBei(px, py);
       if (a !== 0 && a !== 1) continue;
-      // im Winter: trockene Halme, die aus dem Schnee ragen
-      const P = winter ? HALME : a ? AUS : GRAS, hell = P[P.length - 1], mittel = P[P.length - 2], dunkel = P[0];
+      const P = a ? AUS : GRAS, hell = P[P.length - 1], mittel = P[P.length - 2], dunkel = P[0];
       setze(px, py + 1, dunkel); setze(px - 1, py, dunkel);
       setze(px, py, mittel); setze(px - 1, py - 1, hell); setze(px + 1, py - 1, mittel); setze(px, py - 2, hell);
     }
@@ -416,7 +415,44 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
     }
   }
   zeichneMando(c, z);
+  // für das fallende Laub (zeichneLaubfall): Laubbäume mit ihren Farben
+  if (JZ.laubfall) { hg.laubBaeume = baeume.filter(b => !b.kiefer && !b.kahl).map(({ x, y, r, farben }) => ({ x, y, r, farben })); hg.laubBahn = bahn; }
   return hg;
+};
+
+// ---------- Fallendes Laub (Herbst): kleine Animation über dem Bahnbild ----------
+// Blätter lösen sich aus den Kronen, trudeln mit dem Wind zu Boden (Schatten kommt ihnen entgegen),
+// bleiben kurz liegen und verblassen. Koordinaten in Metern, gezeichnet im Bahnbild-Maßstab S.
+const laubfall = { teile: [], bahn: null };
+window.zeichneLaubfall = function (c, bild, dt, wind) {
+  const baeume = bild && bild.laubBaeume;
+  if (!baeume || !baeume.length) { laubfall.teile.length = 0; return; }
+  if (laubfall.bahn !== bild.laubBahn) { laubfall.bahn = bild.laubBahn; laubfall.teile.length = 0; }
+  const ziel = Math.min(100, baeume.length * 5);
+  if (laubfall.teile.length < ziel && Math.random() < dt * ziel * 0.3) {
+    const b = baeume[Math.floor(Math.random() * baeume.length)], w = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * b.r * 0.9, f = b.farben;
+    laubfall.teile.push({
+      x: b.x + Math.cos(w) * d, y: b.y + Math.sin(w) * d, h: 3 + Math.random() * 5, v: 0.5 + Math.random() * 0.6,
+      phase: Math.random() * 6.3, farbe: f[2 + Math.floor(Math.random() * 3)], rand: f[1], liegt: 0,
+    });
+  }
+  const wx = ((wind && wind.x) || 0) * 0.35, wy = ((wind && wind.y) || 0) * 0.35, pz = Math.max(1, Math.round(S / 5));
+  laubfall.teile = laubfall.teile.filter(t => {
+    if (t.h > 0) {
+      t.phase += dt * 4; t.h -= t.v * dt;
+      t.x += (wx + Math.sin(t.phase) * 0.5) * dt; t.y += (wy + Math.cos(t.phase * 0.7) * 0.3) * dt;
+    } else t.liegt += dt;
+    return t.liegt < 4;
+  });
+  for (const t of laubfall.teile) {
+    const px = Math.round(t.x * S), py = Math.round(t.y * S);
+    if (t.h > 0) { c.fillStyle = "rgba(0,20,0,.35)"; c.fillRect(Math.round((t.x + t.h * 0.25) * S), Math.round((t.y + t.h * 0.35) * S), pz, pz); }
+    const quer = t.h > 0 && Math.sin(t.phase) > 0; // das Blatt dreht sich: mal breit, mal schmal
+    c.globalAlpha = t.liegt > 3 ? 4 - t.liegt : 1;
+    c.fillStyle = t.rand; c.fillRect(px, py, quer ? 2 * pz : pz, quer ? pz : 2 * pz);
+    c.fillStyle = t.farbe; c.fillRect(px, py, pz, pz);
+    c.globalAlpha = 1;
+  }
 };
 
 // Paletten und Deko je Jahreszeit (Farben dunkel → hell)
@@ -458,6 +494,7 @@ window.JAHRESZEITEN = {
     blumen: { dichte: 0.008, farben: ["#f6f4ea"] },
     klee: false, bueschel: 0.7,
     laub: { dichte: 0.6, farben: ["#c8782a", "#d9a030", "#a4522a", "#8a6a2a", "#b84028"] },
+    laubfall: true,
   },
   winter: {
     schnee: true,
@@ -468,7 +505,7 @@ window.JAHRESZEITEN = {
     laubbaum: () => ["#3a2e24"],
     kiefer: ["#0a281e", "#123628", "#1a4832", "#24583c", "#3a7448"],
     blumen: { dichte: 0, farben: [] },
-    klee: false, bueschel: 0.35, laub: null,
+    klee: false, bueschel: 0, laub: null,
   },
 };
 

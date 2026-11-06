@@ -34,8 +34,8 @@ Paletten und Deko stehen in `JAHRESZEITEN` am Ende von `werkzeuge/grafik_vorscha
 |---|---|---|---|
 | Frühling | frisches Gelbgrün | hellgrün, ~30 % blühen rosa | viele Blumen (weiß, gelb, lila, blau), Blütenblätter unter Blütenbäumen |
 | Sommer | sattes Grün (Standard) | dunkelgrün | Gänseblümchen, Löwenzahn, Klee |
-| Herbst | olivgrün | orange, rot, gelb, braungrün gemischt | viel Laub am Boden, kaum Blumen |
-| Winter | Schnee mit bläulichen Schatten, Wege matschig | Laubbäume kahl mit Ästen und Astschatten, Kiefern verschneit | trockene Halme im Schnee, Schnee auf dem Deck |
+| Herbst | olivgrün | orange, rot, gelb, braungrün gemischt | viel Laub am Boden, kaum Blumen; im Spiel fallen bunte Blätter aus den Kronen und treiben mit dem Wind |
+| Winter | Schnee mit bläulichen Schatten, Wege matschig | Laubbäume kahl mit Ästen und Astschatten, Kiefern verschneit | Schnee auf dem Deck und der Bank, keine Blätter |
 
 Die Physik ändert sich nicht (Schnee bremst die Scheibe z. B. nicht stärker) – das wäre ein eigener Schritt.
 

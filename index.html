@@ -1793,6 +1793,7 @@ function schleife(jetzt) {
   bewegeKamera(dt);
   weltTransform();
   ctx.drawImage(bahnBild(kamera.z), 0, 0);
+  if (window.zeichneLaubfall) zeichneLaubfall(ctx, bahnBild(kamera.z), dt, wind); // Herbst: fallende Blätter
   if (zustand === "zielen" || zustand === "laden") zeichneZiellinie();
   figurTransform();
   const korbWackelt = (flug && flug.erg.drin && zustand !== "zielen" && uhr - flug.t0 > flug.erg.dauer / E.tempo - 0.1 && uhr - flug.t0 < flug.erg.dauer / E.tempo + 0.7);
