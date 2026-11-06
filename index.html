@@ -1997,8 +1997,26 @@ const gesperrt = () => kiAmZug() || fernAmZug();
 
 // Computer plant einen Wurf: probiert Scheiben, Richtungen, Abwurfwinkel und Kräfte im Flugmodell durch.
 // Erst jeder Kandidat einmal grob, dann die besten mehrfach (so sieht der Profi auch das Risiko).
+// Mando noch offen und die gerade Linie zum Korb verfehlt die Lücke? Dann Richtung in die Lücke (sonst null).
+// Einseitige Mando (Bahn 14): etwas neben den Baum zielen; Lücke zwischen zwei Bäumen: in die Mitte (#8)
+function kiMandoRichtung(s) {
+  const m = bahn.mando;
+  if (!m || s.mandoOk) return null;
+  const [ax, ay] = m.a, [bx, by] = m.b, dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy);
+  const seite = p => dx * (p.y - ay) - dy * (p.x - ax);
+  const s0 = seite(s.lie), s1 = seite(bahn.korb);
+  if (s0 * seite(bahn.abwurf) <= 0 || s0 * s1 > 0) return null; // schon jenseits der Mando
+  // Wo kreuzt die gerade Linie zum Korb die Mando-Linie? Liegt das in der Lücke, reicht der direkte Weg
+  const f = s0 / (s0 - s1), x = s.lie.x + (bahn.korb.x - s.lie.x) * f, y = s.lie.y + (bahn.korb.y - s.lie.y) * f;
+  const u = ((x - ax) * dx + (y - ay) * dy) / (len * len);
+  if (u > 0.15 && u < 0.85) return null;
+  const t = m.einseitig ? Math.min(10, len / 2) / len : 0.5;
+  return Math.atan2(ay + dy * t - s.lie.y, ax + dx * t - s.lie.x);
+}
+
 function kiPlane(s, k) {
-  const d = abstand(s.lie, bahn.korb), basis = zumKorb(s.lie), alterWinkel = winkel, alteScheibe = s.scheibe;
+  const d = abstand(s.lie, bahn.korb), alterWinkel = winkel, alteScheibe = s.scheibe;
+  const basis = kiMandoRichtung(s) ?? zumKorb(s.lie);
   let scheiben = [s.scheibe];
   const nah = d < 40; // Annäherung an Circle 1: Putter oder Midrange, Kraft passend zur Entfernung
   if (k.alleScheiben) scheiben = s.tasche.map((_, i) => i).filter(i => {
