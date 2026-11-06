@@ -37,6 +37,10 @@ Paletten und Deko stehen in `JAHRESZEITEN` am Ende von `werkzeuge/grafik_vorscha
 | Herbst | olivgrün | orange, rot, gelb, braun gemischt | viel Laub am Boden, kaum Blumen; im Spiel fallen bunte Blätter aus den Kronen und treiben mit dem Wind |
 | Winter | Schnee mit bläulichen Schatten, Wege matschig | Laubbäume kahl mit Ästen und Astschatten, Kiefern verschneit | Schnee auf dem Deck und der Bank, keine Blätter |
 
+Auch die Putt-Ansicht (Seitenansicht am Korb) folgt der Jahreszeit: Himmel mit Sonne und Wolken,
+Baumreihe in den Farben der Jahreszeit (im Winter kahl und verschneit), Wiese mit Mähstreifen,
+Blumen, Laub oder Schnee; im Herbst fallen auch hier Blätter. Ohne Jahreszeit (klassisch, GBA) bleibt sie wie bisher.
+
 Die Physik ändert sich nicht (Schnee bremst die Scheibe z. B. nicht stärker) – das wäre ein eigener Schritt.
 
 ## Weitere Ideen (noch nicht gebaut)
@@ -53,5 +57,4 @@ Die Physik ändert sich nicht (Schnee bremst die Scheibe z. B. nicht stärker) �
 
 - Laufzeit: das Bahnbild wird pro Zoomstufe einmal vorgerendert. Am Rechner 12–65 ms (Übersicht)
   bzw. 100–310 ms (nah, im Leerlauf vorbereitet) je Bahn – auf dem Handy noch messen.
-- Putt-Ansicht (Nahansicht am Korb) hat noch die Sommerfarben.
 - GBA-Version ist davon nicht betroffen.

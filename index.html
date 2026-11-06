@@ -1527,17 +1527,21 @@ function flugPosition() {
 
 // Putt-Nahansicht ohne Text, Fadenkreuz und Scheibe: Himmel, Baumreihe, Wiese, Korb von der Seite.
 // wx: Wackeln der Ketten. Wird auch für die GBA-Version gerendert (werkzeuge/rendere_gba.mjs).
-function zeichnePuttHintergrund(c, wx = 0) {
+// jahreszeit: Detailbild je Jahreszeit (grafik.js); ohne = klassisch (so nutzt es auch die GBA-Version)
+function zeichnePuttHintergrund(c, wx = 0, jahreszeit = null) {
   const bx = 86, by = 14, bw = 148, bh = 146;
   c.fillStyle = PAL.schwarz; c.fillRect(bx - 3, by - 3, bw + 6, bh + 6);
-  // Himmel mit Dither, Baumreihe, Wiese
-  for (let y = 0; y < 100; y++) {
-    c.fillStyle = y < 40 ? "#5ab0e8" : y < 70 ? ((y % 2) ? "#6cc0f0" : "#5ab0e8") : "#7ccaf2";
-    c.fillRect(bx, by + y, bw, 1);
+  if (jahreszeit && window.zeichnePuttSzene) zeichnePuttSzene(c, jahreszeit, bx, by, bw, bh);
+  else {
+    // Himmel mit Dither, Baumreihe, Wiese
+    for (let y = 0; y < 100; y++) {
+      c.fillStyle = y < 40 ? "#5ab0e8" : y < 70 ? ((y % 2) ? "#6cc0f0" : "#5ab0e8") : "#7ccaf2";
+      c.fillRect(bx, by + y, bw, 1);
+    }
+    for (let i = 0; i < bw; i += 6) pixelKreis(c, bx + i + 3, by + 92 - ((i * 7) % 9), 6, PAL.baum1);
+    c.fillStyle = PAL.fair1; c.fillRect(bx, by + 100, bw, bh - 100);
+    for (let y = by + 104; y < by + bh; y += 4) { c.fillStyle = PAL.fair2; c.fillRect(bx, y, bw, 2); }
   }
-  for (let i = 0; i < bw; i += 6) pixelKreis(c, bx + i + 3, by + 92 - ((i * 7) % 9), 6, PAL.baum1);
-  c.fillStyle = PAL.fair1; c.fillRect(bx, by + 100, bw, bh - 100);
-  for (let y = by + 104; y < by + bh; y += 4) { c.fillStyle = PAL.fair2; c.fillRect(bx, y, bw, 2); }
 
   // Korb in Seitenansicht
   const K = KETTEN;
@@ -1562,7 +1566,9 @@ function zeichnePuttAnsicht() {
   const bx = 86, by = 14, bw = 148, bh = 146;
   const K = KETTEN, sh = putt.flug && putt.flug.ergebnis !== "kurz" && uhr - putt.flug.t0 > 0.45 && uhr - putt.flug.t0 < 1.1;
   const wx = sh ? Math.round(Math.sin(uhr * 50)) : 0;
-  zeichnePuttHintergrund(ctx, wx);
+  const jz = aktuelleJahreszeit();
+  zeichnePuttHintergrund(ctx, wx, jz);
+  if (jz && window.zeichnePuttLaub) zeichnePuttLaub(ctx, jz, bx, by, bw, bh, wind); // Herbst: fallende Blätter
 
   text("PUTT " + d.toFixed(1) + " M", bx + 4, by + 3, PAL.weiss);
   text(puttStil === "push" ? "PUSH" : "SPIN", bx + bw - 4, by + 3, "#ffe08a", "right");

@@ -522,3 +522,167 @@ window.jahreszeitNachDatum = (datum = new Date()) => {
   const m = datum.getMonth();
   return m === 11 || m < 2 ? "winter" : m < 5 ? "fruehling" : m < 8 ? "sommer" : "herbst";
 };
+
+// ============================================================
+//  PUTT-ANSICHT JE JAHRESZEIT (Seitenansicht am Korb)
+// ============================================================
+//  zeichnePuttSzene: Himmel, zwei Baumreihen und Wiese, je Jahreszeit einmal gemalt und gemerkt.
+//  zeichnePuttLaub: im Herbst fallen Blätter aus der Baumreihe vor dem Korb zu Boden.
+const PUTT_HORIZONT = 100;
+const puttSzenen = {};
+window.zeichnePuttSzene = function (c, jz, bx, by, bw, bh) {
+  const k = jz + ":" + bw + "x" + bh;
+  if (!puttSzenen[k]) puttSzenen[k] = puttSzeneMalen(jz, bw, bh);
+  c.drawImage(puttSzenen[k], bx, by);
+};
+
+function puttSzeneMalen(jz, bw, bh) {
+  const JZ = JAHRESZEITEN[jz] || JAHRESZEITEN.sommer, winter = !!JZ.schnee;
+  const cv = document.createElement("canvas"); cv.width = bw; cv.height = bh;
+  const c = cv.getContext("2d"), rnd = zufall(42), hor = PUTT_HORIZONT;
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], bay = (x, y) => (BAYER[(y & 3) * 4 + (x & 3)] + 0.5) / 16;
+  const punkt = (x, y, f) => { c.fillStyle = f; c.fillRect(Math.round(x), Math.round(y), 1, 1); };
+  // Farbe mit Himmel mischen: weiter hinten liegende Bäume wirken blasser
+  const misch = (a, b, t) => { const p = rgb(a), q = rgb(b); return "rgb(" + p.map((v, i) => Math.round(v + (q[i] - v) * t)).join(",") + ")"; };
+
+  // ---- Himmel: Verlauf mit Dithering, Sonne, Wolken ----
+  const HIMMEL = {
+    fruehling: ["#4aa8ec", "#6cc0f4", "#94d4f8", "#bfe6fb"],
+    sommer: ["#2f8ee0", "#4aa6ec", "#6cbcf2", "#94d0f6"],
+    herbst: ["#6a9cc8", "#86b0d4", "#a6c4dc", "#c8d8e2"],
+    winter: ["#9aaec4", "#b4c4d4", "#ccd6e0", "#e2e8ee"],
+  }[jz] || ["#2f8ee0", "#4aa6ec", "#6cbcf2", "#94d0f6"];
+  for (let y = 0; y < hor; y++) for (let x = 0; x < bw; x++) {
+    const f = (y / hor) * (HIMMEL.length - 1); let i = Math.floor(f); if (f - i > bay(x, y)) i++;
+    punkt(x, y, HIMMEL[Math.min(HIMMEL.length - 1, i)]);
+  }
+  if (jz === "sommer" || jz === "fruehling") {
+    pixelKreis(c, bw - 24, 18, 9, "#fff2a8"); pixelKreis(c, bw - 24, 18, 7, "#ffe066"); pixelKreis(c, bw - 26, 16, 3, "#fff6c8");
+  }
+  const wolke = (x, y, w, hell, dunkel) => {
+    for (let i = 0; i < w; i += 5) pixelKreis(c, x + i, y - Math.round(Math.sin(i / w * Math.PI) * 5), 5 + (i % 3), hell);
+    c.fillStyle = dunkel; c.fillRect(Math.round(x - 4), Math.round(y + 3), w + 8, 2);
+    c.fillStyle = hell; c.fillRect(Math.round(x - 5), Math.round(y + 1), w + 10, 2);
+  };
+  const wolken = { fruehling: 3, sommer: 2, herbst: 4, winter: 5 }[jz] || 2;
+  for (let i = 0; i < wolken; i++) {
+    const w = 18 + Math.floor(rnd() * 22), x = 6 + rnd() * (bw - w - 12), y = 12 + rnd() * 40;
+    wolke(x, y, w, winter ? "#eef2f6" : "#ffffff", winter ? "#c4ccd6" : jz === "herbst" ? "#b8c4cc" : "#d8e8f2");
+  }
+
+  // ---- Baumreihen am Horizont ----
+  const laubFarben = i => JZ.laubbaum(((i * 0.37) % 1 + 1) % 1);
+  // hintere Reihe: blasse Kronen (im Winter blasse Äste) direkt auf dem Horizont
+  for (let x = -4; x < bw + 8; x += 7 + Math.floor(rnd() * 4)) {
+    const r = 6 + Math.floor(rnd() * 4), y = hor - 4 - Math.floor(rnd() * 5);
+    if (winter) { const f = misch("#4a3e34", HIMMEL[3], 0.55); c.fillStyle = f; c.fillRect(x, y - r, 1, r + 4); for (let k = 0; k < r; k += 2) { c.fillRect(x - (k >> 1), y - r + k, 1, 1); c.fillRect(x + (k >> 1), y - r + k + 1, 1, 1); } }
+    else { const p = laubFarben(Math.floor(x)); pixelKreis(c, x, y, r, misch(p[1], HIMMEL[3], 0.5)); pixelKreis(c, x - 2, y - 2, r * 0.6, misch(p[2], HIMMEL[3], 0.5)); }
+  }
+  // vordere Reihe: Laubbäume mit Stamm, Kontur und Licht von links oben; dazwischen Kiefern
+  const baeume = [];
+  for (let x = 4; x < bw; x += 13 + Math.floor(rnd() * 7)) baeume.push({ x, r: 8 + Math.floor(rnd() * 5), kiefer: rnd() < 0.25, i: baeume.length });
+  for (const b of baeume) {
+    const fuss = hor + 2, cy = fuss - b.r - 6;
+    c.fillStyle = "#3a2a1c"; c.fillRect(b.x - 1, cy, 3, fuss - cy);
+    c.fillStyle = "#5a4430"; c.fillRect(b.x - 1, cy, 1, fuss - cy);
+    if (b.kiefer) {
+      const KI = JZ.kiefer;
+      for (let s = 0; s < 4; s++) {
+        const w = b.r - s * 2, y = fuss - 6 - s * 5;
+        for (let k = 0; k < 6; k++) { c.fillStyle = k < 2 ? KI[0] : k < 4 ? KI[1] : KI[2]; c.fillRect(b.x - w + k, y - k, (w - k) * 2, 1); }
+        if (winter) { c.fillStyle = "#f4f8ff"; c.fillRect(b.x - w + 5, y - 5, Math.max(1, (w - 5) * 2), 1); c.fillRect(b.x - w + 2, y - 2, 2, 1); }
+      }
+    } else if (winter) {
+      // kahler Baum: Äste nach oben verzweigt, Schnee auf den Ästen
+      const ast = (x, y, w, len, t) => {
+        for (let k = 0; k < len; k++) { const px = x + Math.cos(w) * k, py = y + Math.sin(w) * k; c.fillStyle = t < 2 ? "#3a2e24" : "#5a4a3c"; c.fillRect(Math.round(px), Math.round(py), t ? 1 : 2, 1); if (t < 3 && k % 3 === 1 && rnd() < 0.5) punkt(px, py - 1, "#f4f8ff"); }
+        if (t < 3) for (const s of [-1, 1]) ast(x + Math.cos(w) * len * 0.6, y + Math.sin(w) * len * 0.6, w + s * (0.4 + rnd() * 0.3), len * 0.6, t + 1);
+      };
+      ast(b.x, cy + 4, -Math.PI / 2, b.r + 4, 0);
+    } else {
+      const LB = laubFarben(b.i + 3);
+      const gruppen = [{ x: b.x, y: cy, r: b.r * 0.7 }];
+      for (let k = 0; k < 5; k++) { const w = Math.PI + k / 4 * Math.PI, rg = b.r * (0.4 + rnd() * 0.12); gruppen.push({ x: b.x + Math.cos(w) * b.r * 0.55, y: cy + Math.sin(w) * b.r * 0.5 + 2, r: rg }); }
+      for (const q of gruppen) pixelKreis(c, q.x, q.y, q.r + 1, LB[0]);
+      for (const q of gruppen) {
+        pixelKreis(c, q.x, q.y, q.r, LB[1]);
+        pixelKreis(c, q.x - q.r * 0.2, q.y - q.r * 0.25, q.r * 0.7, LB[2]);
+        pixelKreis(c, q.x - q.r * 0.38, q.y - q.r * 0.42, q.r * 0.34, LB[3]);
+      }
+      for (let k = 0; k < b.r * 3; k++) { const w = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * b.r * 0.9; punkt(b.x + Math.cos(w) * d, cy + Math.sin(w) * d, LB.bluete ? (rnd() < 0.5 ? LB[4] : "#ffffff") : rnd() < 0.5 ? LB[1] : LB[3]); }
+    }
+  }
+
+  // ---- Wiese: Mähstreifen in Perspektive (nach vorne breiter), Büschel, Blumen, Laub oder Schnee ----
+  const F = winter ? JZ.gras : JZ.fair, G = JZ.gras;
+  let streifen = 0;
+  for (let y = hor, k = 0; y < bh; k++) {
+    const h = 2 + Math.floor(k * 1.3);
+    for (let yy = y; yy < Math.min(bh, y + h); yy++) for (let x = 0; x < bw; x++) {
+      const t = (winter ? 0.62 : 0.4) + (streifen ? 0.18 : 0) + ((yy - hor) / (bh - hor)) * 0.12 + (rnd() - 0.5) * 0.2;
+      const f = t * (F.length - 1); let i = Math.floor(f); if (f - i > bay(x, yy)) i++;
+      punkt(x, yy, F[Math.max(0, Math.min(F.length - 1, i))]);
+    }
+    y += h; streifen = 1 - streifen;
+  }
+  // Schatten der Baumreihe direkt am Horizont
+  for (let x = 0; x < bw; x++) if (bay(x, hor) < 0.6) punkt(x, hor, winter ? "#8a9ab8" : G[0]);
+  if (!winter) for (let x = 0; x < bw; x++) if (bay(x, hor + 1) < 0.3) punkt(x, hor + 1, G[1]);
+  // Büschel (vorne größer)
+  for (let i = 0; i < (winter ? 0 : 70); i++) {
+    const y = hor + 3 + Math.floor(rnd() * (bh - hor - 4)), x = Math.floor(rnd() * bw), g = y > hor + 25 ? 2 : 1;
+    punkt(x, y, G[0]); punkt(x - 1, y - g, F[F.length - 1]); punkt(x + 1, y - g, F[F.length - 2]); if (g > 1) punkt(x, y - 2 * g + 1, F[F.length - 1]);
+  }
+  // Blumen
+  for (let i = 0; i < JZ.blumen.dichte * 300; i++) {
+    const y = hor + 4 + Math.floor(rnd() * (bh - hor - 6)), x = Math.floor(rnd() * bw), f = JZ.blumen.farben[Math.floor(rnd() * JZ.blumen.farben.length)];
+    if (y > hor + 25) { punkt(x - 1, y, f); punkt(x + 1, y, f); punkt(x, y - 1, f); punkt(x, y + 1, f); }
+    punkt(x, y, "#f2c62e");
+  }
+  // Laub (Herbst) bzw. Blütenblätter (Frühling): am Horizont dichter, vorne einzelne größere Blätter
+  if (JZ.laub) for (let i = 0; i < JZ.laub.dichte * 260; i++) {
+    const nah = rnd(), y = hor + 2 + Math.floor(nah * nah * (bh - hor - 4)), x = Math.floor(rnd() * bw), f = JZ.laub.farben[Math.floor(rnd() * JZ.laub.farben.length)];
+    punkt(x, y, f); if (y > hor + 22) punkt(x + 1, y, f);
+  }
+  // Schnee: Glitzern und ein paar Fußspuren zum Korb
+  if (winter) {
+    for (let i = 0; i < 120; i++) punkt(rnd() * bw, hor + 2 + rnd() * (bh - hor - 2), rnd() < 0.5 ? "#ffffff" : "#a8b8d0");
+    for (let y = bh - 4, s = 0; y > hor + 8; y -= 3 + Math.floor((y - hor) / 12), s = 1 - s) {
+      const x = bw / 2 - 14 + s * 4 + (bh - y) * 0.25, g = y > hor + 25 ? 2 : 1;
+      c.fillStyle = "#9eb0cc"; c.fillRect(Math.round(x), Math.round(y), g + 1, g);
+    }
+  }
+  return cv;
+}
+
+// Fallende Blätter in der Putt-Ansicht (nur Herbst): lösen sich aus der Baumreihe, trudeln mit dem Wind
+// nach vorne und landen in der Wiese, bleiben kurz liegen und verblassen
+const puttLaub = { teile: [], zuletzt: 0 };
+window.zeichnePuttLaub = function (c, jz, bx, by, bw, bh, wind) {
+  const JZ = JAHRESZEITEN[jz];
+  if (!JZ || !JZ.laubfall) { puttLaub.teile.length = 0; return; }
+  const jetzt = performance.now(), dt = Math.min(0.05, (jetzt - (puttLaub.zuletzt || jetzt)) / 1000);
+  puttLaub.zuletzt = jetzt;
+  const FARBEN = [0, 1, 2].map(i => JZ.laubbaum(i / 3 + 0.1));
+  if (puttLaub.teile.length < 28 && Math.random() < dt * 9) {
+    const p = FARBEN[Math.floor(Math.random() * FARBEN.length)];
+    puttLaub.teile.push({ x: Math.random() * bw, y: PUTT_HORIZONT - 30 + Math.random() * 22, boden: PUTT_HORIZONT + 4 + Math.random() * (bh - PUTT_HORIZONT - 8),
+      v: 10 + Math.random() * 10, phase: Math.random() * 6.3, farbe: p[2 + Math.floor(Math.random() * 2)], rand: p[1], liegt: 0 });
+  }
+  const wx = ((wind && wind.x) || 0) * 2;
+  puttLaub.teile = puttLaub.teile.filter(t => {
+    if (t.y < t.boden) { t.phase += dt * 5; t.y += t.v * dt; t.x += (wx + Math.sin(t.phase) * 12) * dt; }
+    else t.liegt += dt;
+    return t.liegt < 3 && t.x > -4 && t.x < bw + 4;
+  });
+  c.save();
+  c.beginPath(); c.rect(bx, by, bw, bh); c.clip();
+  for (const t of puttLaub.teile) {
+    const nah = (t.y - PUTT_HORIZONT + 30) / (bh - PUTT_HORIZONT + 30), g = nah > 0.6 ? 2 : 1, px = Math.round(bx + t.x), py = Math.round(by + t.y);
+    const quer = t.liegt === 0 && Math.sin(t.phase) > 0;
+    c.globalAlpha = t.liegt > 2 ? 3 - t.liegt : 1;
+    c.fillStyle = t.rand; c.fillRect(px, py, quer ? 2 * g : g, quer ? g : 2 * g);
+    c.fillStyle = t.farbe; c.fillRect(px, py, g, g);
+  }
+  c.restore();
+};
