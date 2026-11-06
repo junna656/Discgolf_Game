@@ -82,14 +82,13 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
     return { ...b, kiefer, kahl: winter && !kiefer, farben: kiefer ? JZ.kiefer : JZ.laubbaum(h) };
   });
   // Schatten fallen nach rechts unten (Licht von links oben)
-  const imSchatten = (x, y) => {
+  // als Maske einmal gezeichnet (schneller als jeden Bildpunkt gegen alle Bäume zu prüfen)
+  const schattenMaske = maske(m => {
     for (const b of baeume) {
       if (b.kahl) continue;
-      const dx = x - (b.x + b.r * 0.35), dy = (y - (b.y + b.r * 0.45)) * 1.15;
-      if (dx * dx + dy * dy < b.r * b.r * 1.02) return true;
+      m.beginPath(); m.ellipse(b.x + b.r * 0.35, b.y + b.r * 0.45, b.r * 1.01, b.r * 1.01 / 1.15, 0, 0, Math.PI * 2); m.fill();
     }
-    return false;
-  };
+  }, BW, BH);
   const ab = bahn.abwurf;
   // Wurfrichtung (Abwurf → Korb): Mähstreifen laufen in diese Richtung, die abgelaufene Stelle liegt davor
   const rl = Math.hypot(bahn.korb.x - ab.x, bahn.korb.y - ab.y) || 1, ux = (bahn.korb.x - ab.x) / rl, uy = (bahn.korb.y - ab.y) / rl;
@@ -102,12 +101,15 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   const l = bahn.bowlingbahn;
   const lAchse = l && (() => { const dx = l.x2 - l.x1, dy = l.y2 - l.y1, len = Math.hypot(dx, dy); return { ux: dx / len, uy: dy / len, len }; })();
 
+  // großflächiges Rauschen nur alle "rs" Bildpunkte neu berechnen (ändert sich erst über Meter)
+  const rs = Math.max(1, Math.floor(S / 5)), nZeile = new Float32Array(BW);
   for (let py = 0; py < BH; py++) for (let px = 0; px < BW; px++) {
     const x = (px + 0.5) / S, y = (py + 0.5) / S;
-    const n = fbm(x / 7, y / 7, 1), fein = hash(px, py, 9);
+    if (py % rs === 0 && px % rs === 0) nZeile[px] = fbm(x / 7, y / 7, 1);
+    const n = nZeile[px - px % rs], fein = hash(px, py, 9);
     const zi = obTests.findIndex(t => t(px, py, x, y)), zone = zi >= 0 ? bahn.ob[zi] : null;
     const wirft = (qx, qy) => (l && aufBowlingbahn({ x: qx, y: qy }, bahn)) || (Math.abs(qx - ab.x) < 1.6 && Math.abs(qy - ab.y) < 1.1);
-    const schatten = imSchatten(x, y) || wirft(x - 0.3, y - 0.4) ? 2 : 0;
+    const schatten = schattenMaske(px, py) || wirft(x - 0.3, y - 0.4) ? 2 : 0;
     let f, a = 0;
     if (l && aufBowlingbahn({ x, y }, bahn)) {
       // Dielen längs, versetzte Stöße, Maserung, dunkle Ränder
@@ -165,7 +167,8 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   const rnd = zufall(3);
   const artBei = (px, py) => inBild(px, py) ? art[py * BW + px] : 255;
   if (S >= 5) {
-    const flaeche = (bahn.welt.breite * bahn.welt.hoehe);
+    // bei hoher Auflösung sind Büschel und Blumen halb so groß – dafür mehr davon, damit die Wiese gleich dicht wirkt
+    const flaeche = (bahn.welt.breite * bahn.welt.hoehe) * Math.pow(typeof AUF === "number" ? AUF : 1, 1.5);
     // Grasbüschel
     for (let i = 0; i < flaeche * JZ.bueschel; i++) {
       const px = Math.floor(rnd() * BW), py = Math.floor(rnd() * BH), a = artBei(px, py);
@@ -438,7 +441,8 @@ window.zeichneLaubfall = function (c, bild, dt, wind) {
       phase: Math.random() * 6.3, farbe: f[2 + Math.floor(Math.random() * 2)], rand: f[1], liegt: 0, // Farben wie in der Krone
     });
   }
-  const wx = ((wind && wind.x) || 0) * 0.35, wy = ((wind && wind.y) || 0) * 0.35, pz = Math.max(1, Math.round(S / 5));
+  const A = typeof AUF === "number" ? AUF : 1; // bei hoher Auflösung halbe Spielpixel = echte Pixel
+  const wx = ((wind && wind.x) || 0) * 0.35, wy = ((wind && wind.y) || 0) * 0.35, pz = Math.max(1, Math.round(S * A / 5)) / A;
   laubfall.teile = laubfall.teile.filter(t => {
     if (t.h > 0) {
       t.phase += dt * 4; t.h -= t.v * dt;
@@ -447,8 +451,8 @@ window.zeichneLaubfall = function (c, bild, dt, wind) {
     return t.liegt < 4;
   });
   for (const t of laubfall.teile) {
-    const px = Math.round(t.x * S), py = Math.round(t.y * S);
-    if (t.h > 0) { c.fillStyle = "rgba(0,20,0,.35)"; c.fillRect(Math.round((t.x + t.h * 0.25) * S), Math.round((t.y + t.h * 0.35) * S), pz, pz); }
+    const px = Math.round(t.x * S * A) / A, py = Math.round(t.y * S * A) / A;
+    if (t.h > 0) { c.fillStyle = "rgba(0,20,0,.35)"; c.fillRect(Math.round((t.x + t.h * 0.25) * S * A) / A, Math.round((t.y + t.h * 0.35) * S * A) / A, pz, pz); }
     const quer = t.h > 0 && Math.sin(t.phase) > 0; // das Blatt dreht sich: mal breit, mal schmal
     c.globalAlpha = t.liegt > 3 ? 4 - t.liegt : 1;
     c.fillStyle = t.rand; c.fillRect(px, py, quer ? 2 * pz : pz, quer ? pz : 2 * pz);
@@ -741,9 +745,10 @@ window.zeichnePuttKorb = function (c, K, wx, winter) {
 
 // Draufsicht (leicht schräg) auf der Bahn; wird beim Reinzoomen größer und feiner.
 // x, y = Fuß am Boden (Bildschirm), dx = Wackeln, z = Zoomstufe
-window.zeichneKorbObenDetail = function (c, x, y, dx, z, winter) {
+// auf = echte Pixel je Spielpixel (hohe Auflösung): der Korb bleibt gleich groß, wird aber feiner
+window.zeichneKorbObenDetail = function (c, x, y, dx, z, winter, auf = 1) {
   const M = KORB.metall, G = KORB.gelb, p = (px, py, f, w, h) => punktSetzen(c, px, py, f, w, h);
-  const g = z >= 2.5 ? 2 : z >= 1.5 ? 1.5 : 1;
+  const g = (z >= 2.5 ? 2 : z >= 1.5 ? 1.5 : 1) * auf;
   const rx = Math.round(3.5 * g), ry = Math.max(1, Math.round(1.2 * g)), ringY = y - Math.round(11 * g), korbY = y - Math.round(5 * g);
   const ellipse = (cx, cy, a, b, farbe, nurVorne = 0) => {
     for (let w = 0; w < Math.PI * 2; w += 0.5 / Math.max(a, 1)) {

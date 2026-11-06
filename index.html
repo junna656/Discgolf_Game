@@ -395,6 +395,12 @@
         </div>
         <button class="gross" data-grafikwahl="klassisch">Klassische Grafik<small>Das einfachere Bild wie bisher</small></button>
       </div>
+      <h3 style="font-size:12px;margin:6px 0 0">Hohe Auflösung im Querformat</h3>
+      <div class="knoepfe" id="hd-wahl">
+        <button data-hdwahl="an">An</button>
+        <button data-hdwahl="aus">Aus</button>
+      </div>
+      <p class="klein" style="margin:0">Bahn, Bäume und Korb doppelt so fein (nur quer und nicht mit klassischer Grafik). Auf langsamen Handys ggf. ausschalten.</p>
       <p class="klein" style="margin:0">Wird in diesem Browser gespeichert.</p>
       <button id="einstellungen-zurueck">← Zurück</button>
     </div>
@@ -550,12 +556,19 @@ let kamera = null, kx = 0, ky = 0;
 let zoomManuell = null, umsehen = false, zieh = null;
 // Handy hochkant: Bahn um 90° drehen (Abwurf unten, Korb oben). SW/SH = Bildschirmgröße in Pixeln
 let hochkant = false, SW = W, SH = H;
+// AUF: echte Pixel je Spielpixel. 2 = hohe Auflösung (nur quer mit Detailgrafik): Bahnbild, Korb und Laub
+// doppelt so fein; Schrift, Figuren und Anzeigen bleiben im 8-Bit-Raster (scharf verdoppelt)
+let AUF = 1;
+function hoheAufloesung() {
+  try { return !hochkant && einstellungen.hd !== false && !!aktuelleJahreszeit(); } catch (e) { return false; } // Einstellungen noch nicht geladen
+}
 const hochMQ = matchMedia("(max-width: 860px) and (orientation: portrait), (pointer: coarse) and (orientation: portrait)");
 function pruefeAusrichtung() {
   hochkant = hochMQ.matches;
   SW = hochkant ? H : W;
   SH = hochkant ? W : H;
-  if (cv.width !== SW) { cv.width = SW; cv.height = SH; ctx.imageSmoothingEnabled = false; kamera = null; }
+  AUF = hoheAufloesung() ? 2 : 1;
+  if (cv.width !== SW * AUF || cv.height !== SH * AUF) { cv.width = SW * AUF; cv.height = SH * AUF; ctx.imageSmoothingEnabled = false; kamera = null; }
   cv.classList.toggle("hoch", hochkant);
   document.getElementById("feldrahmen").classList.toggle("hoch", hochkant);
 }
@@ -571,10 +584,10 @@ function zuSchirm(p) {
   return { x: Math.round(q.x), y: Math.round(q.y) };
 }
 // Bahnbild (ungedreht) mit Kamera-Verschiebung und ggf. gedreht zeichnen
-const weltTransform = () => hochkant ? ctx.setTransform(0, -1, 1, 0, -kx, W * S / S0 - ky) : ctx.setTransform(1, 0, 0, 1, -kx, -ky);
+const weltTransform = () => hochkant ? ctx.setTransform(0, -AUF, AUF, 0, -kx * AUF, (W * S / S0 - ky) * AUF) : ctx.setTransform(AUF, 0, 0, AUF, -kx * AUF, -ky * AUF);
 // Figuren in Bildschirm-Ausrichtung mit Kamera-Verschiebung
-const figurTransform = () => ctx.setTransform(1, 0, 0, 1, -kx, -ky);
-const schirmTransform = (ox = 0, oy = 0) => ctx.setTransform(1, 0, 0, 1, ox, oy);
+const figurTransform = () => ctx.setTransform(AUF, 0, 0, AUF, -kx * AUF, -ky * AUF);
+const schirmTransform = (ox = 0, oy = 0) => ctx.setTransform(AUF, 0, 0, AUF, ox * AUF, oy * AUF);
 // Putt-Ansicht und Endwertung sind für 320×180 gebaut und werden mittig verschoben
 const mitteTransform = () => schirmTransform((SW - W) / 2, (SH - H) / 2);
 
@@ -672,14 +685,17 @@ function linienFlaeche(o) {
 
 // Bahnbild für Zoomstufe z: mehr Bildpunkte pro Meter = mehr Details beim Reinzoomen
 const stufenBilder = {};
+// Bei hoher Auflösung (AUF = 2) hat das Bild doppelt so viele Bildpunkte je Meter; gezeichnet wird es
+// trotzdem in Spielpixeln (drawImage auf Breite/AUF), die Transformation macht daraus echte Pixel 1:1
 function bahnBild(z) {
-  if (!stufenBilder[z]) {
-    const alt = S; S = S0 * z;
+  const k = z + "@" + AUF;
+  if (!stufenBilder[k]) {
+    const alt = S; S = S0 * z * AUF;
     const jz = aktuelleJahreszeit();
-    stufenBilder[z] = jz ? zeichneHintergrundDetail(z, { jahreszeit: jz }) : zeichneHintergrund(z);
+    stufenBilder[k] = jz ? zeichneHintergrundDetail(z * AUF, { jahreszeit: jz }) : zeichneHintergrund(z);
     S = alt;
   }
-  return stufenBilder[z];
+  return stufenBilder[k];
 }
 
 // Jahreszeit fürs Bahnbild laut Einstellung: "auto" = nach Datum; null = klassische Grafik
@@ -901,8 +917,9 @@ let modus = "vierer", teilnehmer = SPIELER.map((_, i) => i), marken = [], spielN
 let online = null;
 // Einstellungen (in diesem Browser gespeichert); Menü dazu weiter unten
 const EINSTELLUNGEN_SPEICHER = "discgolf-einstellungen";
-const einstellungen = { wurfart: "letzte", grafik: "auto" };
+const einstellungen = { wurfart: "letzte", grafik: "auto", hd: true };
 try { Object.assign(einstellungen, JSON.parse(localStorage.getItem(EINSTELLUNGEN_SPEICHER) || "{}")); } catch (e) { /* egal */ }
+pruefeAusrichtung(); // jetzt mit Einstellungen: hohe Auflösung ja/nein
 function spaeter(fn, ms) {
   const nr = spielNr;
   setTimeout(() => { if (nr === spielNr) fn(); }, ms);
@@ -1394,7 +1411,13 @@ function zeichneKorbOben(wackel) {
   const { x, y } = zuSchirm(bahn.korb);
   const dx = wackel ? Math.round(Math.sin(uhr * 60)) : 0;
   const jz = aktuelleJahreszeit();
-  if (jz && window.zeichneKorbObenDetail) { zeichneKorbObenDetail(ctx, x, y, dx, kamera ? kamera.z : 1, jz === "winter"); return; }
+  if (jz && window.zeichneKorbObenDetail) {
+    // in echten Pixeln zeichnen, damit er bei hoher Auflösung feiner wird
+    ctx.setTransform(1, 0, 0, 1, -kx * AUF, -ky * AUF);
+    zeichneKorbObenDetail(ctx, x * AUF, y * AUF, dx * AUF, kamera ? kamera.z : 1, jz === "winter", AUF);
+    figurTransform();
+    return;
+  }
   ctx.fillStyle = PAL.schatten; ctx.fillRect(x - 2, y + 2, 7, 4);
   // Stange (leicht perspektivisch nach oben)
   ctx.fillStyle = "#6a6a6a"; ctx.fillRect(x, y - 6, 1, 7);
@@ -1801,7 +1824,7 @@ function schleife(jetzt) {
 
   bewegeKamera(dt);
   weltTransform();
-  ctx.drawImage(bahnBild(kamera.z), 0, 0);
+  { const hgb = bahnBild(kamera.z); ctx.drawImage(hgb, 0, 0, hgb.width / AUF, hgb.height / AUF); }
   if (window.zeichneLaubfall) zeichneLaubfall(ctx, bahnBild(kamera.z), dt, wind); // Herbst: fallende Blätter
   if (zustand === "zielen" || zustand === "laden") zeichneZiellinie();
   figurTransform();
@@ -2344,12 +2367,20 @@ const JAHRESZEIT_NAME = { fruehling: "Frühling", sommer: "Sommer", herbst: "Her
 function zeigeEinstellungen() {
   document.querySelectorAll("[data-wurfartwahl]").forEach(b => b.classList.toggle("an", b.dataset.wurfartwahl === einstellungen.wurfart));
   document.querySelectorAll("[data-grafikwahl]").forEach(b => b.classList.toggle("an", b.dataset.grafikwahl === (einstellungen.grafik || "auto")));
+  document.querySelectorAll("[data-hdwahl]").forEach(b => b.classList.toggle("an", (b.dataset.hdwahl === "an") === (einstellungen.hd !== false)));
   el("grafik-auto-info").textContent = "Jahreszeit wie draußen – gerade " + JAHRESZEIT_NAME[jahreszeitNachDatum()];
 }
 document.querySelectorAll("[data-grafikwahl]").forEach(b => b.addEventListener("click", () => {
   einstellungen.grafik = b.dataset.grafikwahl;
   try { localStorage.setItem(EINSTELLUNGEN_SPEICHER, JSON.stringify(einstellungen)); } catch (e) { /* egal */ }
   for (const k in stufenBilder) delete stufenBilder[k]; // Bahnbild beim nächsten Zeichnen neu erzeugen
+  pruefeAusrichtung(); // klassisch = immer normale Auflösung
+  zeigeEinstellungen();
+}));
+document.querySelectorAll("[data-hdwahl]").forEach(b => b.addEventListener("click", () => {
+  einstellungen.hd = b.dataset.hdwahl === "an";
+  try { localStorage.setItem(EINSTELLUNGEN_SPEICHER, JSON.stringify(einstellungen)); } catch (e) { /* egal */ }
+  pruefeAusrichtung();
   zeigeEinstellungen();
 }));
 document.querySelectorAll("[data-wurfartwahl]").forEach(b => b.addEventListener("click", () => {

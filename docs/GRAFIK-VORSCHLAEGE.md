@@ -42,6 +42,14 @@ Auch die Putt-Ansicht (Seitenansicht am Korb) folgt der Jahreszeit: Himmel mit S
 Baumreihe in den Farben der Jahreszeit (im Winter kahl und verschneit), Wiese mit Mähstreifen,
 Blumen, Laub oder Schnee; im Herbst fallen auch hier Blätter. Ohne Jahreszeit (klassisch, GBA) bleibt sie wie bisher.
 
+## Hohe Auflösung im Querformat
+
+Quer und mit Detailgrafik ist das Canvas 640 × 360 statt 320 × 180 echte Pixel (`AUF = 2` in index.html).
+Bahnbild, Bäume, Korb und fallendes Laub werden in doppelter Pixeldichte gezeichnet; Schrift, Figuren,
+Scheibe und Anzeigen bleiben im 8-Bit-Raster (scharf verdoppelt), Eingaben rechnen weiter in Spielpixeln.
+Hochkant, klassische Grafik und GBA: unverändert. Abschaltbar unter Einstellungen → Hohe Auflösung im Querformat.
+Bahnbild am Rechner: Übersicht 50–140 ms, nah (im Leerlauf vorbereitet) 0,3–0,5 s.
+
 Die Physik ändert sich nicht (Schnee bremst die Scheibe z. B. nicht stärker) – das wäre ein eigener Schritt.
 
 ## Weitere Ideen (noch nicht gebaut)
@@ -56,6 +64,7 @@ Die Physik ändert sich nicht (Schnee bremst die Scheibe z. B. nicht stärker) �
 
 ## Offene Punkte
 
-- Laufzeit: das Bahnbild wird pro Zoomstufe einmal vorgerendert. Am Rechner 12–65 ms (Übersicht)
-  bzw. 100–310 ms (nah, im Leerlauf vorbereitet) je Bahn – auf dem Handy noch messen.
+- Laufzeit: das Bahnbild wird pro Zoomstufe einmal vorgerendert. Normale Auflösung am Rechner
+  12–65 ms (Übersicht) bzw. 100–310 ms (nah, im Leerlauf vorbereitet) je Bahn – auf dem Handy noch messen.
+- Putt-Ansicht ist auch bei hoher Auflösung im normalen Raster gezeichnet.
 - GBA-Version ist davon nicht betroffen.
