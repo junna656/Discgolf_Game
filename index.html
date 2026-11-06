@@ -1511,11 +1511,12 @@ function zeichneWind() {
 }
 
 function zeichneKraftbalken() {
-  const x = hochkant ? 8 : 110, y = SH - 14, w = hochkant ? SW - 16 : 100;
-  ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 2, y - 2, w + 4, 10);
   // gelber/roter Bereich wird kleiner, wenn der Spieler bei diesem Wurf wenig streut
   const sf = staerke(ich()).streuung * (ich().wurfart === "vorhand" ? 1.2 : 1) * E.streuung;
   const gelb = Math.max(0.5, Math.min(0.93, 1 - 0.3 * sf)), rot = Math.max(0.75, Math.min(0.97, 1 - 0.1 * sf));
+  if (hochkant) { zeichneKraftbalkenSenkrecht(gelb, rot); return; }
+  const x = 110, y = SH - 14, w = 100;
+  ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 2, y - 2, w + 4, 10);
   ctx.fillStyle = "#3a7a30"; ctx.fillRect(x, y, Math.round(w * gelb), 6);
   ctx.fillStyle = "#c8a830"; ctx.fillRect(x + Math.round(w * gelb), y, Math.round(w * (rot - gelb)), 6);
   ctx.fillStyle = "#c84030"; ctx.fillRect(x + Math.round(w * rot), y, w - Math.round(w * rot), 6);
@@ -1526,13 +1527,30 @@ function zeichneKraftbalken() {
   }
   // Balken zurück bei 0: statt der Beschriftung den Abbruch-Hinweis zeigen
   if (ladeAbgebrochen()) text("LOSLASSEN = ABBRECHEN", x + w / 2, y - 11, "#ffe08a", "center");
-  else if (hochkant) {
-    text("KRAFT", x, y - 11, PAL.weiss);
-    text("STREUUNG", x + w, y - 11, "#c86050", "right");
-  } else {
+  else {
     text("KRAFT", x - 4, y - 1, PAL.weiss, "right");
     text("STREUUNG", x + w + 5, y - 1, "#c86050", "left");
   }
+}
+// Hochkant: senkrecht am linken Rand zwischen den Anzeigen oben und unten, füllt sich von unten nach oben;
+// Beschriftung gedreht daneben
+function zeichneKraftbalkenSenkrecht(gelb, rot) {
+  const x = 4, b = 6, y0 = 36, y1 = SH - 30, h = y1 - y0;
+  ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 2, y0 - 2, b + 4, h + 4);
+  ctx.fillStyle = "#3a7a30"; ctx.fillRect(x, y1 - Math.round(h * gelb), b, Math.round(h * gelb));
+  ctx.fillStyle = "#c8a830"; ctx.fillRect(x, y1 - Math.round(h * rot), b, Math.round(h * rot) - Math.round(h * gelb));
+  ctx.fillStyle = "#c84030"; ctx.fillRect(x, y0, b, h - Math.round(h * rot));
+  if (zustand === "laden" || zustand === "flug") {
+    const k = zustand === "laden" ? kraft : flug.kraftAngezeigt, hk = Math.round(h * k);
+    ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.fillRect(x, y1 - hk, b, hk);
+    ctx.fillStyle = PAL.weiss; ctx.fillRect(x - 3, y1 - hk - 1, b + 6, 2);
+  }
+  // Text um 90° gedreht, von unten nach oben lesbar, rechts neben dem Balken
+  ctx.save();
+  ctx.transform(0, -1, 1, 0, x + b + 4, y1);
+  if (ladeAbgebrochen()) text("LOSLASSEN = ABBRECHEN", h / 2, 0, "#ffe08a", "center");
+  else { text("KRAFT", 0, 0, PAL.weiss); text("STREUUNG", h, 0, "#c86050", "right"); }
+  ctx.restore();
 }
 
 function zeichneScheibe(p, dreht = false) {
@@ -1915,7 +1933,7 @@ function schleife(jetzt) {
     }
     if (!puttModus) {
       const w = Math.round(winkel);
-      const unten = hochkant ? SH - 46 : SH - 37; // quer: drei Zeilen links neben dem Kraftbalken
+      const unten = hochkant ? SH - 22 : SH - 37; // quer: drei Zeilen links neben dem Kraftbalken; hochkant: Balken links
       text((s.wurfart === "vorhand" ? "VORHAND · " : "RÜCKHAND · ") + (w > 0 ? "HYZER " + w + "°" : w < 0 ? "ANHYZER " + -w + "°" : "FLACH") + (staerke(s).sterne ? " " + "★".repeat(staerke(s).sterne) : ""), 4, unten, "#ffe08a");
       // Scheibe mit Flugzahlen (Speed | Glide | Turn | Fade)
       const sc = scheibe(), nm = sc.name.toUpperCase();
