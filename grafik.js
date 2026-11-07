@@ -330,8 +330,17 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   }
 
   // ---------- Circle 1 (10 m) gepunktet ----------
-  c.fillStyle = "rgba(255,255,255,.4)";
-  for (let w = 0; w < Math.PI * 2; w += 0.12 / z) c.fillRect(Math.round((bahn.korb.x + Math.cos(w) * 10) * S), Math.round((bahn.korb.y + Math.sin(w) * 10) * S), 1, 1);
+  // auf hellem Boden (z. B. Sand) mit eigener Farbe: dunkle Markierung mit hellem Schatten, etwas kräftiger
+  if (JZ.circle) {
+    const [dunkel, hell] = JZ.circle, g = Math.max(1, Math.round(zr * 1.5));
+    for (let w = 0; w < Math.PI * 2; w += 0.22 / z) {
+      const px = Math.round((bahn.korb.x + Math.cos(w) * 10) * S), py = Math.round((bahn.korb.y + Math.sin(w) * 10) * S);
+      rechteck(px + zr, py + zr, g, g, hell); rechteck(px, py, g, g, dunkel);
+    }
+  } else {
+    c.fillStyle = "rgba(255,255,255,.4)";
+    for (let w = 0; w < Math.PI * 2; w += 0.12 / z) c.fillRect(Math.round((bahn.korb.x + Math.cos(w) * 10) * S), Math.round((bahn.korb.y + Math.sin(w) * 10) * S), 1, 1);
+  }
 
   // ---------- Abwurf: Beton mit Kante, Sprenkeln und Schatten ----------
   {
@@ -637,6 +646,7 @@ JAHRESZEITEN.wueste = {
   fels: ["#4a3426", "#6e5038", "#8e6c4c", "#ac8a66", "#c8a884"],
   busch: ["#6a6230", "#7e7438", "#948a48", "#5a4a2a"],
   himmel: ["#3a8ed8", "#5aa6e0", "#84bee6", "#b6d6e8", "#f0dcb4"],
+  circle: ["#4a2810", "#f6e6c4"], // Circle 1: dunkle Punkte mit hellem Rand, auf Sand gut sichtbar
   blumen: { dichte: 0, farben: [] },
   klee: false, bueschel: 0.08, laub: null,
 };

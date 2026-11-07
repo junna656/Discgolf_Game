@@ -42,7 +42,7 @@ node werkzeuge/grafik_vorschau.mjs                                # (Bilder eine
 2. Die Optik festlegen – zwei Wege:
    - **ohne Release (bevorzugt für schnelle Themen):** `optikDaten` im Thema angeben: Paletten wie in
      `JAHRESZEITEN.wueste` (gras, aus, fair, weg, flussbett, fels, busch, himmel, laubbaum als Farbliste …),
-     `basis` = vorhandene Optik für den Rest, `wueste: true` für Sand-Boden/Kakteen-Szene. Die Daten
+     `basis` = vorhandene Optik für den Rest, `circle` = [dunkel, hell] für Circle 1 auf hellem Boden, `wueste: true` für Sand-Boden/Kakteen-Szene. Die Daten
      landen mit in `wochenbahnen.js` und gehen so am Sonntag live. Nutzbar sind die vorhandenen Arten:
      Hindernisse `kaktus`, `fels` oder normale Bäume (ohne `art`), OB `flussbett`, Zaun, Linie.
    - **mit Release:** fester Eintrag in `JAHRESZEITEN` (`grafik.js`), neue Hindernis-Arten mit eigener
