@@ -63,7 +63,7 @@ jobs:
           cp /tmp/wochenbahnen.js wochenbahnen.js
           if [ -z "$(git status --porcelain -- wochenbahnen.js)" ]; then echo "main ist schon aktuell."; echo "neu=nein" >> "$GITHUB_OUTPUT"; exit 0; fi
           git add wochenbahnen.js
-          git commit -m "Wochenbahn: $(node -e 'const c={};c.window=c;require("vm").runInNewContext(require("fs").readFileSync("wochenbahnen.js","utf8"),c);const e=c.WOCHENBAHNEN.slice().sort((a,b)=>a.ab<b.ab?-1:1).pop();console.log("KW"+e.woche.split("-")[1]+" „"+e.bahn.name+"“ ("+e.thema+")")')"
+          git commit -m "Wochenbahn: $(node -e 'const c={};c.window=c;require("vm").runInNewContext(require("fs").readFileSync("wochenbahnen.js","utf8"),c);const e=c.WOCHENBAHNEN.slice().sort((a,b)=>a.ab<b.ab?-1:1).pop();console.log("KW"+e.woche.split("-")[1]+" „"+(e.name||(e.bahnen||[e.bahn])[0].name)+"“ ("+e.thema+")")')"
           git push origin main
           echo "neu=ja" >> "$GITHUB_OUTPUT"
       - name: Seite neu veröffentlichen

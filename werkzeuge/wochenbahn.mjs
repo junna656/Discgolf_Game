@@ -3,12 +3,13 @@
 //   node werkzeuge/wochenbahn.mjs --thema wueste                 Bahn für die nächste Woche (ab kommendem Montag)
 //   node werkzeuge/wochenbahn.mjs --thema wueste --woche 2026-46  Bahn für eine bestimmte Kalenderwoche (ISO)
 //   Optionen: --seed <zahl>  anderer Zufall (gleiche Eingaben = gleiche Bahn)
-//             --name "<Fantasiename>"  statt eines zufälligen Namens aus der Themenliste
+//             --name "<Fantasiename>"  Kursname statt eines zufälligen Namens aus der Themenliste
 //             --par 3|4|5   Par erzwingen (sonst per Zufall: ~88 % Par 3, ~10 % Par 4, ~2 % Par 5)
 //             --pruefen     nur prüfen, ob wochenbahnen.js gültig ist (keine Änderung)
 //             --hat-naechste  Exit 0, wenn die Bahn der kommenden Woche schon eingetragen ist
 //             --zufallsthema  gibt ein vorhandenes Thema aus (nicht das der letzten Woche)
-//   Ohne Eintrag für die Woche wird er angehängt, sonst ersetzt (so lässt sich eine Bahn neu würfeln).
+//             --bahnen <n>  Anzahl Bahnen (Standard ANZAHL_STANDARD = 6, später 18)
+//   Ohne Eintrag für die Woche wird er angehängt, sonst ersetzt (so lässt sich ein Kurs neu würfeln).
 //
 // Neues Thema: in THEMEN unten einen Eintrag mit name, optik, namen und baue(z, g, L) ergänzen.
 // Die Optik entweder als optikDaten im Thema (Paletten, landen mit in wochenbahnen.js – kein Release nötig)
@@ -129,7 +130,8 @@ const THEMEN = {
   wueste: {
     name: "Wüste", optik: "wueste",
     namen: ["Fata Morgana", "Kaktusschlucht", "Dürre Elle", "Sandsturm", "Skorpionspfad", "Oase Ohnegleichen", "Geierfelsen",
-      "Wadi Wackelkorb", "Staubteufel", "Dornige Diva", "Die Glutpfanne", "Klapperschlangenkurve", "Sandkasten XXL", "Tafelberg-Tango"],
+      "Wadi Wackelkorb", "Staubteufel", "Dornige Diva", "Die Glutpfanne", "Klapperschlangenkurve", "Sandkasten XXL", "Tafelberg-Tango",
+      "Kamelbuckel", "Dattelpalmen-Dogleg", "Heiße Kette", "Wüstenfuchs", "Tumbleweed Alley", "Durststrecke", "Sanddünen-Sprint", "Mirage-Mando", "Kojotenkehle"],
     baue(z, g, L) {
       const { abwurf, korb, linie } = g;
       const ob = [];
@@ -157,7 +159,7 @@ const THEMEN = {
           const t = k / 20, x = -5 + (g.welt.breite + 10) * t;
           // y auf der Bahn bei x (Polylinie über den Knick), dann seitlich weg
           const y = (() => { const [a, b, c] = linie; return x <= b[0] ? a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]) : b[1] + (c[1] - b[1]) * (x - b[0]) / (c[0] - b[0]); })();
-          mitte.push([r1(x), r1(y + seite * (16 + z() * 3 + Math.sin(t * 7) * 3))]);
+          mitte.push([r1(x), r1(y + seite * (21 + z() * 4 + Math.sin(t * 7) * 2.5))]);
           breiten.push(6 + z() * 3);
         }
         flussbetten.push(band(mitte, breiten));
@@ -165,8 +167,9 @@ const THEMEN = {
       for (const [i, fb] of flussbetten.entries()) ob.push({ name: i ? "Flussbett längs" : "Flussbett", art: "flussbett", punkte: fb });
       // Abwurf und Korb dürfen nicht im Flussbett liegen, der Korb braucht 8 m Abstand
       const imFluss = p => flussbetten.some(fb => imPolygon(p, fb));
-      const flussNah = (p, d) => flussbetten.some(fb => imPolygon(p, fb) || fb.some(q => Math.hypot(q[0] - p.x, q[1] - p.y) < d));
-      if (flussNah(abwurf, 8) || flussNah(korb, 9)) return null;
+      // Abstand zum Rand jedes Flussbetts über alle Kanten (nicht nur die Eckpunkte)
+      const flussNah = (p, d) => flussbetten.some(fb => imPolygon(p, fb) || abstandZurLinie(p, [...fb, fb[0]]) < d);
+      if (flussNah(abwurf, 8) || flussNah(korb, 14)) return null; // Circle 1 (10 m) bleibt mit Abstand frei vom Flussbett
 
       // Kakteen und Felsen: am Rand dicht, im Fairway nur einzelne „im Spiel“
       const frei = (o, liste) => {
@@ -204,31 +207,59 @@ const THEMEN = {
   },
 };
 
-// ---------- Bahn bauen ----------
-function baueBahn({ thema, woche, seed = 0, name, par: parErzwungen }) {
-  const T = THEMEN[thema];
-  if (!T) throw new Error(`Unbekanntes Thema "${thema}". Vorhanden: ${Object.keys(THEMEN).join(", ")}`);
-  const [jahr, kw] = woche.split("-").map(Number);
+// ---------- Kurs bauen: ANZAHL Bahnen eines Themas ----------
+const ANZAHL_STANDARD = 6; // Bahnen pro Woche (Ziel später: 18)
+function baueBahn(T, { woche, thema, seed, nr, parErzwungen, belegteNamen }) {
   for (let versuch = 0; versuch < 200; versuch++) {
-    const z = zufall(hashText(`${woche}|${thema}|${seed}|${versuch}`));
+    // Bahn 1 nutzt denselben Zufall wie früher (eine Bahn pro Woche), die weiteren einen eigenen
+    const z = zufall(hashText(`${woche}|${thema}|${seed}|${versuch}` + (nr > 1 ? `|b${nr}` : "")));
     const { par, L } = waehlePar(z, parErzwungen);
     const g = geruest(z, L);
     const teile = T.baue(z, g, L);
     if (!teile) continue;
-    const bname = (name || T.namen[Math.floor(z() * T.namen.length)]) + " KW" + String(kw).padStart(2, "0");
+    // Fantasiename: zufällig aus der Liste, aber jeder nur einmal pro Woche
+    let i = Math.floor(z() * T.namen.length);
+    for (let k = 0; k < T.namen.length && belegteNamen.has(T.namen[i]); k++) i = (i + 1) % T.namen.length;
+    const name = T.namen[i];
+    belegteNamen.add(name);
+    // für Abwechslung: Bahn zufällig waagerecht und/oder senkrecht spiegeln (eigener Zufall)
+    const zs = zufall(hashText(`${woche}|${thema}|${seed}|${nr}|spiegeln`)), sx = zs() < 0.5, sy = zs() < 0.5;
+    const W = g.welt.breite, Hh = g.welt.hoehe, fx = x => r1(sx ? W - x : x), fy = y => r1(sy ? Hh - y : y);
+    const P = p => ({ ...p, x: fx(p.x), y: fy(p.y) }), L2 = pk => pk.map(([x, y]) => [fx(x), fy(y)]);
+    g.abwurf = P(g.abwurf); g.korb = P(g.korb); g.fairway = L2(g.fairway);
+    teile.baeume = teile.baeume.map(P);
+    teile.wege = teile.wege.map(w => ({ ...w, punkte: L2(w.punkte) }));
+    teile.ob = teile.ob.map(o => ({ ...o, punkte: L2(o.punkte) }));
     return {
-      woche, ab: montagDerWoche(jahr, kw).toISOString().slice(0, 10), thema: T.name, optik: T.optik,
-      ...(T.optikDaten ? { optikDaten: T.optikDaten } : {}),
       bahn: {
-        nummer: 1, name: bname, ort: "Wochenbahn · " + T.name, par, optik: T.optik,
+        nummer: nr, name, ort: "Wochenkurs · " + T.name, par, optik: T.optik,
         welt: { breite: g.welt.breite, hoehe: g.welt.hoehe },
         abwurf: g.abwurf, korb: g.korb, fairway: g.fairway,
         baeume: teile.baeume, wege: teile.wege, ob: teile.ob,
       },
-      erzeugt: { seed, versuch, laenge: L },
+      erzeugt: { versuch, laenge: L },
     };
   }
-  throw new Error("Keine gültige Bahn gefunden – anderen --seed versuchen.");
+  throw new Error(`Bahn ${nr}: keine gültige Bahn gefunden – anderen --seed versuchen.`);
+}
+function baueKurs({ thema, woche, seed = 0, name, par: parErzwungen, anzahl = ANZAHL_STANDARD }) {
+  const T = THEMEN[thema];
+  if (!T) throw new Error(`Unbekanntes Thema "${thema}". Vorhanden: ${Object.keys(THEMEN).join(", ")}`);
+  if (T.namen.length < anzahl + 1) throw new Error(`Thema ${thema}: zu wenige Namen (${T.namen.length}) für ${anzahl} Bahnen plus Kursname`);
+  const [jahr, kw] = woche.split("-").map(Number);
+  const belegteNamen = new Set(name ? [name] : []), erg = []; // vorgegebener Kursname wird kein Bahnname
+  for (let nr = 1; nr <= anzahl; nr++) erg.push(baueBahn(T, { woche, thema, seed, nr, parErzwungen, belegteNamen }));
+  // Kursname: eigener Fantasiename (vorgegeben oder der erste noch freie aus der Liste) + KWxx
+  const z = zufall(hashText(`${woche}|${thema}|${seed}|kurs`));
+  let kursname = name;
+  if (!kursname) { const frei = T.namen.filter(n => !belegteNamen.has(n)); kursname = frei[Math.floor(z() * frei.length)]; }
+  return {
+    woche, ab: montagDerWoche(jahr, kw).toISOString().slice(0, 10), thema: T.name, optik: T.optik,
+    name: kursname + " KW" + String(kw).padStart(2, "0"),
+    ...(T.optikDaten ? { optikDaten: T.optikDaten } : {}),
+    bahnen: erg.map(e => e.bahn),
+    erzeugt: { seed, bahnen: erg.map(e => e.erzeugt) },
+  };
 }
 
 // ---------- wochenbahnen.js lesen und schreiben ----------
@@ -242,11 +273,12 @@ function schreibe(liste) {
   const kopf = `// ============================================================
 //  WOCHENBAHNEN – ERZEUGT von werkzeuge/wochenbahn.mjs (Fixes von Hand sind erlaubt)
 // ============================================================
-//  Jede Woche eine neue Bahn: ab Montag 0:00 (deutsche Zeit) ist der jüngste Eintrag mit
-//  "ab" <= heute die aktuelle Wochenbahn, die älteren stehen im Archiv (/archiv/).
+//  Jede Woche ein neuer Kurs: ab Montag 0:00 (deutsche Zeit) ist der jüngste Eintrag mit
+//  "ab" <= heute der aktuelle Wochenkurs, die älteren stehen im Archiv (/archiv/).
 //  Diese Datei ist reine Daten: Die Action „Wochenbahn live“ kopiert sie sonntags von dev nach main.
 //  Felder: woche (ISO-Jahr-KW), ab (Montag), thema, optik (Schlüssel in JAHRESZEITEN, grafik.js),
-//  bahn (wie in bahnen.js; baeume mit art "kaktus"/"fels" und Höhe h), erzeugt (Seed zum Nachbauen)
+//  name (Kursname mit KW), bahnen (wie in bahnen.js; baeume mit art "kaktus"/"fels" und Höhe h),
+//  erzeugt (Seed zum Nachbauen)
 // ============================================================
 `;
   const text = kopf + "window.WOCHENBAHNEN = [\n" + liste.map(e => JSON.stringify(e)).join(",\n") + "\n];\n";
@@ -255,12 +287,16 @@ function schreibe(liste) {
 function pruefe(liste) {
   const fehler = [];
   for (const e of liste) {
-    const b = e.bahn;
     if (!/^\d{4}-\d{1,2}$/.test(e.woche) || !/^\d{4}-\d\d-\d\d$/.test(e.ab)) fehler.push(e.woche + ": woche/ab ungültig");
+    const bahnen = e.bahnen || [e.bahn];
+    if (!bahnen.length || bahnen.length > 30) fehler.push(e.woche + ": 1–30 Bahnen");
+    bahnen.forEach((b, i) => { if (b.nummer !== i + 1) fehler.push(e.woche + `: Bahn ${i + 1} hat nummer ${b.nummer}`); });
+    for (const b of bahnen) {
     if (!b || !b.welt || Math.abs(b.welt.hoehe - b.welt.breite * 9 / 16) > 0.01) fehler.push(e.woche + ": welt.hoehe muss breite × 9/16 sein");
     if (![3, 4, 5].includes(b.par)) fehler.push(e.woche + ": par");
     for (const p of [b.abwurf, b.korb]) if (!(p.x > 0 && p.y > 0 && p.x < b.welt.breite && p.y < b.welt.hoehe)) fehler.push(e.woche + ": Abwurf/Korb außerhalb");
     if ((b.ob || []).some(o => o.punkte && (imPolygon(b.abwurf, o.punkte) || imPolygon(b.korb, o.punkte)))) fehler.push(e.woche + ": Abwurf/Korb im OB");
+    }
   }
   const wochen = liste.map(e => e.woche);
   if (new Set(wochen).size !== wochen.length) fehler.push("Woche doppelt");
@@ -292,11 +328,12 @@ if (!thema) { console.error("Bitte --thema angeben. Vorhanden: " + Object.keys(T
 let woche = arg("woche");
 if (!woche) { const w = naechsteWoche(); woche = `${w.jahr}-${w.kw}`; }
 const [wj, wk] = woche.split("-").map(Number); woche = `${wj}-${wk}`;
-const eintrag = baueBahn({ thema, woche, seed: Number(arg("seed") || 0), name: arg("name"), par: arg("par") ? Number(arg("par")) : undefined });
+const eintrag = baueKurs({ thema, woche, seed: Number(arg("seed") || 0), name: arg("name"), par: arg("par") ? Number(arg("par")) : undefined,
+  anzahl: arg("bahnen") ? Number(arg("bahnen")) : undefined });
 const neu = [...liste.filter(e => e.woche !== woche), eintrag];
 const f = pruefe(neu);
 if (f.length) { console.error(f.join("\n")); process.exit(1); }
 schreibe(neu);
-const b = eintrag.bahn;
-console.log(`KW ${wk}/${wj} ab ${eintrag.ab}: „${b.name}“ · ${eintrag.thema} · Par ${b.par} · ${Math.round(Math.hypot(b.korb.x - b.abwurf.x, b.korb.y - b.abwurf.y))} m Luftlinie (${eintrag.erzeugt.laenge} m gespielt) · ` +
-  `${b.baeume.length} Hindernisse, ${b.ob.length} OB-Flächen`);
+const par = eintrag.bahnen.reduce((a, b) => a + b.par, 0), luft = b => Math.round(Math.hypot(b.korb.x - b.abwurf.x, b.korb.y - b.abwurf.y));
+console.log(`KW ${wk}/${wj} ab ${eintrag.ab}: „${eintrag.name}“ · ${eintrag.thema} · ${eintrag.bahnen.length} Bahnen · Par ${par} · ${eintrag.bahnen.reduce((a, b) => a + luft(b), 0)} m`);
+eintrag.bahnen.forEach((b, i) => console.log(`  ${b.nummer}. ${b.name.padEnd(22)} Par ${b.par} · ${String(luft(b)).padStart(3)} m Luftlinie (${eintrag.erzeugt.bahnen[i].laenge} m gespielt) · ${b.baeume.length} Hindernisse, ${b.ob.length} OB`));

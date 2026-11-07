@@ -3,9 +3,11 @@
 // ============================================================
 //  - Live: der jüngste Eintrag mit "ab" <= heute (Montag 0:00 deutsche Zeit schaltet um).
 //  - Vorschau (/dev/, lokal): immer der jüngste Eintrag, auch wenn er erst nächste Woche gilt –
-//    zum Testen vor dem Wochenwechsel. Ergebnisse landen dann in einer Test-Bestenliste.
-//  - Archiv: ?woche=<jahr>-<kw> spielt eine ältere Wochenbahn (ohne Bestenliste), siehe archiv/.
-//  Die Wochenbahn ist ein eigener Kurs in KURSE (id "woche-<jahr>-<kw>", eigene Bestenliste).
+//    zum Testen vor dem Wochenwechsel. Ergebnisse landen dann in einer Vorschau-Bestenliste,
+//    einzelne Bahnen sind dort anwählbar.
+//  - Archiv: ?woche=<jahr>-<kw> spielt einen älteren Wochenkurs (ohne Bestenliste), siehe archiv/.
+//  Der Wochenkurs ist ein eigener Kurs in KURSE (id "woche-<jahr>-<kw>", eigene Bestenliste).
+//  Ein Eintrag hat bahnen (mehrere) oder – alte Form – eine einzelne bahn.
 // ============================================================
 "use strict";
 (function () {
@@ -18,15 +20,18 @@
   const datum = t => t.split("-").reverse().join(".");
 
   function kursVon(e, art) {
-    const bahn = Object.assign({}, e.bahn, { optik: e.bahn.optik || e.optik });
+    const bahnen = (e.bahnen || [e.bahn]).map(b => Object.assign({}, b, { optik: b.optik || e.optik }));
     return {
-      id: (art === "test" ? "test-" : "") + "woche-" + e.woche,
-      name: "Wochenbahn KW" + kw(e) + (art === "archiv" ? " (Archiv)" : art === "test" && e.ab > heute ? " (Vorschau)" : ""),
+      id: (art === "test" ? "vorschau-" : "") + "woche-" + e.woche,
+      name: "Wochenkurs KW" + kw(e) + (art === "archiv" ? " (Archiv)" : art === "test" && e.ab > heute ? " (Vorschau)" : ""),
+      titel: e.name || bahnen[0].name,
       ort: "Thema " + e.thema + " · ab " + datum(e.ab),
       woche: e.woche, thema: e.thema, ab: e.ab,
       // Archiv: nur zum Spielen, keine Meldung an die Bestenliste
       bestenliste: art !== "archiv",
-      bahnen: [bahn],
+      // einzelne Bahnen nur in der Vorschau (zum Testen) und im Archiv – sonst zählt nur die ganze Runde
+      einzelBahnen: art !== "live",
+      bahnen,
     };
   }
 
@@ -41,7 +46,7 @@
   if (kurs) {
     window.KURSE.push(kurs);
     const bl = window.BAHNEN, frei = bl.indexOf(window.FREIES_FELD);
-    bl.splice(frei < 0 ? bl.length : frei, 0, kurs.bahnen[0]);
+    bl.splice(frei < 0 ? bl.length : frei, 0, ...kurs.bahnen);
   }
   window.WOCHE = { kurs, ausArchiv: !!ausArchiv, vorschau, heute, liste, kursVon };
 })();
