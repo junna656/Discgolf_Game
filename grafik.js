@@ -287,17 +287,20 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
 
   // ---------- OB-Grenzen: Zaun mit Pfosten und Maschen, Linie mit Pflöcken ----------
   const am = (v, m) => v <= 0.01 || v >= m - 0.01;
-  for (const o of bahn.ob) {
+  for (const [oi, o] of bahn.ob.entries()) {
     const pk = o.linie || o.insel || o.punkte || [[o.x, o.y], [o.x + o.w, o.y], [o.x + o.w, o.y + o.h], [o.x, o.y + o.h]];
+    // Linie nicht durch eine andere OB-Fläche ziehen (z. B. wo sich zwei Flussbetten kreuzen)
+    const inAnderemOB = (px, py, x, y) => inBild(px, py) && obTests.some((t, j) => j !== oi && t(px, py, x, y));
     let weg = 0; // zurückgelegte Meter entlang der Grenze, für gleichmäßige Pfostenabstände
     pk.forEach((a, i) => {
       const b = pk[(i + 1) % pk.length];
       if (o.linie && i === pk.length - 1) return;
-      if (o.art === "natur" || o.art === "flussbett") return; // Grenze ist das Gelände selbst
+      if (o.art === "natur") return; // Grenze sind Baumstämme/Sträucher, keine Linie
       if ((am(a[0], bahn.welt.breite) && a[0] === b[0]) || (am(a[1], bahn.welt.hoehe) && a[1] === b[1])) return;
       const len = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.ceil(len * S);
       for (let k = 0; k <= n; k++) {
         const x = a[0] + (b[0] - a[0]) * k / n, y = a[1] + (b[1] - a[1]) * k / n, px = Math.round(x * S), py = Math.round(y * S), m = weg + len * k / n;
+        if (inAnderemOB(px, py, x, y)) continue;
         if (o.art === "zaun") {
           // Maschendraht: zwei versetzte Drähte ergeben ein Rautenmuster, darunter ein Schattenpixel
           rechteck(px + zr, py + zr, zr, zr, "rgba(0,20,0,.35)");
@@ -332,7 +335,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   // ---------- Circle 1 (10 m) gepunktet ----------
   // auf hellem Boden (z. B. Sand) mit eigener Farbe: dunkle Markierung mit hellem Schatten, etwas kräftiger
   if (JZ.circle) {
-    const [dunkel, hell] = JZ.circle, g = Math.max(1, Math.round(zr * 1.5));
+    const [dunkel, hell] = JZ.circle, g = zr;
     for (let w = 0; w < Math.PI * 2; w += 0.22 / z) {
       const px = Math.round((bahn.korb.x + Math.cos(w) * 10) * S), py = Math.round((bahn.korb.y + Math.sin(w) * 10) * S);
       rechteck(px + zr, py + zr, g, g, hell); rechteck(px, py, g, g, dunkel);

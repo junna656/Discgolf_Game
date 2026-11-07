@@ -1030,6 +1030,21 @@ function loslassen() {
   if (vorher) mpSende({ typ: "wurf", vorher, aktiv, erg, verzogen, kraft, ziel, winkel, scheibe: s.scheibe, wurfart: s.wurfart });
 }
 
+// Getroffenes Hindernis: nur echte Bäume heißen „BAUM!“. Felsen, Kakteen usw. (art) bekommen keinen Text.
+function trefferIstBaum(e) {
+  if (e.typ !== "baum") return false;
+  const p = e.pfad[e.baumIndex] || e.lie;
+  let best = null, bd = Infinity;
+  for (const b of bahn.baeume) { const d = Math.hypot(b.x - p.x, b.y - p.y) - b.r; if (d < bd) { bd = d; best = b; } }
+  return !best || !best.art;
+}
+// Banner und Ton nach einem Abpraller an Baum, Mauer oder anderem Hindernis
+function zeigeHindernis(e) {
+  if (e.typ === "mauer") { sfx.baum(); zeigeBanner("MAUER!", "#d8c8a8"); }
+  else if (trefferIstBaum(e)) { sfx.baum(); zeigeBanner("BAUM!", "#9be07a"); }
+  else sfx.landung();
+}
+
 function flugEnde() {
   const s = ich(), e = flug.erg;
   if (!e.drin && (e.typ === "baum" || e.typ === "mauer" || e.ob || e.mando === "verpasst" || flug.verzogen)) rufe(s);
@@ -1044,8 +1059,7 @@ function flugEnde() {
     }
     if (e.ob) { if (!flug.obGezeigt) zeigeOB(false); }
     else if (e.drin) { sfx.ketten(); zeigeBanner("TREFFER!", "#ffd84a", 1.4); }
-    else if (e.typ === "baum") { sfx.baum(); zeigeBanner("BAUM!", "#9be07a"); }
-    else if (e.typ === "mauer") { sfx.baum(); zeigeBanner("MAUER!", "#d8c8a8"); }
+    else if (e.typ === "baum" || e.typ === "mauer") zeigeHindernis(e);
     else { sfx.landung(); zeigeBanner(Math.round(d) + " M" + (d >= s.bester ? " BEST!" : ""), d >= s.bester ? "#ffd84a" : PAL.weiss, 1.2); }
     s.lie = e.lie;
     zustand = "pause";
@@ -1065,8 +1079,7 @@ function flugEnde() {
     s.wuerfe++;
     if (!flug.obGezeigt) zeigeOB(true);
   } else if (e.typ === "baum" || e.typ === "mauer") {
-    sfx.baum();
-    zeigeBanner(e.typ === "mauer" ? "MAUER!" : "BAUM!", e.typ === "mauer" ? "#d8c8a8" : "#9be07a");
+    zeigeHindernis(e);
   } else {
     sfx.landung();
     zeigeBanner(Math.round(e.distanz) + " m", PAL.weiss, 0.9);
