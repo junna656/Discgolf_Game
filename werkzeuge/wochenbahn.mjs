@@ -234,7 +234,7 @@ const THEMEN = {
       // Kakteen und Felsen: am Rand dicht, im Fairway nur einzelne „im Spiel“
       const frei = (o, liste) => {
         if (abstand(o, abwurf) < 7 || abstand(o, korb) < 4.5 + o.r) return false;
-        if (imFluss(o) || anWand(o, o.r) || sperrZonen.some(q => abstand(q, o) < q.r + o.r)) return false;
+        if (imFluss(o) || flussNah(o, o.r + 0.3) || anWand(o, o.r) || sperrZonen.some(q => abstand(q, o) < q.r + o.r)) return false;
         if ([...feste, ...liste].some(q => abstand(q, o) < q.r + o.r + 0.8)) return false;
         return o.x > -2 && o.y > -2 && o.x < g.welt.breite + 2 && o.y < g.welt.hoehe + 2;
       };

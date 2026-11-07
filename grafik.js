@@ -332,6 +332,43 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
     }
   }
 
+  // ---------- Brücken: wo ein Weg ein Flussbett kreuzt (nur Bild – darunter bleibt OB) ----------
+  for (const w of bahn.wege || []) {
+    const pk = w.punkte, fluss = (bahn.ob || []).filter(o => o.art === "flussbett"), imFluss = (x, y) => fluss.some(o => obTests[bahn.ob.indexOf(o)](Math.round(x * S), Math.round(y * S), x, y));
+    if (!fluss.length) continue;
+    for (let i = 0; i < pk.length - 1; i++) {
+      const [ax, ay] = pk[i], [bx, by] = pk[i + 1], len = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / len, uy = (by - ay) / len;
+      // Abschnitte des Wegs im Flussbett suchen (alle 0,25 m), dann je eine Brücke mit 1,2 m Auflage an beiden Ufern
+      let start = null;
+      for (let d = 0; d <= len + 0.25; d += 0.25) {
+        const dd = Math.min(d, len), drin = d <= len && imFluss(ax + ux * dd, ay + uy * dd);
+        if (drin && start === null) start = dd;
+        if (!drin && start !== null) { brueckeZeichnen(ax + ux * (start - 1.2), ay + uy * (start - 1.2), ux, uy, dd - start + 2.4, w.breite + 1); start = null; }
+      }
+    }
+  }
+  function rgbText(f) { return "rgb(" + f.join(",") + ")"; }
+  function brueckeZeichnen(x0, y0, ux, uy, lang, breit) {
+    const nx = -uy, ny = ux, pt = (l, q) => [(x0 + ux * l + nx * q) * S, (y0 + uy * l + ny * q) * S];
+    const viereck = (l0, l1, q0, q1, farbe) => { c.fillStyle = farbe; c.beginPath(); [pt(l0, q0), pt(l1, q0), pt(l1, q1), pt(l0, q1)].forEach(([x, y], k) => k ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); c.fill(); };
+    const h = breit / 2;
+    // Schatten nach rechts unten
+    c.save(); c.translate(0.5 * S, 0.7 * S); viereck(0, lang, -h - 0.3, h + 0.3, "rgba(30,15,0,.4)"); c.restore();
+    // Bohlen quer zur Laufrichtung, abwechselnd heller/dunkler, mit Fugen
+    const bohle = 0.45;
+    for (let l = 0, k = 0; l < lang; l += bohle, k++) {
+      const f = rgbText(DECK[2 + ((k * 7) % 3)]);
+      viereck(l, Math.min(lang, l + bohle), -h, h, f);
+      viereck(l, Math.min(lang, l + bohle * 0.12), -h, h, rgbText(DECK[0]));
+    }
+    // Geländer links und rechts: Balken mit Pfosten
+    for (const q of [-h, h]) {
+      viereck(0, lang, q - 0.18, q + 0.18, rgbText(DECK[1]));
+      viereck(0, lang, q - 0.18, q - 0.05, rgbText(DECK[4]));
+      for (let l = 0.2; l < lang; l += 1.6) viereck(l, l + 0.35, q - 0.3, q + 0.3, rgbText(DECK[0]));
+    }
+  }
+
   // ---------- Bowlingbahn: Schatten, Rahmen, Pfeile ----------
   if (l) {
     c.fillStyle = "#3a240f";
