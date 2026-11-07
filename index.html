@@ -2491,7 +2491,7 @@ const ORIGINAL_BAGS = Object.fromEntries(SPIELER.map(sp => [sp.name, { tasche: s
 try {
   const gespeichert = JSON.parse(localStorage.getItem("discgolf-bags") || "{}");
   for (const sp of SPIELER) if (gespeichert[sp.name]) {
-    sp.tasche = gespeichert[sp.name].tasche;
+    sp.tasche = gespeichert[sp.name].tasche.sort((a, b) => b.speed - a.speed); // ältere Speicherstände waren unsortiert
     sp.karte = { ...(sp.karte || {}), lieblingsscheibe: gespeichert[sp.name].lieblingsscheibe };
     sp._bagGeaendert = true;
   }
@@ -2588,7 +2588,7 @@ el("bag-speichern").addEventListener("click", () => {
   sp.tasche = entwurf.tasche.map(d => ({
     name: (d.name || "").trim() || "Scheibe", typ: ["Driver", "Fairway", "Midrange", "Putter"].includes(d.typ) ? d.typ : "Midrange",
     speed: zahl(d.speed, 1, 15, 5), glide: zahl(d.glide, 1, 7, 5), turn: zahl(d.turn, -5, 2, 0), fade: zahl(d.fade, 0, 5, 1),
-  }));
+  })).sort((a, b) => b.speed - a.speed); // schnellste Scheiben oben, wie in taschen.js (gleiche Speeds behalten ihre Reihenfolge)
   const lieb = sp.tasche.find(d => d.name === (entwurf.lieb || "").trim()) || null;
   if (lieb) lieb.standard = true;
   sp.karte = { ...(sp.karte || {}), lieblingsscheibe: lieb ? lieb.name : "" };
