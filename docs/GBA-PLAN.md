@@ -1,5 +1,8 @@
 # Plan: Boogie Garanten als Game-Boy-Advance-Spiel (C++)
 
+> **Archiviert:** Die GBA-Version ist eingefroren (Branch `V1.0_GBA`) und wird nicht mehr
+> mit der Webversion abgeglichen. Wie sie wieder aufgenommen werden kann: [GBA-REAKTIVIEREN.md](GBA-REAKTIVIEREN.md).
+
 Ziel: eine GBA-ROM, die auf dem **Analogue Pocket** (openFPGA-GBA-Kern), in Emulatoren
 (mGBA) und auf echten GBAs per Flash-Modul läuft – und die **mit der HTML-Version
 synchron bleibt**, ohne alles doppelt pflegen zu müssen.

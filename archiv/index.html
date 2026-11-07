@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Archiv der Wochenkurse · Boogie Garanten</title>
+<link rel="icon" href="../icons/icon-192.png">
+<link rel="stylesheet" href="../fonts/schrift.css">
+<link rel="stylesheet" href="../rechtliches.css">
+<style>
+  .woche { border: 2px solid var(--rand); background: var(--panel); padding: 12px 14px; margin: 14px 0; }
+  .woche h2 { margin: 0 0 4px; }
+  .woche .info { margin: 0 0 8px; font-size: 14px; }
+  .sieger { color: #ffe08a; font-family: "Silkscreen", monospace; font-size: 13px; margin: 6px 0; }
+  .liste { display: grid; grid-template-columns: auto 12px 1fr auto; gap: 4px 10px; align-items: center; font-size: 14px; color: var(--leise); }
+  .liste .punkt { width: 10px; height: 10px; display: inline-block; }
+  .liste .wert { text-align: right; color: var(--text); }
+  .knopf { display: inline-block; font-family: "Silkscreen", monospace; font-size: 12px; text-decoration: none; border: 2px solid var(--akzent); color: var(--text); padding: 6px 12px; margin-top: 10px; }
+  .laeuft { color: var(--akzent); font-size: 12px; font-family: "Silkscreen", monospace; margin-left: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <a class="zurueck" href="../">← Zum Spiel</a>
+  <h1>Archiv der Wochenkurse</h1>
+  <p>Jede Woche gibt es einen neuen Kurs mit eigenem Thema und eigener Bestenliste. Hier stehen alle bisherigen Wochenkurse mit ihren Siegern. Alte Kurse kannst du weiter spielen, sie zählen dann aber nicht mehr für die Bestenliste.</p>
+  <div id="wochen"><p>Lädt …</p></div>
+</main>
+<script src="../taschen.js"></script>
+<script src="../wochenbahnen.js"></script>
+<script>
+"use strict";
+const SERVER = "https://boogie-garanten-mp.boogiegaranten.workers.dev/bestenliste";
+const vorschau = /^\/(dev(?:-graphic)?)(\/|$)/.test(location.pathname) || location.protocol === "file:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+const heute = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin" }).format(new Date());
+const esc = t => String(t).replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[c]);
+const datum = t => t.split("-").reverse().join(".");
+const plusMinus = d => d === 0 ? "E" : (d > 0 ? "+" : "") + d;
+// in der Vorschau auch kommende Wochen; Bestenlisten der Vorschau heißen "vorschau-woche-…"
+const wochen = (window.WOCHENBAHNEN || []).filter(e => vorschau || e.ab <= heute).sort((a, b) => a.ab < b.ab ? 1 : -1);
+const aktuell = (window.WOCHENBAHNEN || []).filter(e => e.ab <= heute).sort((a, b) => a.ab < b.ab ? 1 : -1)[0];
+
+const ziel = document.getElementById("wochen");
+if (!wochen.length) ziel.innerHTML = "<p>Noch kein Wochenkurs.</p>";
+else ziel.innerHTML = wochen.map((e, i) => {
+  const bahnen = e.bahnen || [e.bahn], kw = e.woche.split("-")[1];
+  const m = Math.round(bahnen.reduce((a, b) => a + Math.hypot(b.korb.x - b.abwurf.x, b.korb.y - b.abwurf.y), 0)), par = bahnen.reduce((a, b) => a + b.par, 0);
+  const laeuft = e === aktuell ? `<span class="laeuft">läuft</span>` : e.ab > heute ? `<span class="laeuft">ab ${datum(e.ab)}</span>` : "";
+  const link = e === aktuell && !vorschau ? "../" : "../?woche=" + encodeURIComponent(e.woche);
+  return `<section class="woche">
+    <h2>KW ${esc(kw)} · ${esc(e.woche.split("-")[0])}${laeuft}</h2>
+    <p class="info">„${esc(e.name || bahnen[0].name)}“ · Thema ${esc(e.thema)} · ${bahnen.length} ${bahnen.length === 1 ? "Bahn" : "Bahnen"} · Par ${par} · ${m} m · ab ${datum(e.ab)}</p>
+    <div class="sieger" id="sieger-${i}"></div>
+    <div class="liste" id="liste-${i}"><span style="grid-column:1/-1">Lädt …</span></div>
+    <a class="knopf" href="${link}">${e === aktuell && !vorschau ? "Jetzt spielen" : "Spielen (zählt nicht)"}</a>
+  </section>`;
+}).join("");
+
+wochen.forEach(async (e, i) => {
+  const liste = document.getElementById("liste-" + i);
+  try {
+    const r = await fetch(SERVER + "?kurs=" + encodeURIComponent((vorschau ? "vorschau-" : "") + "woche-" + e.woche), { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    if (!d.eintraege.length) { liste.innerHTML = `<span style="grid-column:1/-1">Niemand hat gespielt.</span>`; return; }
+    const best = d.eintraege[0];
+    const sieger = d.eintraege.filter(x => x.wuerfe === best.wuerfe).map(x => esc(x.name));
+    document.getElementById("sieger-" + i).textContent = (e === aktuell ? "Vorne: " : sieger.length > 1 ? "Wochensieger: " : "Wochensieger: ") + sieger.join(" & ").replace(/&amp;/g, "&") + " mit " + best.wuerfe + " (" + plusMinus(best.wuerfe - best.par) + ")";
+    liste.innerHTML = d.eintraege.map((x, j) => {
+      const sp = (window.SPIELER || []).find(s => s.name === x.name);
+      return `<span>${j + 1}.</span><span class="punkt" style="background:${sp ? sp.farbe : "#888"}"></span>
+        <span>${esc(x.name)} <small>· ${x.runden} ${x.runden === 1 ? "Runde" : "Runden"}</small></span>
+        <span class="wert">${x.wuerfe} (${plusMinus(x.wuerfe - x.par)})</span>`;
+    }).join("");
+  } catch (err) {
+    liste.innerHTML = `<span style="grid-column:1/-1">Keine Verbindung zur Bestenliste.</span>`;
+  }
+});
+</script>
+</body>
+</html>

@@ -1,13 +1,13 @@
 # Prüft, ob die Referenzwürfe (tests/referenz.json) noch zum Flugmodell passen.
 # Schlägt fehl, wenn physik.js, bahnen.js oder taschen.js geändert wurden, ohne die
 # Referenzwürfe neu zu erzeugen:  node werkzeuge/referenzwuerfe.mjs
-# (Später läuft hier auch der Test der C++-Physik der GBA-Version.)
+# Prüft außerdem, ob wochenbahnen.js gültig ist (node werkzeuge/wochenbahn.mjs --pruefen).
 name: Physik-Referenz
 
 on:
   push:
     branches: [main, dev]
-    paths: ["physik.js", "bahnen.js", "taschen.js", "werkzeuge/**", "tests/**", ".github/workflows/physik.yml"]
+    paths: ["physik.js", "bahnen.js", "taschen.js", "wochenbahnen.js", "werkzeuge/**", "tests/**", ".github/workflows/physik.yml"]
   pull_request:
   workflow_dispatch:
 
@@ -24,3 +24,5 @@ jobs:
           node-version: 22
       - name: Referenzwürfe prüfen
         run: node werkzeuge/referenzwuerfe.mjs --pruefen
+      - name: Wochenbahnen prüfen
+        run: node werkzeuge/wochenbahn.mjs --pruefen

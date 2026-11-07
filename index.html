@@ -227,7 +227,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.6.1</span></p>
+    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.7.0</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -235,8 +235,8 @@
       <button class="gross" id="zu-online">Online spielen<small>Bis zu vier Handys live in einer Runde</small></button>
       <button class="gross" id="zu-doku" style="font-size:12px;padding:10px 16px;margin-top:8px">Anleitung<small>Steuerung, Regeln und Tipps</small></button>
       <button class="gross" id="zu-bags" style="font-size:12px;padding:10px 16px">Spieler & Bags<small>Spielerkarten ansehen, Scheiben im Bag bearbeiten</small></button>
-      <button class="gross" id="zu-bestenliste" style="font-size:12px;padding:10px 16px">Bestenliste<small>Beste ganze Runde jeder Person – für alle Geräte</small></button>
-      <button class="gross" id="zu-einstellungen" style="font-size:12px;padding:10px 16px">Einstellungen<small>Wurfart, Grafik und Jahreszeit</small></button>
+      <button class="gross" id="zu-bestenliste" style="font-size:12px;padding:10px 16px">Bestenliste<small>Beste Runde jeder Person, auch im Wochenkurs – für alle Geräte</small></button>
+      <button class="gross" id="zu-einstellungen" style="font-size:12px;padding:10px 16px">Einstellungen<small>Wurfart, Jahreszeit und Auflösung</small></button>
       <button class="gross" id="zu-dev" style="font-size:12px;padding:10px 16px;border-color:#ff9a5a" hidden>Entwicklung<small>Parameter einstellen – nur in der Vorschau</small></button>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="#" id="melde-fehler" style="color:var(--leise)">Fehler melden</a> · <a href="#" id="melde-wunsch" style="color:var(--leise)">Idee vorschlagen</a></p>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="impressum.html" style="color:var(--leise)">Impressum</a> · <a href="datenschutz.html" style="color:var(--leise)">Datenschutz</a></p>
@@ -250,9 +250,10 @@
         <li><b>Freies Werfen:</b> Sportplatz mit Fußballfeld und Entfernungsmarken alle 25 m, Korb in 130 m. Jeder Wurf startet am Abwurf, es wird nicht gezählt. Kreuze zeigen, wo deine Scheiben gelandet sind; der weiteste Wurf ist gold.</li>
         <li><b>Single Flight:</b> eine Person spielt die Runde.</li>
         <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Für jede Person wählst du, ob ein Mensch spielt oder der Computer – <b>Locker</b>, <b>Solide</b> oder <b>Profi</b>. Mindestens eine Person muss ein Mensch sein. An der ersten Bahn wird die Abwurf-Reihenfolge ausgelost. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat. Spielen alle vier an einer Bahn ein Birdie (oder besser), gibt es einen <b>Star Frame</b> – mit eigenem Feier-Bildschirm.</li>
-        <li><b>Bestenliste:</b> Nach jeder ganzen Runde (alle Bahnen, Single, Vierer oder online) wird das Ergebnis jeder Person hochgeladen. In der Bestenliste im Hauptmenü steht für jede Person die beste Runde – für alle Geräte gemeinsam. Runden des Computers zählen nicht. Ohne Internet wird das Ergebnis später nachgeschickt.</li>
+        <li><b>Bestenliste:</b> Nach jeder ganzen Runde (alle Bahnen, Single, Vierer oder online) wird das Ergebnis jeder Person hochgeladen. In der Bestenliste im Hauptmenü steht für jede Person die beste Runde – für alle Geräte gemeinsam. Runden des Computers zählen nicht. Ohne Internet wird das Ergebnis später nachgeschickt. Der Wochenkurs hat eine eigene Bestenliste für seine Woche.</li>
+        <li><b>Wochenkurs:</b> Jede Woche gibt es einen neuen, zufällig erzeugten Kurs mit eigenem Thema (z. B. Wüste mit Kakteen, Felsen und ausgetrockneten Flussbetten – die Flussbetten sind OB). Er wechselt montags um 0:00 Uhr. Frühere Wochenkurse mit ihren Siegern stehen im <a href="archiv/" style="color:var(--akzent)">Archiv</a> und können dort weiter gespielt werden (ohne Wertung).</li>
         <li><b>Online spielen:</b> Bis zu vier Handys spielen live zusammen. Eine Person tippt „Raum eröffnen“ und sagt den anderen den 4-Buchstaben-Code; die anderen geben ihn unter „Beitreten“ ein. Jeder wählt seine Figur (mit dem eigenen Bag), freie Figuren kann der Gastgeber vom Computer spielen lassen. Der Gastgeber wählt die Bahnen und startet. Alle sehen jeden Wurf live; wer dran ist, wirft auf seinem Handy. Bricht eine Verbindung ab, übernimmt der Computer, bis das Handy wieder da ist – nach dem Neuladen kommst du automatisch zurück in den Raum. Weiter zur nächsten Bahn und Bahn wählen kann nur der Gastgeber.</li>
-        <li><b>Kurs:</b> Nach Single oder Vierer Flight wählst du den Kurs und ob die ganze Runde oder eine einzelne Bahn gespielt wird (online macht das der Gastgeber in der Lobby). Bisher gibt es den Hyzernauts Discgolfparcours im Volkspark Potsdam – weitere Kurse folgen.</li>
+        <li><b>Kurs:</b> Nach Single oder Vierer Flight wählst du den Kurs und ob die ganze Runde oder eine einzelne Bahn gespielt wird (online macht das der Gastgeber in der Lobby). Es gibt den Hyzernauts Discgolfparcours im Volkspark Potsdam und den Wochenkurs – weitere Kurse folgen.</li>
         <li><b>Bahn wählen (Training):</b> Spielst du nur eine einzelne Bahn, kannst du im Spiel (Handy: unter „Menü“, Rechner: rechts) direkt auf jede andere Bahn springen. In einer ganzen Runde geht das nicht – dort werden die Bahnen der Reihe nach gespielt, damit keine Bahn wiederholt werden kann.</li>
       </ul>
 
@@ -340,6 +341,7 @@
       <ul>
         <li><b>taschen.js:</b> Spieler, Farben, Wurfhand und die Scheiben jedes Bags mit Flugzahlen. <code>standard: true</code> = Startscheibe, <code>ruf</code> / <code>rufDatei</code> = Ruf als Text bzw. Aufnahme.</li>
         <li><b>bahnen.js:</b> alle Kurse (KURSE) mit ihren Bahnen und das freie Feld. Ein neuer Kurs ist ein weiterer Eintrag in KURSE und erscheint automatisch in der Kursauswahl.</li>
+        <li><b>wochenbahnen.js / wochen.js:</b> alle Wochenbahnen (erzeugt mit werkzeuge/wochenbahn.mjs) und die Auswahl der Bahn dieser Woche als zusätzlicher Kurs.</li>
         <li><b>Spieler & Bags</b> (Hauptmenü) bzw. „Bag bearbeiten“ auf der Spielerkarte: Scheiben hinzufügen, umbenennen, Typ und Flugzahlen ändern, entfernen und die Lieblingsscheibe festlegen. Wird in diesem Browser gespeichert und lässt sich auf das Original zurücksetzen.</li>
       </ul>
       <button class="doku-zurueck">← Zurück</button>
@@ -371,10 +373,10 @@
       <button id="kurs-zurueck">← Zurück</button>
     </div>
     <div id="menue-bestenliste" class="liste" style="gap:10px" hidden>
-      <h2 style="text-align:center;font-size:13px">Ewige Bestenliste</h2>
-      <p class="klein" id="bl-kurs" style="margin:0;text-align:center"></p>
-      <div id="bl-liste" class="bestenliste"></div>
-      <p class="klein" style="margin:0">Zählt die beste ganze Runde (alle Bahnen) jeder Person – egal auf welchem Gerät, ob Single, Vierer oder online. Runden des Computers zählen nicht.</p>
+      <h2 style="text-align:center;font-size:13px">Bestenliste</h2>
+      <div id="bl-bereiche" class="liste" style="gap:6px"></div>
+      <p class="klein" style="margin:0">Zählt die beste ganze Runde (alle Bahnen) jeder Person – egal auf welchem Gerät, ob Single, Vierer oder online. Beim Wochenkurs zählt die beste ganze Runde der Woche. Runden des Computers zählen nicht.</p>
+      <p class="klein" style="margin:0;text-align:center"><a href="archiv/" style="color:var(--akzent)">Archiv der Wochenkurse →</a></p>
       <button id="bestenliste-zurueck">← Zurück</button>
     </div>
     <div id="menue-einstellungen" class="liste" style="gap:8px" hidden>
@@ -384,7 +386,8 @@
         <button class="gross" data-wurfartwahl="letzte">Letzte Auswahl behalten<small>Wer auf Vorhand umstellt, wirft auch an der nächsten Bahn Vorhand</small></button>
         <button class="gross" data-wurfartwahl="liebling">Lieblingswurf der Person<small>An jeder Bahn wieder Rückhand bzw. Vorhand laut Spielerkarte</small></button>
       </div>
-      <h3 style="font-size:12px;margin:6px 0 0">Grafik und Jahreszeit</h3>
+      <h3 style="font-size:12px;margin:6px 0 0">Jahreszeit</h3>
+      <p class="klein" style="margin:0">Gilt für den Kurs in Potsdam. Der Wochenkurs hat immer die Optik seines Themas.</p>
       <div class="liste" id="grafik-wahl" style="gap:8px">
         <button class="gross" data-grafikwahl="auto">Nach Datum<small id="grafik-auto-info">Jahreszeit wie draußen</small></button>
         <div class="knoepfe">
@@ -393,14 +396,13 @@
           <button data-grafikwahl="herbst">Herbst</button>
           <button data-grafikwahl="winter">Winter</button>
         </div>
-        <button class="gross" data-grafikwahl="klassisch">Klassische Grafik<small>Das einfachere Bild wie bisher</small></button>
       </div>
       <h3 style="font-size:12px;margin:6px 0 0">Hohe Auflösung</h3>
       <div class="knoepfe" id="hd-wahl">
         <button data-hdwahl="an">An</button>
         <button data-hdwahl="aus">Aus</button>
       </div>
-      <p class="klein" style="margin:0">Bahn, Bäume, Korb und Figuren doppelt so fein (quer und hochkant, nicht mit klassischer Grafik). Auf langsamen Handys ggf. ausschalten.</p>
+      <p class="klein" style="margin:0">Bahn, Bäume, Korb und Figuren doppelt so fein (quer und hochkant). Auf langsamen Handys ggf. ausschalten.</p>
       <p class="klein" style="margin:0">Wird in diesem Browser gespeichert.</p>
       <button id="einstellungen-zurueck">← Zurück</button>
     </div>
@@ -533,11 +535,13 @@
   <button data-ansicht="feld" class="zum-spiel">← Zurück zum Spiel</button>
 </nav>
 
-<script src="taschen.js?v=0.6.1"></script>
-<script src="bahnen.js?v=0.6.1"></script>
-<script src="physik.js?v=0.6.1"></script>
-<script src="portraets.js?v=0.6.1"></script>
-<script src="grafik.js?v=0.6.1"></script>
+<script src="taschen.js?v=0.7.0"></script>
+<script src="bahnen.js?v=0.7.0"></script>
+<script src="wochenbahnen.js?v=0.7.0"></script>
+<script src="wochen.js?v=0.7.0"></script>
+<script src="physik.js?v=0.7.0"></script>
+<script src="portraets.js?v=0.7.0"></script>
+<script src="grafik.js?v=0.7.0"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -556,11 +560,11 @@ let kamera = null, kx = 0, ky = 0;
 let zoomManuell = null, umsehen = false, zieh = null;
 // Handy hochkant: Bahn um 90° drehen (Abwurf unten, Korb oben). SW/SH = Bildschirmgröße in Pixeln
 let hochkant = false, SW = W, SH = H;
-// AUF: echte Pixel je Spielpixel. 2 = hohe Auflösung (quer und hochkant, nur mit Detailgrafik): Bahnbild, Korb und Laub
+// AUF: echte Pixel je Spielpixel. 2 = hohe Auflösung (quer und hochkant): Bahnbild, Korb und Laub
 // doppelt so fein; Schrift, Figuren und Anzeigen bleiben im 8-Bit-Raster (scharf verdoppelt)
 let AUF = 1;
 function hoheAufloesung() {
-  try { return einstellungen.hd !== false && !!aktuelleJahreszeit(); } catch (e) { return false; } // Einstellungen noch nicht geladen
+  try { return einstellungen.hd !== false; } catch (e) { return false; } // Einstellungen noch nicht geladen
 }
 const hochMQ = matchMedia("(max-width: 860px) and (orientation: portrait), (pointer: coarse) and (orientation: portrait)");
 function pruefeAusrichtung() {
@@ -691,135 +695,22 @@ function bahnBild(z) {
   const k = z + "@" + AUF;
   if (!stufenBilder[k]) {
     const alt = S; S = S0 * z * AUF;
-    const jz = aktuelleJahreszeit();
-    stufenBilder[k] = jz ? zeichneHintergrundDetail(z * AUF, { jahreszeit: jz }) : zeichneHintergrund(z);
+    stufenBilder[k] = zeichneHintergrundDetail(z * AUF, { jahreszeit: aktuelleJahreszeit() });
     S = alt;
   }
   return stufenBilder[k];
 }
 
-// Jahreszeit fürs Bahnbild laut Einstellung: "auto" = nach Datum; null = klassische Grafik
+// Optik fürs Bahnbild: eine Bahn mit eigener Optik (Wochenbahn, z. B. "wueste") hat immer diese,
+// sonst die Jahreszeit laut Einstellung ("auto" = nach Datum). Schlüssel in JAHRESZEITEN (grafik.js)
 function aktuelleJahreszeit() {
+  if (bahn && bahn.optik && JAHRESZEITEN[bahn.optik]) return bahn.optik;
   const g = einstellungen.grafik || "auto";
-  if (g === "klassisch" || !window.zeichneHintergrundDetail) return null;
-  return g === "auto" ? jahreszeitNachDatum() : g;
+  return g === "auto" || !JAHRESZEITEN[g] ? jahreszeitNachDatum() : g;
 }
+const mitSchnee = jz => !!(JAHRESZEITEN[jz] || {}).schnee;
 
-function zeichneHintergrund(z) {
-  const BW = Math.round(W * z), BH = Math.round(H * z);
-  const hg = document.createElement("canvas");
-  hg.width = BW; hg.height = BH;
-  const c = hg.getContext("2d"), rnd = zufall(1), zr = Math.max(1, Math.round(z));
-  // Wege nur als Bild: Polylinien mit Breite (wege) oder Flächen (wegFlaechen)
-  const aufWeg = maske(m => {
-    for (const f of bahn.wegFlaechen || []) { polygonPfad(m, f); m.fill(); }
-    for (const w of bahn.wege || []) {
-      m.lineWidth = w.breite; m.beginPath();
-      w.punkte.forEach(([x, y], i) => i ? m.lineTo(x, y) : m.moveTo(x, y));
-      m.stroke();
-    }
-  }, BW, BH);
-  const aufFairway = maske(m => { if (bahn.fairway && bahn.fairway.length) { polygonPfad(m, bahn.fairway); m.fill(); } }, BW, BH);
-  // OB-Flächen als Masken (auch Grenzlinien, als Fläche auf ihrer OB-Seite)
-  const obTests = (bahn.ob || []).map(o => {
-    if (o.w !== undefined) return (px, py, x, y) => x >= o.x && x <= o.x + o.w && y >= o.y && y <= o.y + o.h;
-    const m = maske(c => { polygonPfad(c, o.linie ? linienFlaeche(o) : o.punkte || o.insel); c.fill(); }, BW, BH);
-    return o.insel ? (px, py, x) => x >= o.ab && !m(px, py) : (px, py) => m(px, py);
-  });
-  const P = { weg1: rgb(PAL.weg1), weg2: rgb(PAL.weg2), bahn1: rgb(PAL.bahn1), bahn2: rgb(PAL.bahn2), fair1: rgb(PAL.fair1), fair2: rgb(PAL.fair2),
-    gras1: rgb(PAL.gras1), gras2: rgb(PAL.gras2), gras3: rgb(PAL.gras3), aus1: rgb("#245f28"), aus2: rgb("#1f5523"), aus3: rgb("#2c6a30"), fairAus1: rgb("#3e8434"), fairAus2: rgb("#387b30") };
-  const bild = c.createImageData(BW, BH), d = bild.data, streifen = Math.round(8 * z), brett = Math.round(4 * z);
-  for (let py = 0; py < BH; py++) for (let px = 0; px < BW; px++) {
-    const x = (px + 0.5) / S, y = (py + 0.5) / S, r = rnd();
-    let f;
-    const zi = obTests.findIndex(t => t(px, py, x, y)), zone = zi >= 0 ? bahn.ob[zi] : null;
-    if (zone && zone.w !== undefined && !zone.art) f = r < 0.2 ? P.weg2 : P.weg1; // OB-Rechteck ohne Art = Weg
-    else if (aufBowlingbahn({ x, y }, bahn)) f = (px % brett === 0) ? P.bahn2 : P.bahn1;
-    else if (aufWeg(px, py)) f = r < 0.2 ? P.weg2 : P.weg1;
-    else if (zone && aufFairway(px, py)) f = (Math.floor(px / streifen) % 2 ? P.fairAus1 : P.fairAus2); // gemähte Bahn im Aus
-    else if (zone) f = r < 0.15 ? P.aus2 : r > 0.95 ? P.aus3 : P.aus1; // Aus: dunkleres Gras
-    else if (aufFairway(px, py)) f = (Math.floor(px / streifen) % 2 ? P.fair1 : P.fair2);
-    else f = r < 0.12 ? P.gras2 : r > 0.94 ? P.gras3 : P.gras1;
-    const i = (py * BW + px) * 4;
-    d[i] = f[0]; d[i + 1] = f[1]; d[i + 2] = f[2]; d[i + 3] = 255;
-  }
-  c.putImageData(bild, 0, 0);
-  zeichneLinien(c, z);
-  // Rand der Spielfläche ist OB: gestrichelte weiße Linie mit Pflöcken
-  c.fillStyle = PAL.weiss;
-  for (let px = 0; px < BW; px += 6) { c.fillRect(px, 0, 3, 1); c.fillRect(px, BH - 1, 3, 1); }
-  for (let py = 0; py < BH; py += 6) { c.fillRect(0, py, 1, 3); c.fillRect(BW - 1, py, 1, 3); }
-  c.fillStyle = "#e84030";
-  for (let px = 12; px < BW; px += 24) { c.fillRect(px, 1, 2, 2); c.fillRect(px, BH - 3, 2, 2); }
-  for (let py = 12; py < BH; py += 24) { c.fillRect(1, py, 2, 2); c.fillRect(BW - 3, py, 2, 2); }
-  // OB-Grenzen: Zaun (grau mit Pfosten) oder weiße Linie mit roten Pflöcken; Kanten am Spielfeldrand auslassen
-  const am = (v, m) => v <= 0.01 || v >= m - 0.01;
-  for (const o of bahn.ob) {
-    const pk = o.linie || o.insel || o.punkte || [[o.x, o.y], [o.x + o.w, o.y], [o.x + o.w, o.y + o.h], [o.x, o.y + o.h]];
-    pk.forEach((a, i) => {
-      const b = pk[(i + 1) % pk.length];
-      if (o.linie && i === pk.length - 1) return; // Linie ist nicht geschlossen
-      if (o.art === "natur") return; // Grenze sind Baumstämme/Sträucher, keine Linie
-      if ((am(a[0], bahn.welt.breite) && a[0] === b[0]) || (am(a[1], bahn.welt.hoehe) && a[1] === b[1])) return;
-      const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) * S);
-      for (let k = 0; k <= n; k++) {
-        const px = Math.round((a[0] + (b[0] - a[0]) * k / n) * S), py = Math.round((a[1] + (b[1] - a[1]) * k / n) * S);
-        if (o.art === "zaun") {
-          c.fillStyle = k % 5 === 0 ? "#6c6c66" : "#d4d4cc";
-          c.fillRect(px, py, zr, k % 5 === 0 ? 2 * zr : zr);
-        } else {
-          if (k % 6 < 3) { c.fillStyle = PAL.weiss; c.fillRect(px, py, zr, zr); }
-          if (k % 24 === 12) { c.fillStyle = "#e84030"; c.fillRect(px, py - zr, 2 * zr, 2 * zr); }
-        }
-      }
-    });
-  }
-  // Ränder der Bowlingbahn
-  const l = bahn.bowlingbahn;
-  if (l) {
-    c.fillStyle = PAL.brett;
-    c.fillRect(Math.round(l.x1 * S), Math.round((l.y1 - l.breite / 2) * S) - zr, Math.round((l.x2 - l.x1) * S), zr);
-    c.fillRect(Math.round(l.x1 * S), Math.round((l.y1 + l.breite / 2) * S), Math.round((l.x2 - l.x1) * S), zr);
-    // Bowling-Pfeile
-    for (let i = 0; i < 3; i++) {
-      const ax = Math.round((l.x1 + 3 + i * 1.2) * S), ay = Math.round((l.y1 + (i - 1) * 1) * S);
-      c.fillRect(ax, ay, 2 * zr, zr);
-    }
-  }
-  // Circle 1 (10 m) gepunktet
-  c.fillStyle = "rgba(255,255,255,.35)";
-  for (let a = 0; a < Math.PI * 2; a += 0.12 / z) {
-    const px = Math.round((bahn.korb.x + Math.cos(a) * 10) * S), py = Math.round((bahn.korb.y + Math.sin(a) * 10) * S);
-    c.fillRect(px, py, 1, 1);
-  }
-  // Abwurf (Pflaster, 3 × 2 m)
-  const ax = Math.round(bahn.abwurf.x * S), ay = Math.round(bahn.abwurf.y * S), tw = Math.max(12, Math.round(3.2 * S)), th = Math.max(9, Math.round(2.2 * S));
-  c.fillStyle = "#5a5a5a"; c.fillRect(ax - tw / 2, ay - th / 2, tw, th);
-  c.fillStyle = "#8c8c88"; c.fillRect(ax - tw / 2 + 1, ay - th / 2 + 1, tw - 2, th - 2);
-  c.fillStyle = "#a8a8a2"; c.fillRect(ax - tw / 2 + 1, ay - th / 2 + 1, tw - 2, zr);
-  zeichneBauten(c, z);
-  // Bäume: Schatten, dann Kronen
-  // kleine Bäume zuerst, große (höhere) darüber – so wie man sie von oben sieht
-  const baeumeSortiert = [...bahn.baeume].sort((a, b) => a.r - b.r);
-  for (const b of baeumeSortiert) pixelKreis(c, b.x * S + 2 * z, b.y * S + 2 * z, b.r * S, PAL.schatten);
-  for (const b of baeumeSortiert) {
-    const r = b.r * S;
-    pixelKreis(c, b.x * S, b.y * S, r, PAL.baum1);
-    pixelKreis(c, b.x * S - r * 0.2, b.y * S - r * 0.2, r * 0.75, PAL.baum2);
-    pixelKreis(c, b.x * S - r * 0.4, b.y * S - r * 0.4, r * 0.3, PAL.baum3);
-    // Blätter-Dither
-    const rr = zufall(Math.round(b.x * 100 + b.y));
-    for (let i = 0; i < r * 3; i++) {
-      const a = rr() * Math.PI * 2, dd = rr() * r * 0.9;
-      c.fillStyle = rr() < 0.5 ? PAL.baum1 : PAL.baum3;
-      c.fillRect(Math.round(b.x * S + Math.cos(a) * dd), Math.round(b.y * S + Math.sin(a) * dd), 1, 1);
-    }
-  }
-  zeichneMando(c, z);
-  return hg;
-}
-
-// Teile des Bahnbilds, die das klassische und das detaillierte Bild (grafik.js) gemeinsam haben
+// Teile des Bahnbilds, die grafik.js mitbenutzt
 // Entfernungsmarken, Spielfeldlinien und Tore
 function zeichneLinien(c, z) {
   const zr = Math.max(1, Math.round(z));
@@ -860,8 +751,9 @@ function zeichneBauten(c, z) {
     c.fillStyle = "#e8c030"; c.fillRect(dx - tw / 2, dy - th / 2, tw, th);
     c.fillStyle = "#8c8c88"; c.fillRect(dx - tw / 2 + zr, dy - th / 2 + zr, tw - 2 * zr, th - 2 * zr);
   }
-  // Mauern (Ziegel): Schatten, Krone, Fugen
+  // Mauern (Ziegel): Schatten, Krone, Fugen; Felswände (art "felswand") als Felsband
   for (const m of bahn.mauern || []) {
+    if (m.art === "felswand") { zeichneFelswand(c, m, z); continue; }
     const dicke = Math.max(2, Math.round(0.8 * S));
     c.lineCap = "butt"; c.lineJoin = "miter";
     const linie = (farbe, breite, ox = 0, oy = 0) => {
@@ -884,6 +776,59 @@ function zeichneBauten(c, z) {
   // Holzbalken
   c.strokeStyle = PAL.brett; c.lineWidth = Math.max(2, 0.6 * S); c.lineCap = "butt";
   for (const bl of bahn.balken || []) { c.beginPath(); bl.forEach(([x, y], i) => i ? c.lineTo(x * S, y * S) : c.moveTo(x * S, y * S)); c.stroke(); }
+}
+// Felswand: Band aus Fels auf einer Seite der Kollisionslinie (m.seite = ±1 gegenüber der Linksnormalen,
+// m.breite in Metern). Die Linie selbst ist die Felskante, an der die Scheibe abprallt.
+function zeichneFelswand(c, m, z) {
+  const zr = Math.max(1, Math.round(z)), F = (JAHRESZEITEN[aktuelleJahreszeit()] || {}).fels || ["#4a3426", "#6e5038", "#8e6c4c", "#ac8a66", "#c8a884"];
+  const pk = m.punkte, br = m.breite || 3, sei = m.seite || 1;
+  if (m.bisRand) { zeichneFelsmasse(c, m, z, F); return; }
+  const aussen = pk.map((p, i) => {
+    const a = pk[Math.max(0, i - 1)], b = pk[Math.min(pk.length - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+    const w = br * (0.85 + 0.3 * Math.abs(Math.sin(i * 1.7 + pk.length)));
+    return [p[0] - dy / l * w * sei, p[1] + dx / l * w * sei];
+  });
+  const poly = [...pk, ...aussen.reverse()];
+  const pfad = (ox = 0, oy = 0) => { c.beginPath(); poly.forEach(([x, y], i) => i ? c.lineTo(x * S + ox, y * S + oy) : c.moveTo(x * S + ox, y * S + oy)); c.closePath(); };
+  // Schatten nach rechts unten, dann Fels
+  c.fillStyle = "rgba(40,20,0,.38)"; pfad(1.2 * S * 0.6, 1.5 * S * 0.6); c.fill();
+  c.fillStyle = F[1]; pfad(); c.fill();
+  c.save(); pfad(); c.clip();
+  // Brocken: helle Oberseiten, dunkle Kanten (Licht von links oben)
+  const rr = zufall(Math.round(pk[0][0] * 31 + pk[0][1] * 17));
+  const lang = pk.slice(1).reduce((a, p, i) => a + Math.hypot(p[0] - pk[i][0], p[1] - pk[i][1]), 0);
+  for (let i = 0; i < lang * br * 0.9; i++) {
+    const t = rr(), k = Math.min(pk.length - 2, Math.floor(t * (pk.length - 1))), f = t * (pk.length - 1) - k, q = rr();
+    const x = pk[k][0] + (pk[k + 1][0] - pk[k][0]) * f, y = pk[k][1] + (pk[k + 1][1] - pk[k][1]) * f;
+    const ax = aussen[aussen.length - 1 - k], bx = aussen[aussen.length - 2 - k] || ax;
+    const ox = ax[0] + (bx[0] - ax[0]) * f, oy = ax[1] + (bx[1] - ax[1]) * f;
+    const px = (x + (ox - x) * q) * S, py = (y + (oy - y) * q) * S, r = (0.5 + rr() * 0.9) * S;
+    pixelKreis(c, px, py, r, F[0]); pixelKreis(c, px - r * 0.15, py - r * 0.15, r * 0.8, F[2]); pixelKreis(c, px - r * 0.35, py - r * 0.35, r * 0.35, F[3]);
+  }
+  c.restore();
+  // Felskante zur Bahn hin: dunkle Linie mit hellen Lichtpunkten
+  c.strokeStyle = F[0]; c.lineWidth = Math.max(1, zr * 1.5); c.lineJoin = "round"; c.beginPath();
+  pk.forEach(([x, y], i) => i ? c.lineTo(x * S, y * S) : c.moveTo(x * S, y * S)); c.stroke();
+}
+// Felsmasse bis zum Spielfeldrand (m.bisRand): die Wandlinie läuft von Rand zu Rand, die Fläche dazwischen ist Fels
+function zeichneFelsmasse(c, m, z, F) {
+  const zr = Math.max(1, Math.round(z)), pk = m.punkte;
+  const pfad = (ox = 0, oy = 0) => { c.beginPath(); pk.forEach(([x, y], i) => i ? c.lineTo(x * S + ox, y * S + oy) : c.moveTo(x * S + ox, y * S + oy)); c.closePath(); };
+  c.fillStyle = "rgba(40,20,0,.38)"; pfad(0.7 * S, 0.9 * S); c.fill(); // Schatten auf den Schluchtboden
+  c.fillStyle = F[1]; pfad(); c.fill();
+  c.save(); pfad(); c.clip();
+  const xs = pk.map(p => p[0]), ys = pk.map(p => p[1]), x0 = Math.min(...xs), y0 = Math.min(...ys), bw = Math.max(...xs) - x0, bh = Math.max(...ys) - y0;
+  const rr = zufall(Math.round(pk[1][0] * 31 + pk[1][1] * 17));
+  // große Blöcke innen, kleinere Brocken; Licht von links oben
+  for (let i = 0; i < bw * bh * 0.32; i++) {
+    const x = x0 + rr() * bw, y = y0 + rr() * bh;
+    if (!imPolygon(x, y, pk)) continue;
+    const r = (0.6 + rr() * 1.4) * S, px = x * S, py = y * S;
+    pixelKreis(c, px, py, r, F[0]); pixelKreis(c, px - r * 0.15, py - r * 0.15, r * 0.8, F[2]); pixelKreis(c, px - r * 0.35, py - r * 0.35, r * 0.35, F[3]);
+  }
+  c.restore();
+  c.strokeStyle = F[0]; c.lineWidth = Math.max(1, zr * 1.5); c.lineJoin = "round"; c.beginPath();
+  pk.forEach(([x, y], i) => i ? c.lineTo(x * S, y * S) : c.moveTo(x * S, y * S)); c.stroke();
 }
 // Mando: Linie durch die Lücke und Pfeile an den Bäumen
 function zeichneMando(c, z) {
@@ -919,6 +864,7 @@ let online = null;
 const EINSTELLUNGEN_SPEICHER = "discgolf-einstellungen";
 const einstellungen = { wurfart: "letzte", grafik: "auto", hd: true };
 try { Object.assign(einstellungen, JSON.parse(localStorage.getItem(EINSTELLUNGEN_SPEICHER) || "{}")); } catch (e) { /* egal */ }
+if (einstellungen.grafik === "klassisch") einstellungen.grafik = "auto"; // klassische Grafik gibt es nicht mehr
 pruefeAusrichtung(); // jetzt mit Einstellungen: hohe Auflösung ja/nein
 function spaeter(fn, ms) {
   const nr = spielNr;
@@ -1014,7 +960,7 @@ function naechster() {
       sternFrame = { t0: uhr, sterne: Array.from({ length: 28 }, () => ({ x: Math.random(), y: Math.random(), v: 0.3 + Math.random() * 0.7, p: Math.random() * 6 })) };
       sfx.fanfare();
     }
-    if (rundeVorbei() && ganzeRunde()) blMeldeRunde();
+    if (rundeVorbei() && zaehltFuerBestenliste()) blMeldeRunde();
     aktualisierePanel();
     return;
   }
@@ -1138,6 +1084,32 @@ function loslassen() {
   if (vorher) mpSende({ typ: "wurf", vorher, aktiv, erg, verzogen, kraft, ziel, winkel, scheibe: s.scheibe, wurfart: s.wurfart });
 }
 
+// Getroffenes Hindernis: nur echte Bäume heißen „BAUM!“. Felsen, Kakteen usw. (art) bekommen keinen Text.
+function trefferIstBaum(e) {
+  if (e.typ !== "baum") return false;
+  const p = e.pfad[e.baumIndex] || e.lie;
+  let best = null, bd = Infinity;
+  for (const b of bahn.baeume) { const d = Math.hypot(b.x - p.x, b.y - p.y) - b.r; if (d < bd) { bd = d; best = b; } }
+  return !best || !best.art;
+}
+// Getroffene Mauer: nur Ziegelmauern (ohne art) heißen „MAUER!“ – die nächste Mauer zum Liegeplatz
+function trefferIstMauer(e) {
+  let best = null, bd = Infinity;
+  for (const m of bahn.mauern || []) for (let i = 0; i < m.punkte.length - 1; i++) {
+    const [ax, ay] = m.punkte[i], [bx, by] = m.punkte[i + 1], dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy || 1;
+    const t = Math.max(0, Math.min(1, ((e.lie.x - ax) * dx + (e.lie.y - ay) * dy) / l2)), d = Math.hypot(e.lie.x - ax - t * dx, e.lie.y - ay - t * dy);
+    if (d < bd) { bd = d; best = m; }
+  }
+  return !best || !best.art;
+}
+// Banner und Ton nach einem Abpraller an Baum, Mauer oder anderem Hindernis
+function zeigeHindernis(e) {
+  if (e.typ === "mauer" && trefferIstMauer(e)) { sfx.baum(); zeigeBanner("MAUER!", "#d8c8a8"); }
+  else if (e.typ === "mauer") sfx.landung(); // Felswand: kein Text
+  else if (trefferIstBaum(e)) { sfx.baum(); zeigeBanner("BAUM!", "#9be07a"); }
+  else sfx.landung();
+}
+
 function flugEnde() {
   const s = ich(), e = flug.erg;
   if (!e.drin && (e.typ === "baum" || e.typ === "mauer" || e.ob || e.mando === "verpasst" || flug.verzogen)) rufe(s);
@@ -1152,8 +1124,7 @@ function flugEnde() {
     }
     if (e.ob) { if (!flug.obGezeigt) zeigeOB(false); }
     else if (e.drin) { sfx.ketten(); zeigeBanner("TREFFER!", "#ffd84a", 1.4); }
-    else if (e.typ === "baum") { sfx.baum(); zeigeBanner("BAUM!", "#9be07a"); }
-    else if (e.typ === "mauer") { sfx.baum(); zeigeBanner("MAUER!", "#d8c8a8"); }
+    else if (e.typ === "baum" || e.typ === "mauer") zeigeHindernis(e);
     else { sfx.landung(); zeigeBanner(Math.round(d) + " M" + (d >= s.bester ? " BEST!" : ""), d >= s.bester ? "#ffd84a" : PAL.weiss, 1.2); }
     s.lie = e.lie;
     zustand = "pause";
@@ -1173,8 +1144,7 @@ function flugEnde() {
     s.wuerfe++;
     if (!flug.obGezeigt) zeigeOB(true);
   } else if (e.typ === "baum" || e.typ === "mauer") {
-    sfx.baum();
-    zeigeBanner(e.typ === "mauer" ? "MAUER!" : "BAUM!", e.typ === "mauer" ? "#d8c8a8" : "#9be07a");
+    zeigeHindernis(e);
   } else {
     sfx.landung();
     zeigeBanner(Math.round(e.distanz) + " m", PAL.weiss, 0.9);
@@ -1412,22 +1382,10 @@ function text(t, x, y, farbe = PAL.weiss, ausr = "left", gr = 8, rand = true) {
 function zeichneKorbOben(wackel) {
   const { x, y } = zuSchirm(bahn.korb);
   const dx = wackel ? Math.round(Math.sin(uhr * 60)) : 0;
-  const jz = aktuelleJahreszeit();
-  if (jz && window.zeichneKorbObenDetail) {
-    // in echten Pixeln zeichnen, damit er bei hoher Auflösung feiner wird
-    ctx.setTransform(1, 0, 0, 1, -kx * AUF, -ky * AUF);
-    zeichneKorbObenDetail(ctx, x * AUF, y * AUF, dx * AUF, kamera ? kamera.z : 1, jz === "winter", AUF);
-    figurTransform();
-    return;
-  }
-  ctx.fillStyle = PAL.schatten; ctx.fillRect(x - 2, y + 2, 7, 4);
-  // Stange (leicht perspektivisch nach oben)
-  ctx.fillStyle = "#6a6a6a"; ctx.fillRect(x, y - 6, 1, 7);
-  // Korb
-  ctx.fillStyle = "#9aa0a6"; ctx.fillRect(x - 3 + dx, y - 9, 7, 4);
-  ctx.fillStyle = "#c8ccd0"; for (let i = -3; i <= 3; i += 2) ctx.fillRect(x + i + dx, y - 9, 1, 3);
-  ctx.fillStyle = "#f0c020"; ctx.fillRect(x - 3, y - 10, 7, 1);
-  ctx.fillStyle = "#f0c020"; ctx.fillRect(x - 3, y - 5, 7, 1);
+  // in echten Pixeln zeichnen, damit er bei hoher Auflösung feiner wird
+  ctx.setTransform(1, 0, 0, 1, -kx * AUF, -ky * AUF);
+  zeichneKorbObenDetail(ctx, x * AUF, y * AUF, dx * AUF, kamera ? kamera.z : 1, mitSchnee(aktuelleJahreszeit()), AUF);
+  figurTransform();
 }
 
 function zeichneSpieler() {
@@ -1577,41 +1535,13 @@ function flugPosition() {
   return { p: { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, z: a.z + (b.z - a.z) * f }, i, fertig: false };
 }
 
-// Putt-Nahansicht ohne Text, Fadenkreuz und Scheibe: Himmel, Baumreihe, Wiese, Korb von der Seite.
-// wx: Wackeln der Ketten. Wird auch für die GBA-Version gerendert (werkzeuge/rendere_gba.mjs).
-// jahreszeit: Detailbild je Jahreszeit (grafik.js); ohne = klassisch (so nutzt es auch die GBA-Version)
-function zeichnePuttHintergrund(c, wx = 0, jahreszeit = null) {
+// Putt-Nahansicht ohne Text, Fadenkreuz und Scheibe: Himmel, Baumreihe, Wiese, Korb von der Seite (grafik.js).
+// wx: Wackeln der Ketten. jahreszeit: Schlüssel in JAHRESZEITEN
+function zeichnePuttHintergrund(c, wx, jahreszeit) {
   const bx = 86, by = 14, bw = 148, bh = 146;
   c.fillStyle = PAL.schwarz; c.fillRect(bx - 3, by - 3, bw + 6, bh + 6);
-  if (jahreszeit && window.zeichnePuttSzene) zeichnePuttSzene(c, jahreszeit, bx, by, bw, bh);
-  else {
-    // Himmel mit Dither, Baumreihe, Wiese
-    for (let y = 0; y < 100; y++) {
-      c.fillStyle = y < 40 ? "#5ab0e8" : y < 70 ? ((y % 2) ? "#6cc0f0" : "#5ab0e8") : "#7ccaf2";
-      c.fillRect(bx, by + y, bw, 1);
-    }
-    for (let i = 0; i < bw; i += 6) pixelKreis(c, bx + i + 3, by + 92 - ((i * 7) % 9), 6, PAL.baum1);
-    c.fillStyle = PAL.fair1; c.fillRect(bx, by + 100, bw, bh - 100);
-    for (let y = by + 104; y < by + bh; y += 4) { c.fillStyle = PAL.fair2; c.fillRect(bx, y, bw, 2); }
-  }
-
-  // Korb in Seitenansicht (mit Jahreszeit im Detail aus grafik.js)
-  const K = KETTEN;
-  if (jahreszeit && window.zeichnePuttKorb) { zeichnePuttKorb(c, K, wx, jahreszeit === "winter"); return; }
-  c.fillStyle = "#606468"; c.fillRect(K.x - 1, K.y - 12, 3, 52);
-  c.fillStyle = "#f0c020"; c.fillRect(K.x - 14, K.y - 13, 29, 4);
-  c.fillStyle = "#b08a10"; c.fillRect(K.x - 14, K.y - 10, 29, 1);
-  for (let i = -12; i <= 12; i += 3) {
-    c.fillStyle = (i / 3) % 2 ? "#d8dce0" : "#9098a0";
-    const krumm = Math.abs(i) > 6 ? 1 : 0;
-    c.fillRect(K.x + i + wx * (i % 2 ? 1 : -1), K.y - 9, 1, 9);
-    c.fillRect(K.x + i - (i > 0 ? krumm : -krumm) + wx, K.y, 1, 9);
-  }
-  c.fillStyle = "#8a9096"; c.fillRect(K.x - 15, K.y + 9, 31, 2);
-  c.fillStyle = "#b0b6bc"; c.fillRect(K.x - 13, K.y + 11, 27, 6);
-  c.fillStyle = "#f0c020"; c.fillRect(K.x - 13, K.y + 13, 27, 2);
-  c.fillStyle = "#6a7076"; c.fillRect(K.x - 11, K.y + 17, 23, 1);
-  c.fillStyle = PAL.schatten; c.fillRect(K.x - 8, K.y + 40, 18, 2);
+  zeichnePuttSzene(c, jahreszeit, bx, by, bw, bh);
+  zeichnePuttKorb(c, KETTEN, wx, mitSchnee(jahreszeit));
 }
 
 function zeichnePuttAnsicht() {
@@ -1621,7 +1551,7 @@ function zeichnePuttAnsicht() {
   const wx = sh ? Math.round(Math.sin(uhr * 50)) : 0;
   const jz = aktuelleJahreszeit();
   zeichnePuttHintergrund(ctx, wx, jz);
-  if (jz && window.zeichnePuttLaub) zeichnePuttLaub(ctx, jz, bx, by, bw, bh, wind); // Herbst: fallende Blätter
+  zeichnePuttLaub(ctx, jz, bx, by, bw, bh, wind); // Herbst: fallende Blätter
 
   text("PUTT " + d.toFixed(1) + " M", bx + 4, by + 3, PAL.weiss);
   text(puttStil === "push" ? "PUSH" : "SPIN", bx + bw - 4, by + 3, "#ffe08a", "right");
@@ -1672,6 +1602,8 @@ function gesamt(s) {
 const plusMinus = d => d === 0 ? "E" : (d > 0 ? "+" : "") + d;
 const rundeVorbei = () => nurEine || rundenIndex >= runde.length - 1;
 const ganzeRunde = () => runde.length > 1 && !nurEine;
+// zählt für die Bestenliste: eine ganze Runde – bei der Wochenbahn auch, wenn sie nur eine Bahn hat
+const zaehltFuerBestenliste = () => !nurEine && runde === kurs.bahnen && kurs.bestenliste !== false && (runde.length > 1 || !!kurs.woche);
 
 // Feier-Bildschirm: Strahlen, funkelnde Sterne, großer Schriftzug und die vier Portraits mit Ergebnis
 const portraitBilder = new Map();
@@ -1745,7 +1677,7 @@ function zeichneEnde() {
       text(g.w + " (" + plusMinus(g.d) + ")", 240, y, PAL.weiss, "right");
     } else text(s.wuerfe + "  (" + plusMinus(s.wuerfe - bahn.par) + ")", 236, y, PAL.weiss, "right");
   });
-  if (letzte && ganz) {
+  if (letzte && zaehltFuerBestenliste()) {
     const neu = spieler.filter(s => blErgebnis[s.name] && blErgebnis[s.name].neu).map(s => s.name.toUpperCase());
     if (neu.length) text("★ NEUE BESTLEISTUNG: " + neu.join(", "), 160, 116, "#ffe08a", "center");
   }
@@ -1791,8 +1723,24 @@ function passendeStufe() {
   const bw = Math.max(...q.map(p => p.x)) - Math.min(...q.map(p => p.x)) + 2 * rand;
   const bh = Math.max(...q.map(p => p.y)) - Math.min(...q.map(p => p.y)) + 2 * rand;
   const passt = Math.min(SW / bw, SH / bh);
-  return STUFEN.filter(z => z <= passt && z <= E.zoomStufe + 0.01).pop() || 1;
+  const stufeFuer = p => STUFEN.filter(z => z <= p && z <= E.zoomStufe + 0.01).pop() || 1;
+  const roh = stufeFuer(passt);
+  // Hysterese: Die Stufe hängt von der Zielrichtung ab, und ein Stufenwechsel verschiebt das Bild unter der
+  // Maus (= neue Zielrichtung). Ohne Puffer springt der Zoom dann hin und her. Darum während desselben Wurfs:
+  // näher heran erst, wenn es mit 20 % Luft passt; weiter weg erst, wenn es um mehr als 12 % nicht mehr passt;
+  // und nach einem Wechsel 0,7 s keine weitere Änderung.
+  const zug = aktiv + ":" + s.wuerfe + ":" + (puttModus ? 1 : 0), alt = zoomMerker.zug === zug ? zoomMerker.z : null;
+  let z = roh;
+  if (alt !== null && roh !== alt) {
+    if (uhr - zoomMerker.seit < 0.7) z = alt;
+    else if (roh > alt) z = Math.max(alt, stufeFuer(passt / 1.2));
+    else z = alt <= passt * 1.12 ? alt : roh;
+  }
+  if (z !== alt) zoomMerker.seit = uhr;
+  zoomMerker.zug = zug; zoomMerker.z = z;
+  return z;
 }
+const zoomMerker = { zug: "", z: null, seit: -1 };
 function mitteVon(punkte, z) {
   const q = punkte.map(p => projiziere(p, z));
   return { x: (Math.min(...q.map(p => p.x)) + Math.max(...q.map(p => p.x))) / 2, y: (Math.min(...q.map(p => p.y)) + Math.max(...q.map(p => p.y))) / 2 };
@@ -1893,7 +1841,7 @@ function schleife(jetzt) {
       const dt = uhr - bl.t0;
       if (dt > 0.8) continue;
       const c = zuSchirm(bl), hz = Math.round(bl.z * S * 0.6);
-      // Farben des getroffenen Baums (Jahreszeit), sonst klassisch grün
+      // Farben des getroffenen Baums (Jahreszeit)
       if (!bl.farben) bl.farben = (window.blattFarbenAn && blattFarbenAn(bahnBild(kamera.z), bl.x, bl.y)) || ["#7cd86a", "#3d8a35"];
       for (const [n, tl] of bl.teile.entries()) {
         ctx.fillStyle = n % 3 ? bl.farben[0] : bl.farben[1];
@@ -2409,7 +2357,6 @@ document.querySelectorAll("[data-grafikwahl]").forEach(b => b.addEventListener("
   einstellungen.grafik = b.dataset.grafikwahl;
   try { localStorage.setItem(EINSTELLUNGEN_SPEICHER, JSON.stringify(einstellungen)); } catch (e) { /* egal */ }
   for (const k in stufenBilder) delete stufenBilder[k]; // Bahnbild beim nächsten Zeichnen neu erzeugen
-  pruefeAusrichtung(); // klassisch = immer normale Auflösung
   zeigeEinstellungen();
 }));
 document.querySelectorAll("[data-hdwahl]").forEach(b => b.addEventListener("click", () => {
@@ -2435,7 +2382,7 @@ const blAdresse = () => mpServer().replace(/^ws/, "http") + "/bestenliste";
 function blOffene() { try { return JSON.parse(localStorage.getItem(BL_OFFEN) || "[]"); } catch (e) { return []; } }
 function blSpeichereOffene(l) { try { localStorage.setItem(BL_OFFEN, JSON.stringify(l.slice(-40))); } catch (e) { /* egal */ } }
 function blMeldeRunde() {
-  if (runde !== kurs.bahnen) return; // nur der ganze Kurs
+  if (!zaehltFuerBestenliste()) return; // nur der ganze Kurs
   const par = runde.reduce((a, b) => a + b.par, 0);
   const meldungen = spieler.filter(s => {
     if (s.karte.length !== runde.length || s.karte.some(w => !Number.isInteger(w))) return false;
@@ -2469,29 +2416,37 @@ async function blSchickeOffene() {
   } catch (e) { /* keine Verbindung: bleibt gespeichert */ }
   blSchickt = false;
 }
+// Bestenliste eines Kurses als HTML (für das Menü und das Archiv gleich aufgebaut)
+async function blListeHtml(k) {
+  const r = await fetch(blAdresse() + "?kurs=" + encodeURIComponent(k.id), { cache: "no-store" });
+  if (!r.ok) throw new Error(r.status);
+  const d = await r.json();
+  if (!d.eintraege.length) return `<p class="klein" style="grid-column:1/-1;margin:0">${k.woche ? "Noch niemand hat den Wochenkurs ganz gespielt." : "Noch keine ganze Runde gespielt."}</p>`;
+  return d.eintraege.map((e, i) => {
+    const sp = SPIELER.find(x => x.name === e.name), datum = e.datum ? e.datum.split("-").reverse().join(".") : "";
+    const n = e.runden === 1 ? "Runde" : "Runden";
+    return `<span>${i + 1}.</span><span class="punkt" style="background:${sp ? sp.farbe : "#888"}"></span>
+      <span>${e.name.replace(/[<>&]/g, "")}<small>${datum} · ${e.runden} ${n}</small></span>
+      <span class="wert">${e.wuerfe} (${plusMinus(e.wuerfe - e.par)})</span>`;
+  }).join("");
+}
 async function zeigeBestenliste() {
   el("menue-start").hidden = true;
   el("menue-bestenliste").hidden = false;
   el("menue").scrollTop = 0;
-  const par = kurs.bahnen.reduce((a, b) => a + b.par, 0);
-  el("bl-kurs").textContent = kurs.name + " · " + kurs.bahnen.length + " Bahnen · Par " + par;
-  const liste = el("bl-liste");
-  liste.innerHTML = `<p class="klein" style="grid-column:1/-1;margin:0">Lädt …</p>`;
+  const kurse = KURSE.filter(k => k.bestenliste !== false);
+  el("bl-bereiche").innerHTML = kurse.map((k, i) => {
+    const par = k.bahnen.reduce((a, b) => a + b.par, 0);
+    return `<h3 style="font-size:12px;margin:8px 0 0;text-align:center;color:#ffe08a">${k.woche ? k.name : "Ewige Bestenliste"}</h3>
+      <p class="klein" style="margin:0;text-align:center">${k.woche ? "„" + k.titel + "“ · " + k.ort + " · " + k.bahnen.length + (k.bahnen.length === 1 ? " Bahn" : " Bahnen") + " · Par " + par : k.name + " · " + k.bahnen.length + " Bahnen · Par " + par}</p>
+      <div id="bl-liste-${i}" class="bestenliste"><p class="klein" style="grid-column:1/-1;margin:0">Lädt …</p></div>`;
+  }).join("");
   await blSchickeOffene();
-  try {
-    const r = await fetch(blAdresse() + "?kurs=" + encodeURIComponent(kurs.id), { cache: "no-store" });
-    if (!r.ok) throw new Error(r.status);
-    const d = await r.json();
-    if (!d.eintraege.length) { liste.innerHTML = `<p class="klein" style="grid-column:1/-1;margin:0">Noch keine ganze Runde gespielt.</p>`; return; }
-    liste.innerHTML = d.eintraege.map((e, i) => {
-      const sp = SPIELER.find(x => x.name === e.name), datum = e.datum ? e.datum.split("-").reverse().join(".") : "";
-      return `<span>${i + 1}.</span><span class="punkt" style="background:${sp ? sp.farbe : "#888"}"></span>
-        <span>${e.name.replace(/[<>&]/g, "")}<small>${datum} · ${e.runden} ${e.runden === 1 ? "Runde" : "Runden"}</small></span>
-        <span class="wert">${e.wuerfe} (${plusMinus(e.wuerfe - e.par)})</span>`;
-    }).join("");
-  } catch (e) {
-    liste.innerHTML = `<p class="klein" style="grid-column:1/-1;margin:0">Keine Verbindung zur Bestenliste. Bitte später nochmal versuchen.</p>`;
-  }
+  await Promise.all(kurse.map(async (k, i) => {
+    const liste = el("bl-liste-" + i);
+    try { liste.innerHTML = await blListeHtml(k); }
+    catch (e) { liste.innerHTML = `<p class="klein" style="grid-column:1/-1;margin:0">Keine Verbindung zur Bestenliste. Bitte später nochmal versuchen.</p>`; }
+  }));
 }
 el("zu-bestenliste").addEventListener("click", zeigeBestenliste);
 el("bestenliste-zurueck").addEventListener("click", () => { el("menue-bestenliste").hidden = true; el("menue-start").hidden = false; el("menue").scrollTop = 0; });
@@ -2499,16 +2454,22 @@ setTimeout(() => { if (blOffene().length) blSchickeOffene(); }, 3000); // liegen
 
 // ---------- Kursauswahl (weitere Kurse kommen in bahnen.js unter KURSE dazu) ----------
 let kurs = KURSE[0];
-try { kurs = KURSE.find(k => k.id === localStorage.getItem("discgolf-kurs")) || KURSE[0]; } catch (e) { /* egal */ }
+try {
+  const gemerkt = localStorage.getItem("discgolf-kurs") || "";
+  // eine gemerkte Wochenbahn (auch aus einer früheren Woche) wird zur aktuellen
+  kurs = KURSE.find(k => k.id === gemerkt) || (gemerkt.includes("woche-") && WOCHE.kurs) || KURSE[0];
+} catch (e) { /* egal */ }
+if (WOCHE.ausArchiv) kurs = WOCHE.kurs; // aus dem Archiv geöffnet
 function zeigeKurse() {
   el("kurse").innerHTML = KURSE.map((k, i) => {
     const par = k.bahnen.reduce((a, b) => a + b.par, 0);
     const meter = Math.round(k.bahnen.reduce((a, b) => a + abstand(b.abwurf, b.korb), 0));
-    return `<button class="kurs ${k === kurs ? "an" : ""}" data-kurs="${i}">${k.name}<small>${k.ort} · ${k.bahnen.length} Bahnen · Par ${par} · ${meter} m</small></button>`;
+    const info = k.woche ? `„${k.titel}“ · ${k.ort} · ${k.bahnen.length} ${k.bahnen.length === 1 ? "Bahn" : "Bahnen"}` : `${k.ort} · ${k.bahnen.length} Bahnen`;
+    return `<button class="kurs ${k === kurs ? "an" : ""}" data-kurs="${i}">${k.name}<small>${info} · Par ${par} · ${meter} m</small></button>`;
   }).join("");
-  // Runde: ganze Runde oder eine einzelne Bahn des gewählten Kurses
-  el("rundenwahl").innerHTML = `<option value="0">Ganze Runde (${kurs.bahnen.length} Bahnen)</option>`
-    + kurs.bahnen.map((b, i) => `<option value="${i + 1}">Nur Bahn ${b.nummer}</option>`).join("");
+  // Runde: ganze Runde oder eine einzelne Bahn des gewählten Kurses (die Wochenbahn immer ganz)
+  el("rundenwahl").innerHTML = `<option value="0">Ganze Runde (${kurs.bahnen.length} ${kurs.bahnen.length === 1 ? "Bahn" : "Bahnen"})</option>`
+    + (kurs.woche && !kurs.einzelBahnen ? "" : kurs.bahnen.map((b, i) => `<option value="${i + 1}">Nur Bahn ${b.nummer}</option>`).join(""));
 }
 el("kurse").addEventListener("click", e => {
   const b = e.target.closest("[data-kurs]");
@@ -2787,6 +2748,6 @@ requestAnimationFrame(schleife);
 // Als App installierbar / offline startbar
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => { /* egal */ });
 </script>
-<script src="mehrspieler.js?v=0.6.1"></script>
+<script src="mehrspieler.js?v=0.7.0"></script>
 </body>
 </html>

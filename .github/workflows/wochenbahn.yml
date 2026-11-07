@@ -1,0 +1,74 @@
+# Wochenbahn live: Jeden Sonntag ab 20:00 (deutsche Zeit) wird NUR wochenbahnen.js von dev nach main kopiert.
+# Das Spiel zeigt die neue Bahn dann ab Montag 0:00 (es schaltet selbst nach Datum um).
+# Fehlt auf dev die Bahn für die kommende Woche, würfelt die Action eine mit einem vorhandenen Thema
+# (eigentlich erledigt das vorher die Donnerstags-Abfrage bzw. die Sonntags-Prüfung in Claude Code).
+# Läuft um 18:00 und 19:00 UTC, damit es im Sommer wie im Winter ab 20:00 deutscher Zeit klappt;
+# ein zweiter Lauf ändert nichts mehr. Von Hand: Actions → Wochenbahn live → Run workflow.
+name: Wochenbahn live
+
+on:
+  schedule:
+    - cron: "0 18 * * 0"
+    - cron: "0 19 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: wochenbahn
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Uhrzeit prüfen (geplant erst ab 20:00 deutscher Zeit)
+        id: zeit
+        run: |
+          stunde=$(TZ=Europe/Berlin date +%H)
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$stunde" -lt 20 ]; then echo "los=nein" >> "$GITHUB_OUTPUT"; echo "Erst $stunde Uhr – der nächste Lauf übernimmt."; else echo "los=ja" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v4
+        if: steps.zeit.outputs.los == 'ja'
+        with:
+          ref: dev
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        if: steps.zeit.outputs.los == 'ja'
+        with:
+          node-version: 22
+      - name: Bahn der kommenden Woche auf dev vorhanden? Sonst würfeln
+        if: steps.zeit.outputs.los == 'ja'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898315+github-actions[bot]@users.noreply.github.com"
+          if node werkzeuge/wochenbahn.mjs --hat-naechste; then
+            echo "Bahn für die kommende Woche ist da."
+          else
+            thema=$(node werkzeuge/wochenbahn.mjs --zufallsthema)
+            echo "Keine Bahn für die kommende Woche – würfle eine mit Thema $thema."
+            node werkzeuge/wochenbahn.mjs --thema "$thema"
+            git add wochenbahnen.js
+            git commit -m "Wochenbahn automatisch erzeugt (Thema $thema)"
+            git push origin HEAD:dev
+          fi
+          node werkzeuge/wochenbahn.mjs --pruefen
+      - name: Nur wochenbahnen.js nach main
+        if: steps.zeit.outputs.los == 'ja'
+        id: kopie
+        run: |
+          cp wochenbahnen.js /tmp/wochenbahnen.js
+          git checkout -q main
+          cp /tmp/wochenbahnen.js wochenbahnen.js
+          if [ -z "$(git status --porcelain -- wochenbahnen.js)" ]; then echo "main ist schon aktuell."; echo "neu=nein" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git add wochenbahnen.js
+          git commit -m "Wochenbahn: $(node -e 'const c={};c.window=c;require("vm").runInNewContext(require("fs").readFileSync("wochenbahnen.js","utf8"),c);const e=c.WOCHENBAHNEN.slice().sort((a,b)=>a.ab<b.ab?-1:1).pop();console.log("KW"+e.woche.split("-")[1]+" „"+(e.name||(e.bahnen||[e.bahn])[0].name)+"“ ("+e.thema+")")')"
+          git push origin main
+          echo "neu=ja" >> "$GITHUB_OUTPUT"
+      - name: Seite neu veröffentlichen
+        # Pushes einer Action starten keine anderen Workflows – darum hier ausdrücklich
+        if: steps.kopie.outputs.neu == 'ja'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main --repo "${{ github.repository }}"
