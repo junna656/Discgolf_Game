@@ -158,7 +158,27 @@
         best = { t, x: a.x + rx * t + nx * 0.3, y: a.y + ry * t + ny * 0.3, normal: { x: nx, y: ny } };
       }
     }
+    // An einem Knick der Mauer kann der um 0,3 m versetzte Punkt hinter dem Nachbarstück liegen:
+    // dann stattdessen auf der Flugbahn kurz vor dem Treffer bleiben (nie durch eine Mauer hindurch)
+    if (best && !hinterMauerFrei(bahn, a, best, z)) {
+      const l = Math.hypot(b.x - a.x, b.y - a.y) || 1, tb = Math.max(0, best.t - 0.3 / l);
+      best.x = a.x + (b.x - a.x) * tb; best.y = a.y + (b.y - a.y) * tb;
+    }
     return best;
+  }
+  // true, wenn die Strecke a→p keine Mauer (unterhalb ihrer Höhe) schneidet
+  function hinterMauerFrei(bahn, a, p, z) {
+    for (const m of bahn.mauern || []) {
+      if (z !== undefined && z >= (m.h || 1.2)) continue;
+      for (let i = 0; i < m.punkte.length - 1; i++) {
+        const [cx, cy] = m.punkte[i], [dx, dy] = m.punkte[i + 1];
+        const rx = p.x - a.x, ry = p.y - a.y, sx = dx - cx, sy = dy - cy, nn = rx * sy - ry * sx;
+        if (Math.abs(nn) < 1e-9) continue;
+        const t = ((cx - a.x) * sy - (cy - a.y) * sx) / nn, u = ((cx - a.x) * ry - (cy - a.y) * rx) / nn;
+        if (t >= 0 && t <= 1 && u >= 0 && u <= 1) return false;
+      }
+    }
+    return true;
   }
 
   // Baumhöhe in Metern: angegeben oder nach Kronengröße (kleiner Busch ~4 m, großer Baum bis 12 m)
@@ -242,11 +262,13 @@
           const baum = bahn.baeume[b];
           if (gepruefteBaeume.has(b)) continue;
           if (abstand(baum, wurf) < 5) continue; // Baum steht direkt am Abwurfpunkt: ganz ignorieren
-          if (abstand(p, baum) < baum.r * E.baumRadius && z < baumHoehe(baum)) {
+          // feste Hindernisse (Felsen) mit vollem Radius: die Scheibe landet nie sichtbar auf dem Fels
+          if (abstand(p, baum) < baum.r * (baum.fest ? 1 : E.baumRadius) && z < baumHoehe(baum)) {
             gepruefteBaeume.add(b);
             // drei Möglichkeiten: abprallen, abbremsen (fliegt langsamer weiter) oder durch eine Lücke
             const w = zufall();
-            if (w < E.baumAbprallen) { ereignis = { typ: "baum", baum }; baumIndex = pfad.length - 1; break flug; }
+            // feste Hindernisse (z. B. Felsen, fest: true) werfen die Scheibe immer zurück
+            if (baum.fest || w < E.baumAbprallen) { ereignis = { typ: "baum", baum }; baumIndex = pfad.length - 1; break flug; }
             if (w < E.baumAbprallen + E.baumBremsen) { brems *= 0.35 + zufall() * 0.25; bremsPunkte.push(pfad.length - 1); }
             else durchPunkte.push(pfad.length - 1); // durch eine Lücke geflogen
           }
@@ -291,6 +313,21 @@
       const zx = px + Math.cos(ab) * weit, zy = py + Math.sin(ab) * weit;
       const raus = Math.hypot(zx - b.x, zy - b.y) < b.r * 0.8 ? b.r * 0.8 : 0;
       let ex = zx + Math.cos(ab) * raus, ey = zy + Math.sin(ab) * raus;
+      // feste Hindernisse (Felsen): die Scheibe bleibt nie auf einem Fels liegen – vom getroffenen ganz weg,
+      // vor einem anderen Fels auf dem Weg bleibt sie davor liegen
+      if (ereignis.baum && ereignis.baum.fest) {
+        const d0 = Math.hypot(ex - b.x, ey - b.y), min = b.r + 0.5;
+        if (d0 < min) { const w = Math.atan2(ey - b.y, ex - b.x); ex = b.x + Math.cos(w) * min; ey = b.y + Math.sin(w) * min; }
+      }
+      for (const f of bahn.baeume) {
+        if (!f.fest || f === ereignis.baum) continue;
+        const sx = ex - px, sy = ey - py, l2 = sx * sx + sy * sy || 1, tt = Math.max(0, Math.min(1, ((f.x - px) * sx + (f.y - py) * sy) / l2));
+        if (Math.hypot(px + sx * tt - f.x, py + sy * tt - f.y) < f.r + 0.3) {
+          // zurück bis vor den Fels
+          let k = tt; while (k > 0 && Math.hypot(px + sx * k - f.x, py + sy * k - f.y) < f.r + 0.4) k -= 0.02;
+          ex = px + sx * Math.max(0, k); ey = py + sy * Math.max(0, k);
+        }
+      }
       const zweite = mauerTreffer(bahn, { x: px, y: py }, { x: ex, y: ey });
       if (zweite) { ex = zweite.x; ey = zweite.y; }
       const start = pfad[pfad.length - 1], n = 14, dauer = 0.35 + weit * 0.05;
@@ -322,6 +359,8 @@
       for (let k = 1; k <= schritte; k++) {
         const v = 1 - k / schritte;
         if (mauerTreffer(bahn, { x: sx, y: sy }, { x: sx + dx * L / schritte, y: sy + dy * L / schritte })) break; // rutscht gegen die Mauer
+        // rutscht gegen einen festen Fels: bleibt davor liegen
+        if (bahn.baeume.some(f => f.fest && Math.hypot(sx + dx * L / schritte - f.x, sy + dy * L / schritte - f.y) < f.r)) break;
         sx += dx * L / schritte;
         sy += dy * L / schritte;
         t += 0.015 + 0.05 * (1 - v);
@@ -353,6 +392,15 @@
       if (bahn.dropzone) lie = { x: bahn.dropzone.x, y: bahn.dropzone.y };
     }
     if (drin) lie = { x: bahn.korb.x, y: bahn.korb.y };
+    // nie auf einem festen Hindernis (Fels) liegen bleiben: z. B. nach OB an der letzten Stelle im Spiel
+    // über einem flachen Fels oder zwischen zwei sich überlappenden Brocken – dann daneben legen
+    for (let n = 0; n < 4 && !drin; n++) {
+      const f = bahn.baeume.find(q => q.fest && abstand(lie, q) < q.r + 0.3);
+      if (!f) break;
+      const w = Math.atan2(lie.y - f.y, lie.x - f.x), neu = { x: f.x + Math.cos(w) * (f.r + 0.4), y: f.y + Math.sin(w) * (f.r + 0.4) };
+      if (!ob) pfad.push({ x: neu.x, y: neu.y, z: 0, t: (t += 0.1) });
+      lie = neu;
+    }
 
     // Mando: die Scheibe muss die Linie zwischen zwei Bäumen in der Lücke kreuzen
     let mando = null, mandoIndex = -1;

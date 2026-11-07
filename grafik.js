@@ -322,6 +322,16 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
     });
   }
 
+  // Inselgrün (insel, ab): die Grenze bei x = ab ist auch eine OB-Linie (nur bei Themen-OB wie dem Flussbett)
+  for (const o of bahn.ob) {
+    if (!o.insel || !o.art || o.ab <= 0) continue;
+    const px = Math.round(o.ab * S), g = Math.max(2, Math.round(0.3 * S));
+    for (let py = 0; py < BH; py++) {
+      if (py % (6 * zr) < 3 * zr) rechteck(px, py, zr, 1, PAL.weiss);
+      if (py % Math.round(8 * S) === Math.round(4 * S)) { rechteck(px - g / 2 + zr, py + zr, g, g, "rgba(0,20,0,.45)"); rechteck(px - g / 2, py, g, g, "#c8301f"); rechteck(px - g / 2, py, g, zr, "#f05a40"); }
+    }
+  }
+
   // ---------- Bowlingbahn: Schatten, Rahmen, Pfeile ----------
   if (l) {
     c.fillStyle = "#3a240f";

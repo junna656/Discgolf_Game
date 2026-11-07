@@ -87,7 +87,7 @@ function waehlePar(z, erzwungen) {
 function geruest(z, L) {
   // Dogleg: Knickpunkt nach 45–65 % der Strecke, seitlich versetzt (mal links, mal rechts, mal gerade)
   const art = z(), seite = z() < 0.5 ? -1 : 1;
-  const v = art < 0.3 ? 0 : seite * L * (0.08 + z() * 0.14), k = 0.45 + z() * 0.2;
+  const v = art < 0.25 ? 0 : seite * L * (0.06 + z() * 0.22), k = 0.4 + z() * 0.3;
   // gerade Strecke G so wählen, dass der Weg über den Knick genau L lang ist
   let G = L;
   for (let i = 0; i < 30; i++) G *= L / (Math.hypot(G * k, v) + Math.hypot(G * (1 - k), v));
@@ -131,81 +131,159 @@ const THEMEN = {
     name: "Wüste", optik: "wueste",
     namen: ["Fata Morgana", "Kaktusschlucht", "Dürre Elle", "Sandsturm", "Skorpionspfad", "Oase Ohnegleichen", "Geierfelsen",
       "Wadi Wackelkorb", "Staubteufel", "Dornige Diva", "Die Glutpfanne", "Klapperschlangenkurve", "Sandkasten XXL", "Tafelberg-Tango",
-      "Kamelbuckel", "Dattelpalmen-Dogleg", "Heiße Kette", "Wüstenfuchs", "Tumbleweed Alley", "Durststrecke", "Sanddünen-Sprint", "Mirage-Mando", "Kojotenkehle"],
+      "Kamelbuckel", "Dattelpalmen-Dogleg", "Heiße Kette", "Wüstenfuchs", "Tumbleweed Alley", "Durststrecke", "Sanddünen-Sprint", "Mirage-Mando", "Kojotenkehle",
+      "Kakteenkarree", "Skarabäus-Sprint", "Sonnenstich", "Glutnest", "Salzpfanne", "Beduinenbogen"],
+    // Bahntypen (Gewicht): quer = Flussbett quer, insel = Korb auf einer Insel im Flussbett,
+    // schlucht = enge Schlucht zwischen Felswänden, mando = Lücke zwischen zwei großen Felsen,
+    // offen = kein Flussbett quer, dafür Kakteenfeld. Felsen und Felswände werfen die Scheibe immer zurück.
+    typen: { quer: 3, insel: 1.3, schlucht: 1.6, mando: 1.8, offen: 1.2 },
+    // Namen, die nur zu einem Bahntyp passen (werden dort bevorzugt, sonst nicht vergeben)
+    typNamen: { mando: ["Mirage-Mando", "Geierfelsen", "Tafelberg-Tango"], schlucht: ["Kaktusschlucht", "Kojotenkehle", "Klapperschlangenkurve"],
+      insel: ["Oase Ohnegleichen", "Wadi Wackelkorb"], offen: ["Dornige Diva", "Tumbleweed Alley", "Kakteenkarree"] },
     baue(z, g, L) {
       const { abwurf, korb, linie } = g;
-      const ob = [];
-      // 1–2 ausgetrocknete Flussbetten: eines quer über die Bahn (muss überworfen werden), evtl. eines längs am Rand
-      const flussbetten = [];
-      const quer = (anteil) => {
-        // Mittellinie quer zur Bahn bei "anteil" der Strecke, mäandernd, über die ganze Weltbreite/-höhe
-        const seg = anteil < 0.5 ? [linie[0], linie[1]] : [linie[1], linie[2]], t = anteil < 0.5 ? anteil * 2 : anteil * 2 - 1;
-        const p = [seg[0][0] + (seg[1][0] - seg[0][0]) * t, seg[0][1] + (seg[1][1] - seg[0][1]) * t];
-        const dx = seg[1][0] - seg[0][0], dy = seg[1][1] - seg[0][1], l = Math.hypot(dx, dy), nx = -dy / l, ny = dx / l;
+      const typ = waehleGewichtet(z, this.typen);
+      const ob = [], flussbetten = [], mauern = [], feste = [];
+      let mando = null, sperrZonen = []; // sperrZonen: {x, y, r} – dort keine gestreuten Hindernisse
+      const P = t => punktAufLinie(linie, t);
+
+      // ---- Flussbett quer über die Bahn bei Anteil t der Strecke ----
+      const quer = (t) => {
+        const p = P(t), nx = -p.uy, ny = p.ux;
         const mitte = [], breiten = [], schwung = 3 + z() * 5, phase = z() * 6, schraeg = (z() - 0.5) * 0.6;
         for (let s = -1.2; s <= 1.2001; s += 0.1) {
           const d = s * g.welt.hoehe, m = Math.sin(s * 5 + phase) * schwung;
-          mitte.push([r1(p[0] + nx * d + (dx / l) * (m + d * schraeg)), r1(p[1] + ny * d + (dy / l) * (m + d * schraeg))]);
+          mitte.push([r1(p.x + nx * d + p.ux * (m + d * schraeg)), r1(p.y + ny * d + p.uy * (m + d * schraeg))]);
           breiten.push(5 + z() * 2 + Math.sin(s * 3 + phase) * 2);
         }
         return band(mitte, breiten);
       };
-      const querAnteil = 0.35 + z() * 0.35;
-      flussbetten.push(quer(querAnteil));
-      if (z() < 0.55) {
-        // zweites Flussbett längs der Bahn auf einer Seite: begrenzt die Bahn wie ein Aus
+      // ---- Flussbett längs auf einer Seite (wie ein Aus neben der Bahn) ----
+      const laengs = () => {
         const seite = z() < 0.5 ? -1 : 1, mitte = [], breiten = [];
         for (let k = 0; k <= 20; k++) {
           const t = k / 20, x = -5 + (g.welt.breite + 10) * t;
-          // y auf der Bahn bei x (Polylinie über den Knick), dann seitlich weg
           const y = (() => { const [a, b, c] = linie; return x <= b[0] ? a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]) : b[1] + (c[1] - b[1]) * (x - b[0]) / (c[0] - b[0]); })();
           mitte.push([r1(x), r1(y + seite * (21 + z() * 4 + Math.sin(t * 7) * 2.5))]);
           breiten.push(6 + z() * 3);
         }
-        flussbetten.push(band(mitte, breiten));
+        return band(mitte, breiten);
+      };
+
+      let keinXSpiegeln = false;
+      if (typ === "quer") {
+        flussbetten.push(quer(0.35 + z() * 0.35));
+        if (z() < 0.5) flussbetten.push(laengs());
+      } else if (typ === "insel") {
+        // Korb auf einer Insel; ab x = ab ist alles außer der Insel Flussbett (OB)
+        const R = 8 + z() * 5, insel = [];
+        for (let i = 0; i < 14; i++) { const w = i / 14 * Math.PI * 2, rr = R * (0.85 + z() * 0.3); insel.push([r1(korb.x + Math.cos(w) * rr), r1(korb.y + Math.sin(w) * rr * 0.85)]); }
+        const ab = r1(korb.x - R - 6 - z() * Math.min(18, L * 0.15));
+        if (ab < abwurf.x + 30) return null;
+        ob.push({ name: "Flussbett um die Insel", art: "flussbett", insel, ab });
+        keinXSpiegeln = true; // „ab“ gilt nur nach rechts
+        if (z() < 0.35) flussbetten.push(laengs());
+      } else if (typ === "schlucht") {
+        // zwei Felswände links und rechts der Linie; dazwischen ein Gang von 9–15 m
+        const t0 = 0.18 + z() * 0.12, t1 = Math.min(0.8, t0 + 0.38 + z() * 0.22), halb = 4.5 + z() * 3;
+        for (const sei of [1, -1]) {
+          const punkte = [];
+          for (let t = t0; t <= t1 + 1e-9; t += (t1 - t0) / 8) {
+            const p = P(t), w = halb + Math.sin(t * 17 + sei) * 1.2 + (z() - 0.5) * 1.2;
+            punkte.push([r1(p.x - p.uy * w * sei), r1(p.y + p.ux * w * sei)]);
+          }
+          mauern.push({ art: "felswand", punkte, h: 30, breite: r1(5 + z() * 4), seite: sei });
+        }
+        if (z() < 0.3) flussbetten.push(laengs());
+      } else if (typ === "mando") {
+        // zwei große Felsen mit Lücke von 6–9 m; die Scheibe muss hindurch
+        const t = 0.35 + z() * 0.25, p = P(t), luecke = 6 + z() * 3, versatz = (z() - 0.5) * 3;
+        const rs = [3.6 + z() * 1.4, 3.6 + z() * 1.4], nx = -p.uy, ny = p.ux;
+        const a = { x: r1(p.x + nx * (versatz + luecke / 2 + rs[0])), y: r1(p.y + ny * (versatz + luecke / 2 + rs[0])) };
+        const b = { x: r1(p.x - nx * (luecke / 2 - versatz + rs[1])), y: r1(p.y - ny * (luecke / 2 - versatz + rs[1])) };
+        feste.push({ ...a, r: r1(rs[0]), h: r1(7 + z() * 3), art: "fels", fest: true }, { ...b, r: r1(rs[1]), h: r1(7 + z() * 3), art: "fels", fest: true });
+        mando = { a: [a.x, a.y], b: [b.x, b.y] };
+        // Felsriegel: nach außen setzen sich die beiden Felsen in weiteren Brocken fort
+        for (const [q, sei, r0] of [[a, 1, rs[0]], [b, -1, rs[1]]]) {
+          let d = r0, x = q.x, y = q.y;
+          for (let k = 0, n = 2 + Math.floor(z() * 3); k < n; k++) {
+            const r = 2.2 + z() * 1.8; d = r + d * 0.75;
+            x += nx * sei * d + (z() - 0.5) * 1.5; y += ny * sei * d + (z() - 0.5) * 1.5; d = r;
+            feste.push({ x: r1(x), y: r1(y), r: r1(r), h: r1(4 + z() * 3), art: "fels", fest: true });
+          }
+        }
+        sperrZonen.push({ x: p.x + nx * versatz, y: p.y + ny * versatz, r: luecke / 2 + 2 });
+        if (z() < 0.45) { const tq = t < 0.5 ? 0.68 + z() * 0.08 : 0.2 + z() * 0.08; flussbetten.push(quer(tq)); }
+      } else if (typ === "offen") {
+        if (z() < 0.5) flussbetten.push(laengs());
       }
-      for (const [i, fb] of flussbetten.entries()) ob.push({ name: i ? "Flussbett längs" : "Flussbett", art: "flussbett", punkte: fb });
-      // Abwurf und Korb dürfen nicht im Flussbett liegen, der Korb braucht 8 m Abstand
-      const imFluss = p => flussbetten.some(fb => imPolygon(p, fb));
-      // Abstand zum Rand jedes Flussbetts über alle Kanten (nicht nur die Eckpunkte)
+      for (const [i, fb] of flussbetten.entries()) ob.push({ name: "Flussbett " + (i + 1), art: "flussbett", punkte: fb });
+
+      // Abwurf und Korb dürfen nicht im/am Flussbett liegen; Circle 1 bleibt frei
+      const imFluss = p => flussbetten.some(fb => imPolygon(p, fb)) || ob.some(o => o.insel && p.x >= o.ab && !imPolygon(p, o.insel));
       const flussNah = (p, d) => flussbetten.some(fb => imPolygon(p, fb) || abstandZurLinie(p, [...fb, fb[0]]) < d);
-      if (flussNah(abwurf, 8) || flussNah(korb, 14)) return null; // Circle 1 (10 m) bleibt mit Abstand frei vom Flussbett
+      if (flussNah(abwurf, 8) || flussNah(korb, 14)) return null;
+      const anWand = (p, r) => mauern.some(m => abstandZurLinie(p, m.punkte) < r + m.breite + 1);
 
       // Kakteen und Felsen: am Rand dicht, im Fairway nur einzelne „im Spiel“
       const frei = (o, liste) => {
         if (abstand(o, abwurf) < 7 || abstand(o, korb) < 4.5 + o.r) return false;
-        if (imFluss(o)) return false;
-        if (liste.some(q => abstand(q, o) < q.r + o.r + 0.8)) return false;
+        if (imFluss(o) || anWand(o, o.r) || sperrZonen.some(q => abstand(q, o) < q.r + o.r)) return false;
+        if ([...feste, ...liste].some(q => abstand(q, o) < q.r + o.r + 0.8)) return false;
         return o.x > -2 && o.y > -2 && o.x < g.welt.breite + 2 && o.y < g.welt.hoehe + 2;
       };
       const naheBahn = p => abstandZurLinie(p, linie);
       const kaktus = (p, z) => ({ x: r1(p.x), y: r1(p.y), r: r1(0.8 + z() * 0.9), h: r1(3 + z() * 3.5), art: "kaktus" });
-      const fels = (p, z) => ({ x: r1(p.x), y: r1(p.y), r: r1(1 + z() * 2.4), h: r1(1.2 + z() * 1.8), art: "fels" });
-      const flaeche = g.welt.breite * g.welt.hoehe;
-      // außerhalb des Korridors
-      const aussen = streue(z, g, Math.round(flaeche / 160), (p, z) => naheBahn(p) > 9 ? (z() < 0.6 ? kaktus(p, z) : fels(p, z)) : null, frei);
-      // Felsgruppen: ein paar Felsen eng beieinander, gern am Fairwayrand
+      const fels = (p, z, gross = 0) => ({ x: r1(p.x), y: r1(p.y), r: r1(1 + z() * 2.4 + gross), h: r1(1.2 + z() * 1.8 + gross * 1.5), art: "fels", fest: true });
+      const flaeche = g.welt.breite * g.welt.hoehe, dichte = typ === "offen" ? 1.5 : 0.7 + z() * 0.7;
+      const aussen = streue(z, g, Math.round(flaeche / 160 * dichte), (p, z) => naheBahn(p) > 9 ? (z() < 0.6 ? kaktus(p, z) : fels(p, z)) : null, frei);
+      // Felsgruppen am Fairwayrand, manchmal mit einem großen Brocken
       const gruppen = [];
-      for (let k = 0, n = 2 + Math.floor(z() * 3); k < n; k++) {
-        const t = 0.25 + z() * 0.65, seg = t < 0.5 ? [linie[0], linie[1]] : [linie[1], linie[2]], tt = t < 0.5 ? t * 2 : t * 2 - 1;
-        const s = z() < 0.5 ? -1 : 1, dx = seg[1][0] - seg[0][0], dy = seg[1][1] - seg[0][1], l = Math.hypot(dx, dy);
-        const m = { x: seg[0][0] + dx * tt - dy / l * s * (7 + z() * 6), y: seg[0][1] + dy * tt + dx / l * s * (7 + z() * 6) };
-        for (let j = 0; j < 3 + Math.floor(z() * 3); j++) {
-          const o = fels({ x: m.x + (z() - 0.5) * 7, y: m.y + (z() - 0.5) * 5 }, z);
+      for (let k = 0, n = 1 + Math.floor(z() * 4); k < n; k++) {
+        const p = P(0.25 + z() * 0.65), sei = z() < 0.5 ? -1 : 1, d = 7 + z() * 6;
+        const m = { x: p.x - p.uy * sei * d, y: p.y + p.ux * sei * d };
+        for (let j = 0; j < 2 + Math.floor(z() * 4); j++) {
+          const o = fels({ x: m.x + (z() - 0.5) * 7, y: m.y + (z() - 0.5) * 5 }, z, j === 0 && z() < 0.5 ? 1.5 : 0);
           if (frei(o, [...aussen, ...gruppen])) gruppen.push(o);
         }
       }
-      // im Spiel: wenige Kakteen nahe der Linie, aber nie mitten auf der Ideallinie (mind. 2,5 m daneben)
-      const imSpiel = streue(z, g, Math.round(L / 28), (p, z) => { const d = naheBahn(p); return d > 2.5 + 1.6 && d < 9 ? kaktus(p, z) : null; }, (o, l) => frei(o, [...aussen, ...gruppen, ...l]));
-      const baeume = [...imSpiel, ...gruppen, ...aussen];
-      // ein Sandweg (Jeep-Piste) als Bild: vom unteren oder oberen Rand schräg durchs Gelände, nicht über Abwurf/Korb
+      // im Spiel: Kakteen nahe der Linie (nie auf der Ideallinie), offene Bahn: ein ganzes Kakteenfeld;
+      // manchmal ein einzelner großer Felsbrocken, um den man herumwerfen muss
+      const imSpielAnz = Math.round(L / 28 * (typ === "offen" ? 2.4 : typ === "schlucht" ? 0.3 : 1));
+      const imSpiel = streue(z, g, imSpielAnz, (p, z) => { const d = naheBahn(p); return d > 2.5 + 1.6 && d < (typ === "offen" ? 12 : 9) ? kaktus(p, z) : null; }, (o, l) => frei(o, [...aussen, ...gruppen, ...l]));
+      if (typ !== "schlucht" && typ !== "mando" && z() < 0.4) {
+        const p = P(0.4 + z() * 0.3), sei = z() < 0.5 ? -1 : 1, d = 3 + z() * 3, o = fels({ x: p.x - p.uy * sei * d, y: p.y + p.ux * sei * d }, z, 2);
+        if (frei(o, [...aussen, ...gruppen, ...imSpiel])) gruppen.push(o);
+      }
+      const baeume = [...feste, ...imSpiel, ...gruppen, ...aussen];
+      // ein Sandweg (Jeep-Piste) als Bild, nicht über Abwurf/Korb und nicht durch die Schlucht
       const wy = z() < 0.5 ? 0 : g.welt.hoehe, wx = g.welt.breite * (0.2 + z() * 0.6);
-      const wege = [{ punkte: [[r1(wx), r1(wy)], [r1(wx + (z() - 0.5) * 30), r1(g.welt.hoehe / 2)], [r1(wx + (z() - 0.5) * 50), r1(g.welt.hoehe - wy)]], breite: 3 }];
-      if (wege[0].punkte.some((q, i, a) => i && (abstandZurStrecke(abwurf, { x: a[i - 1][0], y: a[i - 1][1] }, { x: q[0], y: q[1] }) < 8 || abstandZurStrecke(korb, { x: a[i - 1][0], y: a[i - 1][1] }, { x: q[0], y: q[1] }) < 8))) wege.length = 0;
-      return { baeume, ob, wege };
+      const wege = typ === "schlucht" || typ === "insel" || typ === "mando" ? [] : [{ punkte: [[r1(wx), r1(wy)], [r1(wx + (z() - 0.5) * 30), r1(g.welt.hoehe / 2)], [r1(wx + (z() - 0.5) * 50), r1(g.welt.hoehe - wy)]], breite: 3 }];
+      if (wege.length && wege[0].punkte.some((q, i, a) => i && (abstandZurStrecke(abwurf, { x: a[i - 1][0], y: a[i - 1][1] }, { x: q[0], y: q[1] }) < 8 || abstandZurStrecke(korb, { x: a[i - 1][0], y: a[i - 1][1] }, { x: q[0], y: q[1] }) < 8))) wege.length = 0;
+      return { typ, baeume, ob, wege, mauern, mando, keinXSpiegeln };
     },
   },
 };
+
+// Zufallsauswahl nach Gewichten {name: gewicht}
+function waehleGewichtet(z, gewichte) {
+  const e = Object.entries(gewichte), summe = e.reduce((a, [, w]) => a + w, 0);
+  let r = z() * summe;
+  for (const [k, w] of e) { if ((r -= w) < 0) return k; }
+  return e[e.length - 1][0];
+}
+// Punkt bei Anteil t (0…1) der Länge einer Polylinie [[x, y], …] mit Richtung (ux, uy)
+function punktAufLinie(pk, t) {
+  const seg = pk.slice(1).map((q, i) => Math.hypot(q[0] - pk[i][0], q[1] - pk[i][1])), ges = seg.reduce((a, b) => a + b, 0);
+  let rest = Math.max(0, Math.min(1, t)) * ges;
+  for (let i = 0; i < seg.length; i++) {
+    if (rest <= seg[i] || i === seg.length - 1) {
+      const f = Math.min(1, rest / seg[i]), [ax, ay] = pk[i], [bx, by] = pk[i + 1];
+      return { x: ax + (bx - ax) * f, y: ay + (by - ay) * f, ux: (bx - ax) / seg[i], uy: (by - ay) / seg[i] };
+    }
+    rest -= seg[i];
+  }
+}
 
 // ---------- Kurs bauen: ANZAHL Bahnen eines Themas ----------
 const ANZAHL_STANDARD = 6; // Bahnen pro Woche (Ziel später: 18)
@@ -218,26 +296,32 @@ function baueBahn(T, { woche, thema, seed, nr, parErzwungen, belegteNamen }) {
     const teile = T.baue(z, g, L);
     if (!teile) continue;
     // Fantasiename: zufällig aus der Liste, aber jeder nur einmal pro Woche
-    let i = Math.floor(z() * T.namen.length);
-    for (let k = 0; k < T.namen.length && belegteNamen.has(T.namen[i]); k++) i = (i + 1) % T.namen.length;
-    const name = T.namen[i];
+    // passende Typ-Namen zuerst; Namen anderer Typen nie
+    const typN = (T.typNamen || {})[teile.typ] || [], fremd = new Set(Object.values(T.typNamen || {}).flat());
+    const kandidaten = [...typN.filter(n => !belegteNamen.has(n)), ...T.namen.filter(n => !fremd.has(n) && !belegteNamen.has(n))];
+    const zn = typN.some(n => !belegteNamen.has(n)) ? typN.filter(n => !belegteNamen.has(n)).length : kandidaten.length;
+    const name = kandidaten[Math.floor(z() * zn)] || T.namen.find(n => !belegteNamen.has(n));
     belegteNamen.add(name);
     // für Abwechslung: Bahn zufällig waagerecht und/oder senkrecht spiegeln (eigener Zufall)
-    const zs = zufall(hashText(`${woche}|${thema}|${seed}|${nr}|spiegeln`)), sx = zs() < 0.5, sy = zs() < 0.5;
+    const zs = zufall(hashText(`${woche}|${thema}|${seed}|${nr}|spiegeln`)), sx = zs() < 0.5 && !teile.keinXSpiegeln, sy = zs() < 0.5;
     const W = g.welt.breite, Hh = g.welt.hoehe, fx = x => r1(sx ? W - x : x), fy = y => r1(sy ? Hh - y : y);
     const P = p => ({ ...p, x: fx(p.x), y: fy(p.y) }), L2 = pk => pk.map(([x, y]) => [fx(x), fy(y)]);
     g.abwurf = P(g.abwurf); g.korb = P(g.korb); g.fairway = L2(g.fairway);
     teile.baeume = teile.baeume.map(P);
     teile.wege = teile.wege.map(w => ({ ...w, punkte: L2(w.punkte) }));
-    teile.ob = teile.ob.map(o => ({ ...o, punkte: L2(o.punkte) }));
+    teile.ob = teile.ob.map(o => o.insel ? { ...o, insel: L2(o.insel) } : { ...o, punkte: L2(o.punkte) });
+    // einmal gespiegelt dreht sich die Laufrichtung der Wandlinie um: Felsband bleibt außen
+    teile.mauern = (teile.mauern || []).map(m => ({ ...m, punkte: L2(m.punkte), seite: sx !== sy ? -m.seite : m.seite }));
+    if (teile.mando) teile.mando = { ...teile.mando, a: L2([teile.mando.a])[0], b: L2([teile.mando.b])[0] };
     return {
       bahn: {
         nummer: nr, name, ort: "Wochenkurs · " + T.name, par, optik: T.optik,
         welt: { breite: g.welt.breite, hoehe: g.welt.hoehe },
         abwurf: g.abwurf, korb: g.korb, fairway: g.fairway,
         baeume: teile.baeume, wege: teile.wege, ob: teile.ob,
+        ...(teile.mauern.length ? { mauern: teile.mauern } : {}), ...(teile.mando ? { mando: teile.mando } : {}),
       },
-      erzeugt: { versuch, laenge: L },
+      erzeugt: { versuch, laenge: L, typ: teile.typ },
     };
   }
   throw new Error(`Bahn ${nr}: keine gültige Bahn gefunden – anderen --seed versuchen.`);
@@ -252,7 +336,7 @@ function baueKurs({ thema, woche, seed = 0, name, par: parErzwungen, anzahl = AN
   // Kursname: eigener Fantasiename (vorgegeben oder der erste noch freie aus der Liste) + KWxx
   const z = zufall(hashText(`${woche}|${thema}|${seed}|kurs`));
   let kursname = name;
-  if (!kursname) { const frei = T.namen.filter(n => !belegteNamen.has(n)); kursname = frei[Math.floor(z() * frei.length)]; }
+  if (!kursname) { const fremd = new Set(Object.values(T.typNamen || {}).flat()), frei = T.namen.filter(n => !belegteNamen.has(n) && !fremd.has(n)); kursname = frei[Math.floor(z() * frei.length)]; }
   return {
     woche, ab: montagDerWoche(jahr, kw).toISOString().slice(0, 10), thema: T.name, optik: T.optik,
     name: kursname + " KW" + String(kw).padStart(2, "0"),
@@ -295,7 +379,9 @@ function pruefe(liste) {
     if (!b || !b.welt || Math.abs(b.welt.hoehe - b.welt.breite * 9 / 16) > 0.01) fehler.push(e.woche + ": welt.hoehe muss breite × 9/16 sein");
     if (![3, 4, 5].includes(b.par)) fehler.push(e.woche + ": par");
     for (const p of [b.abwurf, b.korb]) if (!(p.x > 0 && p.y > 0 && p.x < b.welt.breite && p.y < b.welt.hoehe)) fehler.push(e.woche + ": Abwurf/Korb außerhalb");
-    if ((b.ob || []).some(o => o.punkte && (imPolygon(b.abwurf, o.punkte) || imPolygon(b.korb, o.punkte)))) fehler.push(e.woche + ": Abwurf/Korb im OB");
+    const imOB = p => (b.ob || []).some(o => o.insel ? p.x >= o.ab && !imPolygon(p, o.insel) : o.punkte && imPolygon(p, o.punkte));
+    if (imOB(b.abwurf) || imOB(b.korb)) fehler.push(e.woche + ": Abwurf/Korb im OB (Bahn " + b.nummer + ")");
+    if (b.mando && !(b.baeume || []).some(t => Math.hypot(t.x - b.mando.a[0], t.y - b.mando.a[1]) < 0.5)) fehler.push(e.woche + ": Mando ohne Felsen (Bahn " + b.nummer + ")");
     }
   }
   const wochen = liste.map(e => e.woche);
@@ -336,4 +422,4 @@ if (f.length) { console.error(f.join("\n")); process.exit(1); }
 schreibe(neu);
 const par = eintrag.bahnen.reduce((a, b) => a + b.par, 0), luft = b => Math.round(Math.hypot(b.korb.x - b.abwurf.x, b.korb.y - b.abwurf.y));
 console.log(`KW ${wk}/${wj} ab ${eintrag.ab}: „${eintrag.name}“ · ${eintrag.thema} · ${eintrag.bahnen.length} Bahnen · Par ${par} · ${eintrag.bahnen.reduce((a, b) => a + luft(b), 0)} m`);
-eintrag.bahnen.forEach((b, i) => console.log(`  ${b.nummer}. ${b.name.padEnd(22)} Par ${b.par} · ${String(luft(b)).padStart(3)} m Luftlinie (${eintrag.erzeugt.bahnen[i].laenge} m gespielt) · ${b.baeume.length} Hindernisse, ${b.ob.length} OB`));
+eintrag.bahnen.forEach((b, i) => console.log(`  ${b.nummer}. ${b.name.padEnd(22)} ${eintrag.erzeugt.bahnen[i].typ.padEnd(8)} Par ${b.par} · ${String(luft(b)).padStart(3)} m Luftlinie (${eintrag.erzeugt.bahnen[i].laenge} m gespielt) · ${b.baeume.length} Hindernisse, ${b.ob.length} OB`));

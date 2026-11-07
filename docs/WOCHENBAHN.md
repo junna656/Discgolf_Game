@@ -30,6 +30,12 @@ node werkzeuge/wochenbahn.mjs --pruefen                           # wochenbahnen
 node werkzeuge/grafik_vorschau.mjs                                # (Bilder einer Bahn aus bahnen.js)
 ```
 
+- Bahntypen der Wüste (zufällig, gewichtet): **quer** (Flussbett quer über die Bahn), **insel** (Korb auf einer Insel
+  im Flussbett), **schlucht** (enger Gang zwischen zwei Felswänden), **mando** (Lücke in einem Felsriegel, Mando-Linie),
+  **offen** (Kakteenfeld). Dazu Doglegs links/rechts, zufällige Spiegelung und wechselnde Dichte.
+- Felsen haben `fest: true`: Die Scheibe prallt immer ab (nie bremsen/durchfliegen), rutscht nicht hinein und bleibt
+  nie auf einem Fels liegen. Felswände sind Mauern mit `art: "felswand"`, `h: 30` (nicht zu überfliegen), `breite`
+  und `seite` (Felsband liegt außen). Kein Text bei Treffern an Felsen, Kakteen und Felswänden.
 - Par per Zufall: ~88 % Par 3 (60–140 m), ~10 % Par 4 (140–200 m), ~2 % Par 5 (201–250 m), `--par` erzwingt.
 - Namen: Kurs = Fantasiename + „ KWxx“, jede Bahn einen eigenen Fantasienamen (keiner doppelt; das Thema
   braucht mindestens Anzahl + 1 Namen).

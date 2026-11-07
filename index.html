@@ -751,8 +751,9 @@ function zeichneBauten(c, z) {
     c.fillStyle = "#e8c030"; c.fillRect(dx - tw / 2, dy - th / 2, tw, th);
     c.fillStyle = "#8c8c88"; c.fillRect(dx - tw / 2 + zr, dy - th / 2 + zr, tw - 2 * zr, th - 2 * zr);
   }
-  // Mauern (Ziegel): Schatten, Krone, Fugen
+  // Mauern (Ziegel): Schatten, Krone, Fugen; Felswände (art "felswand") als Felsband
   for (const m of bahn.mauern || []) {
+    if (m.art === "felswand") { zeichneFelswand(c, m, z); continue; }
     const dicke = Math.max(2, Math.round(0.8 * S));
     c.lineCap = "butt"; c.lineJoin = "miter";
     const linie = (farbe, breite, ox = 0, oy = 0) => {
@@ -775,6 +776,38 @@ function zeichneBauten(c, z) {
   // Holzbalken
   c.strokeStyle = PAL.brett; c.lineWidth = Math.max(2, 0.6 * S); c.lineCap = "butt";
   for (const bl of bahn.balken || []) { c.beginPath(); bl.forEach(([x, y], i) => i ? c.lineTo(x * S, y * S) : c.moveTo(x * S, y * S)); c.stroke(); }
+}
+// Felswand: Band aus Fels auf einer Seite der Kollisionslinie (m.seite = ±1 gegenüber der Linksnormalen,
+// m.breite in Metern). Die Linie selbst ist die Felskante, an der die Scheibe abprallt.
+function zeichneFelswand(c, m, z) {
+  const zr = Math.max(1, Math.round(z)), F = (JAHRESZEITEN[aktuelleJahreszeit()] || {}).fels || ["#4a3426", "#6e5038", "#8e6c4c", "#ac8a66", "#c8a884"];
+  const pk = m.punkte, br = m.breite || 3, sei = m.seite || 1;
+  const aussen = pk.map((p, i) => {
+    const a = pk[Math.max(0, i - 1)], b = pk[Math.min(pk.length - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+    const w = br * (0.85 + 0.3 * Math.abs(Math.sin(i * 1.7 + pk.length)));
+    return [p[0] - dy / l * w * sei, p[1] + dx / l * w * sei];
+  });
+  const poly = [...pk, ...aussen.reverse()];
+  const pfad = (ox = 0, oy = 0) => { c.beginPath(); poly.forEach(([x, y], i) => i ? c.lineTo(x * S + ox, y * S + oy) : c.moveTo(x * S + ox, y * S + oy)); c.closePath(); };
+  // Schatten nach rechts unten, dann Fels
+  c.fillStyle = "rgba(40,20,0,.38)"; pfad(1.2 * S * 0.6, 1.5 * S * 0.6); c.fill();
+  c.fillStyle = F[1]; pfad(); c.fill();
+  c.save(); pfad(); c.clip();
+  // Brocken: helle Oberseiten, dunkle Kanten (Licht von links oben)
+  const rr = zufall(Math.round(pk[0][0] * 31 + pk[0][1] * 17));
+  const lang = pk.slice(1).reduce((a, p, i) => a + Math.hypot(p[0] - pk[i][0], p[1] - pk[i][1]), 0);
+  for (let i = 0; i < lang * br * 0.9; i++) {
+    const t = rr(), k = Math.min(pk.length - 2, Math.floor(t * (pk.length - 1))), f = t * (pk.length - 1) - k, q = rr();
+    const x = pk[k][0] + (pk[k + 1][0] - pk[k][0]) * f, y = pk[k][1] + (pk[k + 1][1] - pk[k][1]) * f;
+    const ax = aussen[aussen.length - 1 - k], bx = aussen[aussen.length - 2 - k] || ax;
+    const ox = ax[0] + (bx[0] - ax[0]) * f, oy = ax[1] + (bx[1] - ax[1]) * f;
+    const px = (x + (ox - x) * q) * S, py = (y + (oy - y) * q) * S, r = (0.5 + rr() * 0.9) * S;
+    pixelKreis(c, px, py, r, F[0]); pixelKreis(c, px - r * 0.15, py - r * 0.15, r * 0.8, F[2]); pixelKreis(c, px - r * 0.35, py - r * 0.35, r * 0.35, F[3]);
+  }
+  c.restore();
+  // Felskante zur Bahn hin: dunkle Linie mit hellen Lichtpunkten
+  c.strokeStyle = F[0]; c.lineWidth = Math.max(1, zr * 1.5); c.lineJoin = "round"; c.beginPath();
+  pk.forEach(([x, y], i) => i ? c.lineTo(x * S, y * S) : c.moveTo(x * S, y * S)); c.stroke();
 }
 // Mando: Linie durch die Lücke und Pfeile an den Bäumen
 function zeichneMando(c, z) {
@@ -1038,9 +1071,20 @@ function trefferIstBaum(e) {
   for (const b of bahn.baeume) { const d = Math.hypot(b.x - p.x, b.y - p.y) - b.r; if (d < bd) { bd = d; best = b; } }
   return !best || !best.art;
 }
+// Getroffene Mauer: nur Ziegelmauern (ohne art) heißen „MAUER!“ – die nächste Mauer zum Liegeplatz
+function trefferIstMauer(e) {
+  let best = null, bd = Infinity;
+  for (const m of bahn.mauern || []) for (let i = 0; i < m.punkte.length - 1; i++) {
+    const [ax, ay] = m.punkte[i], [bx, by] = m.punkte[i + 1], dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy || 1;
+    const t = Math.max(0, Math.min(1, ((e.lie.x - ax) * dx + (e.lie.y - ay) * dy) / l2)), d = Math.hypot(e.lie.x - ax - t * dx, e.lie.y - ay - t * dy);
+    if (d < bd) { bd = d; best = m; }
+  }
+  return !best || !best.art;
+}
 // Banner und Ton nach einem Abpraller an Baum, Mauer oder anderem Hindernis
 function zeigeHindernis(e) {
-  if (e.typ === "mauer") { sfx.baum(); zeigeBanner("MAUER!", "#d8c8a8"); }
+  if (e.typ === "mauer" && trefferIstMauer(e)) { sfx.baum(); zeigeBanner("MAUER!", "#d8c8a8"); }
+  else if (e.typ === "mauer") sfx.landung(); // Felswand: kein Text
   else if (trefferIstBaum(e)) { sfx.baum(); zeigeBanner("BAUM!", "#9be07a"); }
   else sfx.landung();
 }
