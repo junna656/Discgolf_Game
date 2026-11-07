@@ -10,7 +10,7 @@ Später soll die Wochenbahn auf 18 Bahnen wachsen; bis dahin ist es eine Bahn.
 | **Donnerstag 18:00** | Abfrage des Themas für die nächste Woche | geplante Aufgabe in Claude Code (neue Session, Push-Nachricht) |
 | nach der Antwort | Bahn bauen und auf `dev` pushen → testen unter www.discgolf-game.de/dev/ | Claude in dieser Session |
 | bis Sonntag ~20:00 | Befunde gemeinsam fixen (auf `dev`) | du + Claude |
-| **Sonntag 12:00** | Prüfung: Gibt es die Bahn für die kommende Woche? Wenn nicht: eigenes Thema ausdenken, Bahn bauen, auf `dev` pushen | geplante Aufgabe in Claude Code |
+| **Sonntag 11:47** | Prüfung: Gibt es die Bahn für die kommende Woche? Wenn nicht: eigenes Thema ausdenken, Bahn bauen, auf `dev` pushen | geplante Aufgabe in Claude Code |
 | **Sonntag ab 20:00** | nur `wochenbahnen.js` wird von `dev` nach `main` kopiert (fehlt die Bahn noch immer: zufällig mit vorhandenem Thema) | Action „Wochenbahn live“ |
 | **Montag 0:00** | das Spiel zeigt die neue Bahn (schaltet selbst nach Datum um), die alte wandert ins Archiv | Spiel |
 
