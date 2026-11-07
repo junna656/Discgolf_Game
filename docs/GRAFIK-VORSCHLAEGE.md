@@ -40,7 +40,11 @@ Paletten und Deko stehen in `JAHRESZEITEN` am Ende von `werkzeuge/grafik_vorscha
 
 Auch die Putt-Ansicht (Seitenansicht am Korb) folgt der Jahreszeit: Himmel mit Sonne und Wolken,
 Baumreihe in den Farben der Jahreszeit (im Winter kahl und verschneit), Wiese mit Mähstreifen,
-Blumen, Laub oder Schnee; im Herbst fallen auch hier Blätter. Ohne Jahreszeit (klassisch, GBA) bleibt sie wie bisher.
+Blumen, Laub oder Schnee; im Herbst fallen auch hier Blätter.
+
+Themen-Optiken der Wochenbahnen stehen mit in `JAHRESZEITEN` (bisher `wueste`: Sand mit Windrippeln,
+Kakteen und Felsen statt Bäumen, rissige Flussbetten als OB, in der Putt-Ansicht Dünen, Tafelberge und Saguaros).
+Die klassische Grafik wurde mit dem Abschied von der GBA-Version entfernt (Stand: Branch `V1.0_GBA`).
 
 ## Hohe Auflösung (quer und hochkant)
 
@@ -53,7 +57,7 @@ hält die gewählte Scheibe in ihrer Typfarbe.
 
 ![Figuren](bilder/figuren_hd.png)
 
-Klassische Grafik und GBA: unverändert. Abschaltbar unter Einstellungen → Hohe Auflösung.
+Abschaltbar unter Einstellungen → Hohe Auflösung.
 Bahnbild am Rechner: Übersicht 50–140 ms, nah (im Leerlauf vorbereitet) 0,3–0,5 s.
 
 Die Physik ändert sich nicht (Schnee bremst die Scheibe z. B. nicht stärker) – das wäre ein eigener Schritt.
@@ -73,4 +77,3 @@ Die Physik ändert sich nicht (Schnee bremst die Scheibe z. B. nicht stärker) �
 - Laufzeit: das Bahnbild wird pro Zoomstufe einmal vorgerendert. Normale Auflösung am Rechner
   12–65 ms (Übersicht) bzw. 100–310 ms (nah, im Leerlauf vorbereitet) je Bahn – auf dem Handy noch messen.
 - Putt-Ansicht ist auch bei hoher Auflösung im normalen Raster gezeichnet.
-- GBA-Version ist davon nicht betroffen.

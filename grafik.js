@@ -3,9 +3,8 @@
 // ============================================================
 //  Detailliertere Pixelgrafik für das Bahnbild. Läuft im Kontext von index.html
 //  und nutzt dessen Hilfsfunktionen (maske, polygonPfad, zufall, pixelKreis,
-//  zeichneLinien, zeichneBauten, zeichneMando …). Die klassische Grafik
-//  (zeichneHintergrund in index.html) bleibt für die GBA-Version unverändert.
-//  Vorher/Nachher-Bilder: node werkzeuge/grafik_vorschau.mjs [bahn] [ordner]
+//  zeichneLinien, zeichneBauten, zeichneMando …).
+//  Bilder je Jahreszeit: node werkzeuge/grafik_vorschau.mjs [bahn] [ordner]
 //
 //  Ideen darin:
 //   - Paletten mit 4–6 Stufen statt 2–3, Schatten bläulicher, Lichter gelblicher
@@ -20,6 +19,8 @@
 //   - vier Jahreszeiten (optionen.jahreszeit: fruehling, sommer, herbst, winter):
 //     eigene Paletten für Boden und Bäume, Blüten, Herbstlaub, Schnee und kahle Äste;
 //     im Herbst fallen bunte Blätter (zeichneLaubfall, jedes Bild in der Spielschleife)
+//   - Themen-Optiken der Wochenbahnen stehen mit in JAHRESZEITEN (z. B. "wueste": Sand mit
+//     Windrippeln, Kakteen und Felsen statt Bäumen, rissige Flussbetten als OB mit art "flussbett")
 // ============================================================
 "use strict";
 
@@ -70,15 +71,20 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
 
   // ---------- Paletten (dunkel → hell) ----------
   const R = a => a.map(rgb);
-  const JZ = JAHRESZEITEN[opt.jahreszeit] || JAHRESZEITEN.sommer, winter = !!JZ.schnee;
-  const GRAS = R(JZ.gras), AUS = R(JZ.aus), FAIR = R(JZ.fair), WEG = R(JZ.weg);
-  const ERDE = R(["#5a4228", "#735634", "#8c6c42"]);
+  const JZ = JAHRESZEITEN[opt.jahreszeit] || JAHRESZEITEN.sommer, winter = !!JZ.schnee, wueste = !!JZ.wueste;
+  const GRAS = R(JZ.gras), AUS = R(JZ.aus), FAIR = R(JZ.fair), WEG = R(JZ.weg), FLUSS = R(JZ.flussbett || JZ.aus);
+  const ERDE = R(JZ.erde || ["#5a4228", "#735634", "#8c6c42"]);
   const DECK = R(["#5e3c1e", "#7a5530", "#9a6e3a", "#b88a4c", "#cfa262", "#e0bc7c"]);
 
   // Bäume vorbereiten: Typ (Laub/Kiefer) aus der Lage, damit er immer gleich bleibt
+  // In der Wüste stehen statt Bäumen Kakteen und Felsen (art in den Bahndaten, sonst zufällig nach Lage)
   const baeume = [...bahn.baeume].sort((a, b) => a.r - b.r).map(b => {
-    const kiefer = opt.kiefern && hash(Math.round(b.x * 10), Math.round(b.y * 10), 5) < 0.3;
     const h = hash(Math.round(b.x * 10), Math.round(b.y * 10), 6);
+    if (wueste) {
+      const art = b.art || (hash(Math.round(b.x * 10), Math.round(b.y * 10), 5) < 0.55 ? "kaktus" : "fels");
+      return { ...b, art, kiefer: false, kahl: false, farben: art === "fels" ? JZ.fels : JZ.laubbaum(h) };
+    }
+    const kiefer = opt.kiefern && hash(Math.round(b.x * 10), Math.round(b.y * 10), 5) < 0.3;
     return { ...b, kiefer, kahl: winter && !kiefer, farben: kiefer ? JZ.kiefer : JZ.laubbaum(h) };
   });
   // Schatten fallen nach rechts unten (Licht von links oben)
@@ -86,6 +92,12 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   const schattenMaske = maske(m => {
     for (const b of baeume) {
       if (b.kahl) continue;
+      if (b.art === "kaktus") {
+        // Kakteen sind hoch und schmal: langer Schatten nach rechts unten
+        m.lineWidth = b.r * 1.3; m.lineCap = "round"; m.beginPath();
+        m.moveTo(b.x + b.r * 0.2, b.y + b.r * 0.2); m.lineTo(b.x + b.r * 0.2 + (b.h || 4) * 0.55, b.y + b.r * 0.2 + (b.h || 4) * 0.7); m.stroke();
+        continue;
+      }
       m.beginPath(); m.ellipse(b.x + b.r * 0.35, b.y + b.r * 0.45, b.r * 1.01, b.r * 1.01 / 1.15, 0, 0, Math.PI * 2); m.fill();
     }
   }, BW, BH);
@@ -122,6 +134,17 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
       if (v < 0.3 || v > l.breite - 0.3) t = 0.1;
       if (winter && fbm(x * 1.2, y * 1.2, 12) + (fein - 0.5) * 0.15 > 0.52) { f = GRAS[stufe(GRAS.length, 0.75 + (fein - 0.5) * 0.3, px, py)]; a = 4; art[py * BW + px] = a; const i = (py * BW + px) * 4; d[i] = f[0]; d[i + 1] = f[1]; d[i + 2] = f[2]; d[i + 3] = 255; continue; }
       f = DECK[stufe(DECK.length, t, px, py)]; a = 4;
+    } else if (zone && zone.art === "flussbett") {
+      // ausgetrocknetes Flussbett: rissige Lehmschollen (Zellen um zufällige Punkte, Risse an den Grenzen)
+      const g = 1.3, cxg = Math.floor(x / g), cyg = Math.floor(y / g);
+      let d1 = 9, d2 = 9, zelle = 0;
+      for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+        const qx = (cxg + i + hash(cxg + i, cyg + j, 21)) * g, qy = (cyg + j + hash(cxg + i, cyg + j, 22)) * g, dd = Math.hypot(x - qx, y - qy);
+        if (dd < d1) { d2 = d1; d1 = dd; zelle = hash(cxg + i, cyg + j, 23); } else if (dd < d2) d2 = dd;
+      }
+      const riss = (d2 - d1) * S < Math.max(1, S * 0.09);
+      let t = riss ? 0.02 : 0.45 + (zelle - 0.5) * 0.35 + (n - 0.5) * 0.3 + Math.min(0.2, (d2 - d1) * 0.25) + (fein - 0.5) * 0.08;
+      f = FLUSS[stufe(FLUSS.length, t - schatten * 0.18, px, py)]; a = 1;
     } else if (zone && zone.w !== undefined && !zone.art) {
       f = WEG[stufe(WEG.length, 0.4 + n * 0.4, px, py)]; a = 3;
     } else if (wegB(px, py)) {
@@ -146,6 +169,12 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
         const t = vnoise(x * 3, y * 3, 8);
         if (t > 0.62 && fein > 0.35) { f = ERDE[stufe(ERDE.length, (t - 0.62) * 3, px, py)]; a = 5; }
         else f = FAIR[stufe(FAIR.length, 0.75 + (t - 0.5) * 0.4, px, py)], a = 2;
+      } else if (imFair && wueste) {
+        // festgefahrener Sand mit feinen Windrippeln quer zum Wind (leicht schräg zur Bahn)
+        const rip = Math.sin((x * 0.8 + y * 0.45) * 2.1 + vnoise(x / 3, y / 3, 13) * 5);
+        let t = 0.5 + rip * 0.08 + (n - 0.5) * 0.4 - schatten * 0.22;
+        if (zone) t -= 0.3;
+        f = FAIR[stufe(FAIR.length, t, px, py)]; a = 2;
       } else if (imFair) {
         // Mähstreifen in Wurfrichtung (je 2,2 m), weich gedithert
         const band = ((Math.floor((-x * uy + y * ux) / 2.2) % 2) + 2) % 2;
@@ -154,6 +183,10 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
         f = FAIR[stufe(FAIR.length, t, px, py)]; a = 2;
       } else if (zone) {
         f = AUS[stufe(AUS.length, 0.3 + (n - 0.5) * 0.9 + (fein - 0.5) * 0.25 - schatten * 0.18, px, py)]; a = 1;
+      } else if (wueste) {
+        // loser Sand: Dünenwellen (großes Rauschen) mit deutlichen Rippeln, Kämme heller
+        const rip = Math.sin((x * 0.8 + y * 0.45) * 1.6 + vnoise(x / 4, y / 4, 14) * 6);
+        f = GRAS[stufe(GRAS.length, 0.46 + (n - 0.5) * 1.0 + rip * 0.12 + (fein - 0.5) * 0.12 - schatten * 0.2, px, py)]; a = 0;
       } else {
         f = GRAS[stufe(GRAS.length, 0.48 + (n - 0.5) * 0.9 + (fein - 0.5) * 0.25 - schatten * 0.16, px, py)]; a = 0;
       }
@@ -170,7 +203,30 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
     // bei hoher Auflösung sind Büschel und Blumen halb so groß – dafür mehr davon, damit die Wiese gleich dicht wirkt
     const flaeche = (bahn.welt.breite * bahn.welt.hoehe) * Math.pow(typeof AUF === "number" ? AUF : 1, 1.5);
     // Grasbüschel
-    for (let i = 0; i < flaeche * JZ.bueschel; i++) {
+    if (wueste) {
+      // trockene Büsche und Kiesel im Sand
+      const BUSCH = R(JZ.busch);
+      for (let i = 0; i < flaeche * JZ.bueschel; i++) {
+        const px = Math.floor(rnd() * BW), py = Math.floor(rnd() * BH), a = artBei(px, py);
+        if (a !== 0) continue;
+        const r = Math.max(1, Math.round(S * (0.18 + rnd() * 0.22)));
+        for (let k = 0; k < r * 5; k++) {
+          const w = rnd() * Math.PI * 2, dd = rnd() * r;
+          setze(Math.round(px + Math.cos(w) * dd + r * 0.5), Math.round(py + Math.sin(w) * dd + r * 0.6), GRAS[0]);
+        }
+        for (let k = 0; k < r * 6; k++) {
+          const w = rnd() * Math.PI * 2, dd = rnd() * r;
+          setze(Math.round(px + Math.cos(w) * dd), Math.round(py + Math.sin(w) * dd), BUSCH[Math.floor(rnd() * BUSCH.length)]);
+        }
+      }
+      for (let i = 0; i < flaeche * 0.35; i++) {
+        const px = Math.floor(rnd() * BW), py = Math.floor(rnd() * BH), a = artBei(px, py);
+        if (a !== 0 && a !== 2) continue;
+        const F = R(JZ.fels);
+        setze(px + 1, py + 1, GRAS[0]); setze(px, py, F[2 + Math.floor(rnd() * 2)]);
+      }
+    }
+    for (let i = 0; i < (wueste ? 0 : flaeche * JZ.bueschel); i++) {
       const px = Math.floor(rnd() * BW), py = Math.floor(rnd() * BH), a = artBei(px, py);
       if (a !== 0 && a !== 1) continue;
       const P = a ? AUS : GRAS, hell = P[P.length - 1], mittel = P[P.length - 2], dunkel = P[0];
@@ -194,7 +250,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
       }
     }
     // Maulwurfshügel
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < (wueste ? 0 : 6); i++) {
       const px = Math.floor(rnd() * BW), py = Math.floor(rnd() * BH);
       if (artBei(px, py) !== 0) continue;
       const r = Math.max(2, Math.round(0.35 * S));
@@ -237,7 +293,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
     pk.forEach((a, i) => {
       const b = pk[(i + 1) % pk.length];
       if (o.linie && i === pk.length - 1) return;
-      if (o.art === "natur") return;
+      if (o.art === "natur" || o.art === "flussbett") return; // Grenze ist das Gelände selbst
       if ((am(a[0], bahn.welt.breite) && a[0] === b[0]) || (am(a[1], bahn.welt.hoehe) && a[1] === b[1])) return;
       const len = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.ceil(len * S);
       for (let k = 0; k <= n; k++) {
@@ -352,7 +408,9 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   // Laubbaum: Krone aus mehreren Blättergruppen, jede mit Kontur, Grund, Mitte, Licht
   for (const b of baeume) {
     const r = b.r * S, cx = b.x * S, cy = b.y * S, rr = zufall(Math.round(b.x * 100 + b.y * 7)), LB = b.farben, KI = b.farben;
-    if (b.kahl) {
+    if (b.art === "kaktus") zeichneKaktus(c, cx, cy, r, LB, rr, zr);
+    else if (b.art === "fels") zeichneFels(c, cx, cy, r, LB, rr, zr, S);
+    else if (b.kahl) {
       // Winter: kahle Krone aus Ästen, Schatten als Äste auf dem Schnee, Schnee auf der Lichtseite
       const aeste = [];
       const ast = (x, y, w, len, tiefe) => {
@@ -420,10 +478,60 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   zeichneMando(c, z);
   // für das fallende Laub (zeichneLaubfall): Laubbäume mit ihren Farben
   // für Blätter, die beim Treffer aus der Krone fliegen (blattFarbenAn): jeder Baum mit seinen Farben
-  hg.baumFarben = baeume.map(({ x, y, r, farben, kiefer, kahl }) => ({ x, y, r, farben, kiefer, kahl }));
+  hg.baumFarben = baeume.map(({ x, y, r, farben, kiefer, kahl, art }) => ({ x, y, r, farben, kiefer, kahl, art }));
   if (JZ.laubfall) { hg.laubBaeume = baeume.filter(b => !b.kiefer && !b.kahl).map(({ x, y, r, farben }) => ({ x, y, r, farben })); hg.laubBahn = bahn; }
   return hg;
 };
+
+// ---------- Wüste: Kaktus und Fels von oben (Licht von links oben) ----------
+// Kaktus (Saguaro von oben): runder Stamm mit Rippen und Stacheln, dazu zwei bis drei Arme
+function zeichneKaktus(c, cx, cy, r, F, rr, zr) {
+  const arme = [], anz = 2 + Math.floor(rr() * 2);
+  for (let i = 0; i < anz; i++) {
+    const w = rr() * Math.PI * 2, d = r * (0.75 + rr() * 0.2);
+    arme.push({ x: cx + Math.cos(w) * d, y: cy + Math.sin(w) * d, r: r * (0.32 + rr() * 0.1), w });
+  }
+  // Arme: Verbindung zum Stamm, dann Armspitze
+  for (const a of arme) {
+    c.strokeStyle = F[0]; c.lineWidth = Math.max(2, a.r * 1.5 + 2 * zr); c.lineCap = "round";
+    c.beginPath(); c.moveTo(cx, cy); c.lineTo(a.x, a.y); c.stroke();
+    c.strokeStyle = F[1]; c.lineWidth = Math.max(1, a.r * 1.5);
+    c.beginPath(); c.moveTo(cx, cy); c.lineTo(a.x, a.y); c.stroke();
+    pixelKreis(c, a.x, a.y, a.r + zr, F[0]); pixelKreis(c, a.x, a.y, a.r, F[2]); pixelKreis(c, a.x - a.r * 0.3, a.y - a.r * 0.3, a.r * 0.45, F[3]);
+  }
+  const rs = r * 0.62;
+  pixelKreis(c, cx, cy, rs + zr, F[0]);
+  pixelKreis(c, cx, cy, rs, F[1]);
+  pixelKreis(c, cx - rs * 0.15, cy - rs * 0.18, rs * 0.78, F[2]);
+  pixelKreis(c, cx - rs * 0.35, cy - rs * 0.4, rs * 0.35, F[3]);
+  // Rippen strahlenförmig, Stacheln als helle Punkte
+  const rip = 8;
+  for (let i = 0; i < rip; i++) {
+    const w = i / rip * Math.PI * 2;
+    for (let d = rs * 0.25; d < rs; d += 1) { c.fillStyle = F[0]; c.fillRect(Math.round(cx + Math.cos(w) * d), Math.round(cy + Math.sin(w) * d), 1, 1); }
+    c.fillStyle = F[4]; c.fillRect(Math.round(cx + Math.cos(w + 0.3) * rs * 0.7), Math.round(cy + Math.sin(w + 0.3) * rs * 0.7), 1, 1);
+  }
+  // manchmal eine Blüte oben
+  if (rr() < 0.35) { pixelKreis(c, cx - rs * 0.1, cy - rs * 0.1, Math.max(1, rs * 0.22), "#e8507a"); c.fillStyle = "#ffe066"; c.fillRect(Math.round(cx - rs * 0.1), Math.round(cy - rs * 0.1), 1, 1); }
+}
+// Fels: unregelmäßiger Umriss, oben links hell, rechts unten dunkel, ein paar Risse
+function zeichneFels(c, cx, cy, r, F, rr, zr, S) {
+  const n = 9, pk = [];
+  for (let i = 0; i < n; i++) { const w = i / n * Math.PI * 2 + rr() * 0.3, d = r * (0.75 + rr() * 0.3); pk.push([cx + Math.cos(w) * d, cy + Math.sin(w) * d * 0.85]); }
+  const flaeche = (ox, oy, k, f) => { c.fillStyle = f; c.beginPath(); pk.forEach(([x, y], i) => { const px = cx + (x - cx) * k + ox, py = cy + (y - cy) * k + oy; i ? c.lineTo(px, py) : c.moveTo(px, py); }); c.closePath(); c.fill(); };
+  flaeche(0, 0, 1.06, F[0]);
+  flaeche(0, 0, 1, F[1]);
+  flaeche(-r * 0.12, -r * 0.14, 0.78, F[2]);
+  flaeche(-r * 0.3, -r * 0.32, 0.42, F[3]);
+  c.fillStyle = F[4];
+  for (let i = 0; i < r * 0.8; i++) c.fillRect(Math.round(cx - r * 0.45 + rr() * r * 0.5), Math.round(cy - r * 0.5 + rr() * r * 0.4), 1, 1);
+  // Risse
+  c.fillStyle = F[0];
+  for (let k = 0; k < 2; k++) {
+    let x = cx + (rr() - 0.5) * r * 0.6, y = cy + (rr() - 0.5) * r * 0.5, w = rr() * Math.PI * 2;
+    for (let i = 0; i < r * 0.7; i++) { c.fillRect(Math.round(x), Math.round(y), 1, 1); w += (rr() - 0.5) * 0.8; x += Math.cos(w); y += Math.sin(w); }
+  }
+}
 
 // ---------- Fallendes Laub (Herbst): kleine Animation über dem Bahnbild ----------
 // Blätter lösen sich aus den Kronen, trudeln mit dem Wind zu Boden (Schatten kommt ihnen entgegen),
@@ -515,6 +623,35 @@ window.JAHRESZEITEN = {
   },
 };
 
+// Themen-Optiken der Wochenbahnen (keine Jahreszeit, gelten immer für ihre Bahn)
+JAHRESZEITEN.wueste = {
+  wueste: true,
+  gras: ["#9c6a38", "#b27c42", "#c68e4e", "#d6a05c", "#e2b26e", "#eec488"], // loser Sand
+  aus: ["#7e5230", "#925f36", "#a46c3e", "#b47a48", "#c28852", "#ce965e"],
+  fair: ["#b48a56", "#c49a62", "#d2a86e", "#deb67c", "#e8c48c", "#f2d4a0"], // festgefahrener Sand
+  weg: ["#6a5440", "#806650", "#967a60", "#aa8e72", "#bca284", "#ccb496"],
+  erde: ["#8a5c34", "#a06c3c", "#b67e48"],
+  flussbett: ["#4e3220", "#6a4428", "#7e5432", "#92643c", "#a47448", "#b48456"], // rissiger Lehm
+  laubbaum: h => h < 0.5 ? ["#1c3a20", "#2c5a2e", "#3e7638", "#5a9248", "#e8e0b0"] : ["#1e3a26", "#2e5634", "#427040", "#60904e", "#f0e8c0"],
+  kiefer: ["#1c3a20", "#2c5a2e", "#3e7638", "#5a9248", "#e8e0b0"],
+  fels: ["#4a3426", "#6e5038", "#8e6c4c", "#ac8a66", "#c8a884"],
+  busch: ["#6a6230", "#7e7438", "#948a48", "#5a4a2a"],
+  himmel: ["#3a8ed8", "#5aa6e0", "#84bee6", "#b6d6e8", "#f0dcb4"],
+  blumen: { dichte: 0, farben: [] },
+  klee: false, bueschel: 0.08, laub: null,
+};
+
+// Optiken, die eine Wochenbahn als Daten mitbringt (optikDaten in wochenbahnen.js): so braucht ein neues Thema
+// kein Release, solange es vorhandene Zeichenarten nutzt. basis = Optik, deren übrige Werte gelten;
+// laubbaum darf eine Farbliste sein (statt Funktion), wueste: true schaltet Sand, Kakteen und Felsen ein.
+for (const e of window.WOCHENBAHNEN || []) {
+  const d = e && e.optikDaten;
+  if (!d || !e.optik || JAHRESZEITEN[e.optik]) continue;
+  const o = Object.assign({}, JAHRESZEITEN[d.basis] || JAHRESZEITEN.sommer, d);
+  if (Array.isArray(o.laubbaum)) { const f = o.laubbaum; o.laubbaum = () => f; }
+  JAHRESZEITEN[e.optik] = o;
+}
+
 // Ziffern 3×5 für das Bahnschild
 const ZIFFERN = {
   0: ["111", "101", "101", "101", "111"], 1: ["010", "110", "010", "010", "111"], 2: ["111", "001", "111", "100", "111"],
@@ -543,7 +680,7 @@ window.zeichnePuttSzene = function (c, jz, bx, by, bw, bh) {
 };
 
 function puttSzeneMalen(jz, bw, bh) {
-  const JZ = JAHRESZEITEN[jz] || JAHRESZEITEN.sommer, winter = !!JZ.schnee;
+  const JZ = JAHRESZEITEN[jz] || JAHRESZEITEN.sommer, winter = !!JZ.schnee, wueste = !!JZ.wueste;
   const cv = document.createElement("canvas"); cv.width = bw; cv.height = bh;
   const c = cv.getContext("2d"), rnd = zufall(42), hor = PUTT_HORIZONT;
   const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], bay = (x, y) => (BAYER[(y & 3) * 4 + (x & 3)] + 0.5) / 16;
@@ -557,12 +694,12 @@ function puttSzeneMalen(jz, bw, bh) {
     sommer: ["#2f8ee0", "#4aa6ec", "#6cbcf2", "#94d0f6"],
     herbst: ["#6a9cc8", "#86b0d4", "#a6c4dc", "#c8d8e2"],
     winter: ["#9aaec4", "#b4c4d4", "#ccd6e0", "#e2e8ee"],
-  }[jz] || ["#2f8ee0", "#4aa6ec", "#6cbcf2", "#94d0f6"];
+  }[jz] || JZ.himmel || ["#2f8ee0", "#4aa6ec", "#6cbcf2", "#94d0f6"];
   for (let y = 0; y < hor; y++) for (let x = 0; x < bw; x++) {
     const f = (y / hor) * (HIMMEL.length - 1); let i = Math.floor(f); if (f - i > bay(x, y)) i++;
     punkt(x, y, HIMMEL[Math.min(HIMMEL.length - 1, i)]);
   }
-  if (jz === "sommer" || jz === "fruehling") {
+  if (jz === "sommer" || jz === "fruehling" || wueste) {
     pixelKreis(c, bw - 24, 18, 9, "#fff2a8"); pixelKreis(c, bw - 24, 18, 7, "#ffe066"); pixelKreis(c, bw - 26, 16, 3, "#fff6c8");
   }
   const wolke = (x, y, w, hell, dunkel) => {
@@ -570,11 +707,13 @@ function puttSzeneMalen(jz, bw, bh) {
     c.fillStyle = dunkel; c.fillRect(Math.round(x - 4), Math.round(y + 3), w + 8, 2);
     c.fillStyle = hell; c.fillRect(Math.round(x - 5), Math.round(y + 1), w + 10, 2);
   };
-  const wolken = { fruehling: 3, sommer: 2, herbst: 4, winter: 5 }[jz] || 2;
+  const wolken = { fruehling: 3, sommer: 2, herbst: 4, winter: 5, wueste: 1 }[jz] ?? 2;
   for (let i = 0; i < wolken; i++) {
     const w = 18 + Math.floor(rnd() * 22), x = 6 + rnd() * (bw - w - 12), y = 12 + rnd() * 40;
     wolke(x, y, w, winter ? "#eef2f6" : "#ffffff", winter ? "#c4ccd6" : jz === "herbst" ? "#b8c4cc" : "#d8e8f2");
   }
+
+  if (wueste) { wuestenSzene(c, JZ, HIMMEL, bw, bh, hor, rnd, bay, punkt, misch); return cv; }
 
   // ---- Baumreihen am Horizont ----
   const laubFarben = i => JZ.laubbaum(((i * 0.37) % 1 + 1) % 1);
@@ -659,6 +798,50 @@ function puttSzeneMalen(jz, bw, bh) {
     }
   }
   return cv;
+}
+
+// Wüste in der Putt-Ansicht: Dünen und Tafelberge am Horizont, Saguaros, Sand mit Rippeln
+function wuestenSzene(c, JZ, HIMMEL, bw, bh, hor, rnd, bay, punkt, misch) {
+  const F = JZ.fair, G = JZ.gras, FE = JZ.fels;
+  // Tafelberge weit hinten (blass)
+  for (const [x0, w, h] of [[8, 38, 16], [bw - 52, 46, 22]]) {
+    for (let x = x0; x < x0 + w; x++) {
+      const rand = Math.min(x - x0, x0 + w - x), hh = Math.min(h, rand * 1.6);
+      for (let y = hor - hh; y < hor; y++) punkt(x, y, misch(y < hor - hh + 2 ? FE[3] : FE[2], HIMMEL[3], 0.5));
+    }
+  }
+  // Dünen: zwei Reihen weicher Hügel
+  for (const [hoehe, farbe, ph] of [[10, misch(G[3], HIMMEL[3], 0.35), 0.7], [6, G[2], 2.1]]) {
+    for (let x = 0; x < bw; x++) {
+      const hh = Math.round(hoehe * (0.55 + 0.45 * Math.sin(x / 17 + ph) * Math.sin(x / 7.3 + ph * 2)));
+      for (let y = hor - Math.max(1, hh); y <= hor; y++) punkt(x, y, farbe);
+      punkt(x, hor - Math.max(1, hh), G[4]);
+    }
+  }
+  // Sand vorne: Rippel in Perspektive (nach vorne breiter)
+  for (let y = hor + 1; y < bh; y++) for (let x = 0; x < bw; x++) {
+    const tiefe = (y - hor) / (bh - hor), rip = Math.sin(y * (1.6 - tiefe) + Math.sin(x / 13) * 1.5);
+    const t = 0.4 + tiefe * 0.2 + rip * 0.12 + (rnd() - 0.5) * 0.12;
+    const f = t * (F.length - 1); let i = Math.floor(f); if (f - i > bay(x, y)) i++;
+    punkt(x, y, F[Math.max(0, Math.min(F.length - 1, i))]);
+  }
+  // Saguaros: Stamm mit Armen, Licht links
+  const K = JZ.laubbaum(0.2);
+  for (const [x, h, gross] of [[14, 30, 1], [44, 16, 0], [bw - 22, 34, 1], [bw - 50, 14, 0]]) {
+    const fuss = gross ? hor + 14 : hor + 3, br = gross ? 5 : 3;
+    const saeule = (sx, y0, y1, b) => { for (let y = y0; y < y1; y++) for (let k = 0; k < b; k++) punkt(sx + k, y, k === 0 ? K[3] : k === b - 1 ? K[0] : (k + y) % 3 ? K[2] : K[1]); };
+    saeule(x, fuss - h, fuss, br);
+    const ah = Math.round(h * 0.45), ax = br + 2;
+    saeule(x - ax, fuss - h * 0.75, fuss - h * 0.75 + ah, br - 1); for (let k = 0; k < ax; k++) punkt(x - ax + k, fuss - h * 0.75 + ah, K[1]);
+    saeule(x + br + 1, fuss - h * 0.85, fuss - h * 0.85 + ah * 0.8, br - 1); for (let k = 0; k < 2; k++) punkt(x + br + k, fuss - h * 0.85 + ah * 0.8, K[1]);
+    for (let k = -2; k < br + 4; k++) if (bay(x + k, fuss) < 0.6) punkt(x + k + 1, fuss, G[0]);
+  }
+  // Steine und trockene Büsche
+  for (let i = 0; i < 40; i++) {
+    const y = hor + 3 + Math.floor(rnd() * (bh - hor - 4)), x = Math.floor(rnd() * bw), g = y > hor + 25 ? 2 : 1;
+    if (rnd() < 0.5) { punkt(x, y, FE[1]); if (g > 1) { punkt(x + 1, y, FE[2]); punkt(x, y - 1, FE[3]); } }
+    else { const B = JZ.busch; punkt(x, y, B[0]); punkt(x - 1, y - g, B[2]); punkt(x + 1, y - g, B[1]); if (g > 1) punkt(x, y - 2 * g + 1, B[2]); }
+  }
 }
 
 // Fallende Blätter in der Putt-Ansicht (nur Herbst): lösen sich aus der Baumreihe, trudeln mit dem Wind
@@ -783,13 +966,15 @@ window.zeichneKorbObenDetail = function (c, x, y, dx, z, winter, auf = 1) {
 };
 
 // Farben [hell, dunkel] der Blätter, die beim Treffer an der Stelle (Meter) aus der Krone fliegen:
-// die des getroffenen Baums; kahle Bäume im Winter stäuben Schnee. null = klassische Grafik
+// die des getroffenen Baums; kahle Bäume im Winter stäuben Schnee, Felsen splittern. null = kein Bahnbild
 window.blattFarbenAn = function (bild, x, y) {
   const liste = bild && bild.baumFarben;
   if (!liste || !liste.length) return null;
   let best = null, bd = Infinity;
   for (const b of liste) { const d = Math.hypot(b.x - x, b.y - y) - b.r; if (d < bd) { bd = d; best = b; } }
   if (best.kahl) return ["#f4f8ff", "#c4d0e2"];
+  if (best.art === "fels") return [best.farben[3], best.farben[1]]; // Steinsplitter
+  if (best.art === "kaktus") return [best.farben[3], best.farben[1]];
   const f = best.farben;
   return best.kiefer ? [f[3], f[1]] : f.bluete ? [f[4], f[2]] : [f[3], f[1]];
 };

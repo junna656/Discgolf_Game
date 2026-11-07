@@ -1,6 +1,6 @@
-// Rendert Vorher/Nachher-Bilder einer Bahn: klassisch (zeichneHintergrund) und Detailgrafik (grafik.js) je Jahreszeit.
+// Rendert Bilder einer Bahn mit der Detailgrafik (grafik.js) je Jahreszeit bzw. Themen-Optik.
 // Aufruf: node werkzeuge/grafik_vorschau.mjs [bahnnummer] [zielordner]
-// Ergebnis: <ziel>/grafik_bahn<n>_{vorher,fruehling,sommer,herbst,winter}_z{1,3}.png (Pixel 1:1)
+// Ergebnis: <ziel>/grafik_bahn<n>_{fruehling,sommer,herbst,winter,wueste}_z{1,3}.png (Pixel 1:1)
 import { createRequire } from "module";
 import { fileURLToPath, pathToFileURL } from "url";
 import path from "path";
@@ -21,7 +21,7 @@ for (const z of [1, 3]) {
   const bilder = await seite.evaluate(([nr, z]) => {
     setzeBahn(BAHNEN.find(b => b.nummer === nr));
     const alt = S; S = S0 * z;
-    const bilder = { vorher: zeichneHintergrund(z).toDataURL() };
+    const bilder = {};
     for (const jahreszeit of Object.keys(JAHRESZEITEN)) bilder[jahreszeit] = zeichneHintergrundDetail(z, { jahreszeit }).toDataURL();
     S = alt;
     return bilder;

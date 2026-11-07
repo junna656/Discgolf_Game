@@ -330,9 +330,9 @@ function mpZeigeLobby() {
   if (host) {
     el("mp-kurs").innerHTML = KURSE.map((k, i) => `<option value="${i}" ${k === kurs ? "selected" : ""}>${mpText(k.name)}</option>`).join("");
     const alt = el("mp-runde").value;
-    el("mp-runde").innerHTML = `<option value="0">Ganze Runde (${kurs.bahnen.length} Bahnen)</option>` +
-      kurs.bahnen.map((b, i) => `<option value="${i + 1}">Nur Bahn ${b.nummer}</option>`).join("");
-    if (alt) el("mp-runde").value = alt;
+    el("mp-runde").innerHTML = `<option value="0">Ganze Runde (${kurs.bahnen.length} ${kurs.bahnen.length === 1 ? "Bahn" : "Bahnen"})</option>` +
+      (kurs.woche ? "" : kurs.bahnen.map((b, i) => `<option value="${i + 1}">Nur Bahn ${b.nummer}</option>`).join(""));
+    if (alt && [...el("mp-runde").options].some(o => o.value === alt)) el("mp-runde").value = alt;
     const alleGewaehlt = r.mitglieder.every(m => m.platz), anzahl = mpTeilnehmer().length;
     el("mp-start").disabled = !alleGewaehlt || !anzahl || !(ich && ich.platz);
     el("mp-start").textContent = !(ich && ich.platz) ? "Erst eine Figur wählen" : !alleGewaehlt ? "Warten, bis alle gewählt haben" : `Spiel starten (${anzahl} Spieler)`;

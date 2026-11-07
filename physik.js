@@ -4,7 +4,7 @@
   const DEG = Math.PI / 180;
 
   // Zufall: im Spiel Math.random; mit setzeZufall(erzeugeZufall(startwert)) wiederholbar
-  // (gleiche Würfe bei gleichem Startwert – für Tests, Multiplayer und die GBA-Version).
+  // (gleiche Würfe bei gleichem Startwert – für Tests und Multiplayer).
   // erzeugeZufall ist mulberry32 und muss Bit für Bit mit der C++-Version übereinstimmen.
   function erzeugeZufall(startwert) {
     let a = startwert >>> 0;
