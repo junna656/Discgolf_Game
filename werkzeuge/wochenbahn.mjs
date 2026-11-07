@@ -308,8 +308,9 @@ function baueBahn(T, { woche, thema, seed, nr, parErzwungen, belegteNamen }) {
     const zn = typN.some(n => !belegteNamen.has(n)) ? typN.filter(n => !belegteNamen.has(n)).length : kandidaten.length;
     const name = kandidaten[Math.floor(z() * zn)] || T.namen.find(n => !belegteNamen.has(n));
     belegteNamen.add(name);
-    // für Abwechslung: Bahn zufällig waagerecht und/oder senkrecht spiegeln (eigener Zufall)
-    const zs = zufall(hashText(`${woche}|${thema}|${seed}|${nr}|spiegeln`)), sx = zs() < 0.5 && !teile.keinXSpiegeln, sy = zs() < 0.5;
+    // für Abwechslung: Bahn zufällig senkrecht spiegeln (eigener Zufall). Nie waagerecht: Gespielt wird immer
+    // von links nach rechts (hochkant: von unten nach oben) – wechselnde Richtungen verwirren.
+    const zs = zufall(hashText(`${woche}|${thema}|${seed}|${nr}|spiegeln`)), sx = (zs(), false), sy = zs() < 0.5;
     const W = g.welt.breite, Hh = g.welt.hoehe, fx = x => r1(sx ? W - x : x), fy = y => r1(sy ? Hh - y : y);
     const P = p => ({ ...p, x: fx(p.x), y: fy(p.y) }), L2 = pk => pk.map(([x, y]) => [fx(x), fy(y)]);
     g.abwurf = P(g.abwurf); g.korb = P(g.korb); g.fairway = L2(g.fairway);

@@ -32,7 +32,8 @@ node werkzeuge/grafik_vorschau.mjs                                # (Bilder eine
 
 - Bahntypen der Wüste (zufällig, gewichtet): **quer** (Flussbett quer über die Bahn), **insel** (Korb auf einer Insel
   im Flussbett), **schlucht** (enger Gang zwischen zwei Felswänden), **mando** (Lücke in einem Felsriegel, Mando-Linie),
-  **offen** (Kakteenfeld). Dazu Doglegs links/rechts, zufällige Spiegelung und wechselnde Dichte.
+  **offen** (Kakteenfeld). Dazu Doglegs links/rechts, zufälliges senkrechtes Spiegeln und wechselnde Dichte. Gespielt wird immer von links
+  nach rechts (hochkant: von unten nach oben), nie waagerecht gespiegelt.
 - Felsen haben `fest: true`: Die Scheibe prallt immer ab (nie bremsen/durchfliegen), rutscht nicht hinein und bleibt
   nie auf einem Fels liegen. Felswände sind Mauern mit `art: "felswand"`, `h: 30` (nicht zu überfliegen), `breite`
   und `seite` (Felsband liegt außen); in der Schlucht mit `bisRand: true`: die Wandlinie läuft von Rand zu Rand,
