@@ -1645,8 +1645,24 @@ function passendeStufe() {
   const bw = Math.max(...q.map(p => p.x)) - Math.min(...q.map(p => p.x)) + 2 * rand;
   const bh = Math.max(...q.map(p => p.y)) - Math.min(...q.map(p => p.y)) + 2 * rand;
   const passt = Math.min(SW / bw, SH / bh);
-  return STUFEN.filter(z => z <= passt && z <= E.zoomStufe + 0.01).pop() || 1;
+  const stufeFuer = p => STUFEN.filter(z => z <= p && z <= E.zoomStufe + 0.01).pop() || 1;
+  const roh = stufeFuer(passt);
+  // Hysterese: Die Stufe hängt von der Zielrichtung ab, und ein Stufenwechsel verschiebt das Bild unter der
+  // Maus (= neue Zielrichtung). Ohne Puffer springt der Zoom dann hin und her. Darum während desselben Wurfs:
+  // näher heran erst, wenn es mit 20 % Luft passt; weiter weg erst, wenn es um mehr als 12 % nicht mehr passt;
+  // und nach einem Wechsel 0,7 s keine weitere Änderung.
+  const zug = aktiv + ":" + s.wuerfe + ":" + (puttModus ? 1 : 0), alt = zoomMerker.zug === zug ? zoomMerker.z : null;
+  let z = roh;
+  if (alt !== null && roh !== alt) {
+    if (uhr - zoomMerker.seit < 0.7) z = alt;
+    else if (roh > alt) z = Math.max(alt, stufeFuer(passt / 1.2));
+    else z = alt <= passt * 1.12 ? alt : roh;
+  }
+  if (z !== alt) zoomMerker.seit = uhr;
+  zoomMerker.zug = zug; zoomMerker.z = z;
+  return z;
 }
+const zoomMerker = { zug: "", z: null, seit: -1 };
 function mitteVon(punkte, z) {
   const q = punkte.map(p => projiziere(p, z));
   return { x: (Math.min(...q.map(p => p.x)) + Math.max(...q.map(p => p.x))) / 2, y: (Math.min(...q.map(p => p.y)) + Math.max(...q.map(p => p.y))) / 2 };
