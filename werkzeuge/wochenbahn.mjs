@@ -184,7 +184,8 @@ const THEMEN = {
         keinXSpiegeln = true; // „ab“ gilt nur nach rechts
         if (z() < 0.35) flussbetten.push(laengs());
       } else if (typ === "schlucht") {
-        // zwei Felswände links und rechts der Linie; dazwischen ein Gang von 9–15 m
+        // zwei Felswände links und rechts der Linie; dazwischen ein Gang von 9–15 m. Der Fels reicht auf
+        // beiden Seiten bis zum Spielfeldrand (an den Enden schließen Wände bis zum Rand ab) – kein Weg außen herum
         const t0 = 0.18 + z() * 0.12, t1 = Math.min(0.8, t0 + 0.38 + z() * 0.22), halb = 4.5 + z() * 3;
         for (const sei of [1, -1]) {
           const punkte = [];
@@ -192,9 +193,14 @@ const THEMEN = {
             const p = P(t), w = halb + Math.sin(t * 17 + sei) * 1.2 + (z() - 0.5) * 1.2;
             punkte.push([r1(p.x - p.uy * w * sei), r1(p.y + p.ux * w * sei)]);
           }
-          mauern.push({ art: "felswand", punkte, h: 30, breite: r1(5 + z() * 4), seite: sei });
+          // Richtung zum Rand: die Achse, die der Außenseite in der Mitte der Schlucht am nächsten liegt
+          const m = P((t0 + t1) / 2), ox = -m.uy * sei, oy = m.ux * sei, W = g.welt.breite, Hh = g.welt.hoehe;
+          const zumRand = Math.abs(ox) > Math.abs(oy) ? ([x, y]) => [ox > 0 ? W + 3 : -3, y] : ([x, y]) => [x, oy > 0 ? Hh + 3 : -3];
+          const linieBisRand = [zumRand(punkte[0]), ...punkte, zumRand(punkte[punkte.length - 1])].map(([x, y]) => [r1(x), r1(y)]);
+          mauern.push({ art: "felswand", punkte: linieBisRand, h: 30, breite: 4, seite: sei, bisRand: true });
         }
-        if (z() < 0.3) flussbetten.push(laengs());
+        // Abwurf und Korb dürfen nicht im Fels liegen und brauchen Platz davor
+        if (mauern.some(m => imPolygon(abwurf, m.punkte) || imPolygon(korb, m.punkte) || abstandZurLinie(abwurf, m.punkte) < 6 || abstandZurLinie(korb, m.punkte) < 11)) return null;
       } else if (typ === "mando") {
         // zwei große Felsen mit Lücke von 6–9 m; die Scheibe muss hindurch
         const t = 0.35 + z() * 0.25, p = P(t), luecke = 6 + z() * 3, versatz = (z() - 0.5) * 3;
@@ -223,7 +229,7 @@ const THEMEN = {
       const imFluss = p => flussbetten.some(fb => imPolygon(p, fb)) || ob.some(o => o.insel && p.x >= o.ab && !imPolygon(p, o.insel));
       const flussNah = (p, d) => flussbetten.some(fb => imPolygon(p, fb) || abstandZurLinie(p, [...fb, fb[0]]) < d);
       if (flussNah(abwurf, 8) || flussNah(korb, 14)) return null;
-      const anWand = (p, r) => mauern.some(m => abstandZurLinie(p, m.punkte) < r + m.breite + 1);
+      const anWand = (p, r) => mauern.some(m => (m.bisRand && imPolygon(p, m.punkte)) || abstandZurLinie(p, m.punkte) < r + (m.bisRand ? 1 : m.breite + 1));
 
       // Kakteen und Felsen: am Rand dicht, im Fairway nur einzelne „im Spiel“
       const frei = (o, liste) => {

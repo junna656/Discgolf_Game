@@ -782,6 +782,7 @@ function zeichneBauten(c, z) {
 function zeichneFelswand(c, m, z) {
   const zr = Math.max(1, Math.round(z)), F = (JAHRESZEITEN[aktuelleJahreszeit()] || {}).fels || ["#4a3426", "#6e5038", "#8e6c4c", "#ac8a66", "#c8a884"];
   const pk = m.punkte, br = m.breite || 3, sei = m.seite || 1;
+  if (m.bisRand) { zeichneFelsmasse(c, m, z, F); return; }
   const aussen = pk.map((p, i) => {
     const a = pk[Math.max(0, i - 1)], b = pk[Math.min(pk.length - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
     const w = br * (0.85 + 0.3 * Math.abs(Math.sin(i * 1.7 + pk.length)));
@@ -806,6 +807,26 @@ function zeichneFelswand(c, m, z) {
   }
   c.restore();
   // Felskante zur Bahn hin: dunkle Linie mit hellen Lichtpunkten
+  c.strokeStyle = F[0]; c.lineWidth = Math.max(1, zr * 1.5); c.lineJoin = "round"; c.beginPath();
+  pk.forEach(([x, y], i) => i ? c.lineTo(x * S, y * S) : c.moveTo(x * S, y * S)); c.stroke();
+}
+// Felsmasse bis zum Spielfeldrand (m.bisRand): die Wandlinie läuft von Rand zu Rand, die Fläche dazwischen ist Fels
+function zeichneFelsmasse(c, m, z, F) {
+  const zr = Math.max(1, Math.round(z)), pk = m.punkte;
+  const pfad = (ox = 0, oy = 0) => { c.beginPath(); pk.forEach(([x, y], i) => i ? c.lineTo(x * S + ox, y * S + oy) : c.moveTo(x * S + ox, y * S + oy)); c.closePath(); };
+  c.fillStyle = "rgba(40,20,0,.38)"; pfad(0.7 * S, 0.9 * S); c.fill(); // Schatten auf den Schluchtboden
+  c.fillStyle = F[1]; pfad(); c.fill();
+  c.save(); pfad(); c.clip();
+  const xs = pk.map(p => p[0]), ys = pk.map(p => p[1]), x0 = Math.min(...xs), y0 = Math.min(...ys), bw = Math.max(...xs) - x0, bh = Math.max(...ys) - y0;
+  const rr = zufall(Math.round(pk[1][0] * 31 + pk[1][1] * 17));
+  // große Blöcke innen, kleinere Brocken; Licht von links oben
+  for (let i = 0; i < bw * bh * 0.32; i++) {
+    const x = x0 + rr() * bw, y = y0 + rr() * bh;
+    if (!imPolygon(x, y, pk)) continue;
+    const r = (0.6 + rr() * 1.4) * S, px = x * S, py = y * S;
+    pixelKreis(c, px, py, r, F[0]); pixelKreis(c, px - r * 0.15, py - r * 0.15, r * 0.8, F[2]); pixelKreis(c, px - r * 0.35, py - r * 0.35, r * 0.35, F[3]);
+  }
+  c.restore();
   c.strokeStyle = F[0]; c.lineWidth = Math.max(1, zr * 1.5); c.lineJoin = "round"; c.beginPath();
   pk.forEach(([x, y], i) => i ? c.lineTo(x * S, y * S) : c.moveTo(x * S, y * S)); c.stroke();
 }
