@@ -220,6 +220,41 @@
     body[data-ansicht="feld"] #winkelbox .knoepfe, body[data-ansicht="feld"] #puttbox .knoepfe { flex-wrap: wrap; }
     body[data-ansicht="feld"] #winkelbox .knoepfe button, body[data-ansicht="feld"] #puttbox .knoepfe button { flex: 1 1 100%; padding: 14px 4px; }
   }
+  /* Abschlussscreen nach einer ganzen Runde */
+  .abschluss { max-width: 760px; }
+  .abschluss .titel { font-size: 28px; margin: 0; }
+  .ab-platz { display: grid; grid-template-columns: auto 44px 1fr auto; gap: 4px 10px; align-items: center; border: 2px solid var(--rand); border-left: 6px solid var(--farbe); background: #1a2029; padding: 8px 10px; }
+  .ab-platz.erster { border-color: #ffd84a; border-left-color: var(--farbe); background: #2a2a1a; }
+  .ab-platz .rang { font-size: 18px; color: #ffe08a; min-width: 26px; text-align: center; }
+  .ab-platz canvas.mini { width: 44px; height: 44px; border: 2px solid var(--rand); aspect-ratio: auto; cursor: default; }
+  .ab-platz .aname { font-size: 15px; color: var(--farbe); }
+  .ab-platz .aname small { display: block; font-size: 10px; color: var(--leise); margin-top: 3px; }
+  .ab-platz .aname .best { color: #ffe08a; }
+  .ab-platz .agesamt { text-align: right; font-size: 18px; }
+  .ab-platz .agesamt small { display: block; font-size: 11px; color: var(--leise); }
+  .ab-karte { overflow-x: auto; }
+  .ab-karte table { border-collapse: collapse; margin: 0 auto; font-size: 12px; }
+  .ab-karte th, .ab-karte td { padding: 3px 2px; text-align: center; min-width: 26px; }
+  .ab-karte th { color: var(--leise); font-weight: 400; font-size: 10px; }
+  .ab-karte .pname { text-align: left; padding-right: 8px; white-space: nowrap; }
+  .ab-karte .par td, .ab-karte td.par { color: var(--leise); }
+  .ab-karte .summe { border-left: 2px solid var(--rand); padding-left: 6px; font-weight: 700; }
+  .ab-karte tr.fuss td { border-top: 2px solid var(--rand); border-left: 0; font-weight: 700; }
+  .ab-karte tbody tr:nth-child(even) { background: rgba(255,255,255,.04); }
+  .ab-karte .w { display: inline-block; width: 20px; height: 20px; line-height: 20px; box-sizing: border-box; }
+  .w.ass { background: #ffd84a; color: #1a1400; border-radius: 50%; }
+  .w.eagle { border: 2px solid #9be07a; border-radius: 50%; box-shadow: 0 0 0 2px #9be07a; line-height: 16px; }
+  .w.birdie { border: 2px solid #9be07a; border-radius: 50%; line-height: 16px; }
+  .w.bogey { border: 2px solid #ff9a5a; line-height: 16px; }
+  .w.doppel { background: #c8453a; }
+  .ab-legende { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 12px; margin: 8px 0 0; }
+  .ab-legende span { display: inline-flex; align-items: center; gap: 4px; }
+  .ab-legende .w { width: 14px; height: 14px; line-height: 10px; font-size: 0; }
+  .ab-legende .w.ass, .ab-legende .w.doppel { line-height: 14px; }
+  .ab-knoepfe { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .ab-knoepfe .gross { text-align: center; font-size: 14px; padding: 12px 8px; }
+  .ab-knoepfe #ab-neu { background: #35502f; border-color: var(--akzent); }
+  @media (max-width: 600px) { .ab-knoepfe { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body data-ansicht="feld">
@@ -254,6 +289,7 @@
         <li><b>Wochenkurs:</b> Jede Woche gibt es einen neuen, zufällig erzeugten Kurs mit eigenem Thema (z. B. Wüste mit Kakteen, Felsen und ausgetrockneten Flussbetten – die Flussbetten sind OB). Er wechselt montags um 0:00 Uhr. Frühere Wochenkurse mit ihren Siegern stehen im <a href="archiv/" style="color:var(--akzent)">Archiv</a> und können dort weiter gespielt werden (ohne Wertung).</li>
         <li><b>Online spielen:</b> Bis zu vier Handys spielen live zusammen. Eine Person tippt „Raum eröffnen“ und sagt den anderen den 4-Buchstaben-Code; die anderen geben ihn unter „Beitreten“ ein. Jeder wählt seine Figur (mit dem eigenen Bag), freie Figuren kann der Gastgeber vom Computer spielen lassen. Der Gastgeber wählt die Bahnen und startet. Alle sehen jeden Wurf live; wer dran ist, wirft auf seinem Handy. Bricht eine Verbindung ab, übernimmt der Computer, bis das Handy wieder da ist – nach dem Neuladen kommst du automatisch zurück in den Raum. Weiter zur nächsten Bahn und Bahn wählen kann nur der Gastgeber.</li>
         <li><b>Kurs:</b> Nach Single oder Vierer Flight wählst du den Kurs und ob die ganze Runde oder eine einzelne Bahn gespielt wird (online macht das der Gastgeber in der Lobby). Es gibt den Hyzernauts Discgolfparcours im Volkspark Potsdam und den Wochenkurs – weitere Kurse folgen.</li>
+        <li><b>Rundenende:</b> Nach der letzten Bahn einer ganzen Runde führt ein Tippen zum Abschluss: Platzierung, Scorekarte aller Bahnen (Ass, Birdie, Bogey … farbig markiert) und die Wahl zwischen <b>Neue Runde</b> (gleicher Kurs, gleiche Spieler, Taste <kbd>R</kbd>), <b>Anderer Kurs</b> (gleiche Spieler) und <b>Hauptmenü</b> (<kbd>M</kbd>). Online entscheidet der Gastgeber; „Anderer Kurs“ führt dort zurück in die Lobby.</li>
         <li><b>Bahn wählen (Training):</b> Spielst du nur eine einzelne Bahn, kannst du im Spiel (Handy: unter „Menü“, Rechner: rechts) direkt auf jede andere Bahn springen. In einer ganzen Runde geht das nicht – dort werden die Bahnen der Reihe nach gespielt, damit keine Bahn wiederholt werden kann.</li>
       </ul>
 
@@ -452,6 +488,24 @@
       <h2 id="wahl-titel" style="text-align:center;font-size:13px">Wer spielt?</h2>
       <div id="personen" class="liste" style="gap:10px"></div>
       <button id="zurueck" style="margin-top:6px">← Zurück</button>
+    </div>
+  </div>
+</div>
+<div class="menue" id="abschluss" hidden>
+  <div class="menue-innen abschluss">
+    <h1 class="titel">Runde beendet</h1>
+    <p class="untertitel" id="ab-kurs" style="margin:0"></p>
+    <div id="ab-platz" class="liste" style="gap:6px"></div>
+    <div class="kurswahl">
+      <h2>Scorekarte</h2>
+      <div class="ab-karte" id="ab-karte"></div>
+      <p class="klein ab-legende"><span><i class="w ass"></i>Ass</span><span><i class="w eagle"></i>Eagle</span><span><i class="w birdie"></i>Birdie</span><span><i class="w bogey"></i>Bogey</span><span><i class="w doppel"></i>Doppelbogey+</span></p>
+    </div>
+    <p id="ab-warte" class="klein" style="text-align:center;margin:0" hidden>Der Gastgeber entscheidet, wie es weitergeht.</p>
+    <div class="ab-knoepfe">
+      <button class="gross" id="ab-neu">Neue Runde<small>Gleicher Kurs, gleiche Spieler</small></button>
+      <button class="gross" id="ab-kurswahl">Anderer Kurs<small>Gleiche Spieler</small></button>
+      <button class="gross" id="ab-menue">Hauptmenü</button>
     </div>
   </div>
 </div>
@@ -924,6 +978,7 @@ function aufWindanzeige(e) {
 
 function starteBahn() {
   spielNr++;
+  versteckeAbschluss();
   sternFrame = null;
   kamera = null;
   marken = [];
@@ -1681,13 +1736,15 @@ function zeichneEnde() {
     const neu = spieler.filter(s => blErgebnis[s.name] && blErgebnis[s.name].neu).map(s => s.name.toUpperCase());
     if (neu.length) text("★ NEUE BESTLEISTUNG: " + neu.join(", "), 160, 116, "#ffe08a", "center");
   }
-  if (modus === "online" && !mpIchHost()) text("WARTEN AUF GASTGEBER …", 160, 128, PAL.weiss, "center");
+  if (abschlussMoeglich()) text(hochkant ? "TIPPEN: ERGEBNISSE" : "KLICK: ERGEBNISSE", 160, 128, PAL.weiss, "center");
+  else if (modus === "online" && !mpIchHost()) text("WARTEN AUF GASTGEBER …", 160, 128, PAL.weiss, "center");
   else text(letzte ? (hochkant ? "TIPPEN: NOCHMAL" : "R / KLICK: NOCHMAL") : (hochkant ? "TIPPEN: NÄCHSTE BAHN" : "KLICK: NÄCHSTE BAHN"), 160, 128, PAL.weiss, "center");
   text(hochkant ? "HAUPTMENÜ: UNTER MENÜ" : "M: HAUPTMENÜ", 160, 140, "#d0d8e2", "center");
 }
 
 // Klick am Bahnende: online entscheidet der Gastgeber für alle
 function weiterKlick() {
+  if (abschlussMoeglich()) { zeigeAbschluss(); return; }
   if (modus === "online") { if (!mpIchHost()) return; mpSende({ typ: "weiter", vorher: mpSchnappschuss() }); }
   weiter();
 }
@@ -1696,6 +1753,62 @@ function hauptmenueKlick() {
   zeigeMenue();
 }
 
+// ---------- Abschlussscreen nach einer ganzen Runde ----------
+// Platzierung, Scorekarte aller Bahnen und wie es weitergeht (neue Runde, anderer Kurs, Hauptmenü)
+const abschlussMoeglich = () => zustand === "ende" && modus !== "frei" && !nurEine && rundeVorbei() && !!spieler;
+function ergebnisArt(w, par) {
+  if (w === 1) return "ass";
+  const d = w - par;
+  return d <= -2 ? "eagle" : d === -1 ? "birdie" : d === 0 ? "par" : d === 1 ? "bogey" : "doppel";
+}
+function zeigeAbschluss() {
+  const bahnen = runde.map((b, i) => ({ b, i })).filter(({ i }) => spieler.some(s => s.karte[i] !== undefined));
+  const parSumme = bahnen.reduce((a, { b }) => a + b.par, 0);
+  const sortiert = [...spieler].sort((a, b) => gesamt(a).w - gesamt(b).w);
+  const datum = new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+  el("ab-kurs").textContent = kurs.name + (kurs.woche && kurs.titel ? " „" + kurs.titel + "“" : "") + " · " + datum + " · Par " + parSumme;
+  // Platzierung: gleiche Würfe = gleicher Platz
+  const zaehlt = zaehltFuerBestenliste();
+  el("ab-platz").innerHTML = sortiert.map((s, i) => {
+    const g = gesamt(s), platz = sortiert.findIndex(x => gesamt(x).w === g.w) + 1;
+    const n = { ass: 0, eagle: 0, birdie: 0, par: 0, bogey: 0, doppel: 0 };
+    bahnen.forEach(({ b, i: j }) => { if (s.karte[j] !== undefined) n[ergebnisArt(s.karte[j], b.par)]++; });
+    const stat = [[n.ass, "Ass", "Asse"], [n.eagle, "Eagle", "Eagles"], [n.birdie, "Birdie", "Birdies"], [n.par, "Par", "Pars"], [n.bogey, "Bogey", "Bogeys"], [n.doppel, "Doppelbogey+", "Doppelbogeys+"]]
+      .filter(([z]) => z).map(([z, e, m]) => z + " " + (z === 1 ? e : m)).join(" · ");
+    const best = zaehlt && blErgebnis[s.name] && blErgebnis[s.name].neu ? `<span class="best">★ Neue Bestleistung</span><br>` : "";
+    return `<div class="ab-platz ${platz === 1 ? "erster" : ""}" style="--farbe:${s.farbe}">
+      <span class="rang">${platz === 1 ? "🏆" : platz + "."}</span><canvas class="mini" width="32" height="32"></canvas>
+      <span class="aname">${s.name}${KI[s.steuerung] ? " (CPU)" : ""}<small>${best}${stat}</small></span>
+      <span class="agesamt">${g.w}<small>${plusMinus(g.d)}</small></span></div>`;
+  }).join("");
+  el("ab-platz").querySelectorAll("canvas.mini").forEach((c, i) => zeichnePortrait(c.getContext("2d"), sortiert[i]));
+  // Scorekarte: am Handy Bahnen untereinander, sonst nebeneinander
+  const zelle = (s, j, par) => s.karte[j] === undefined ? "–" : `<i class="w ${ergebnisArt(s.karte[j], par)}">${s.karte[j]}</i>`;
+  const nameZelle = s => `<span style="color:${s.farbe}">${s.name}</span>`;
+  const summe = s => `${gesamt(s).w} <small>(${plusMinus(gesamt(s).d)})</small>`;
+  let html;
+  if (window.innerWidth < 640) {
+    html = `<table><thead><tr><th>Bahn</th><th>Par</th>${sortiert.map(s => `<th>${nameZelle(s)}</th>`).join("")}</tr></thead><tbody>`
+      + bahnen.map(({ b, i }) => `<tr><td>${b.nummer || i + 1}</td><td class="par">${b.par}</td>${sortiert.map(s => `<td>${zelle(s, i, b.par)}</td>`).join("")}</tr>`).join("")
+      + `<tr class="fuss"><td>Ges.</td><td class="par">${parSumme}</td>${sortiert.map(s => `<td>${summe(s)}</td>`).join("")}</tr></tbody></table>`;
+  } else {
+    html = `<table><thead><tr><th class="pname">Bahn</th>${bahnen.map(({ b, i }) => `<th>${b.nummer || i + 1}</th>`).join("")}<th class="summe">Ges.</th></tr></thead><tbody>`
+      + `<tr class="par"><td class="pname">Par</td>${bahnen.map(({ b }) => `<td>${b.par}</td>`).join("")}<td class="summe">${parSumme}</td></tr>`
+      + sortiert.map(s => `<tr><td class="pname">${nameZelle(s)}</td>${bahnen.map(({ b, i }) => `<td>${zelle(s, i, b.par)}</td>`).join("")}<td class="summe">${summe(s)}</td></tr>`).join("")
+      + `</tbody></table>`;
+  }
+  el("ab-karte").innerHTML = html;
+  // online entscheidet der Gastgeber, wie es weitergeht
+  const gast = modus === "online" && !mpIchHost();
+  el("ab-neu").hidden = el("ab-kurswahl").hidden = gast;
+  el("ab-warte").hidden = !gast;
+  el("ab-kurswahl").querySelector("small").textContent = modus === "online" ? "Zurück in die Lobby" : "Gleiche Spieler";
+  el("ab-menue").innerHTML = modus === "online" ? "Hauptmenü<small>Online-Spiel verlassen</small>" : "Hauptmenü";
+  const neu = el("abschluss").hidden;
+  el("abschluss").hidden = false;
+  if (neu) el("abschluss").scrollTop = 0;
+}
+function versteckeAbschluss() { el("abschluss").hidden = true; }
 // Nach dem Ende einer Bahn: nächste Bahn – wer am besten gespielt hat, wirft zuerst
 function weiter() {
   if (rundeVorbei()) { neuesSpiel(); return; }
@@ -2112,6 +2225,11 @@ cv.addEventListener("pointerdown", e => {
 
 window.addEventListener("keydown", e => {
   const k = e.key;
+  if (!el("abschluss").hidden) {
+    if ((k === "r" || k === "R") && !el("ab-neu").hidden) el("ab-neu").click();
+    else if (k === "m" || k === "M") el("ab-menue").click();
+    return;
+  }
   if (!el("menue").hidden || !spieler) return;
   if (k === "m" || k === "M") { hauptmenueKlick(); return; }
   if (k === "0") { setzeZoom(null); setzeUmsehen(false); return; }
@@ -2339,12 +2457,16 @@ function zeigeMenue() {
   el("menue-dev").hidden = true;
   el("menue-einstellungen").hidden = true;
   el("menue-bestenliste").hidden = true;
+  versteckeAbschluss();
+  nachRundeKurswahl = false;
+  el("kurs-weiter").textContent = "Weiter";
   el("menue").hidden = false;
 }
 
 el("zu-doku").addEventListener("click", () => { el("menue-start").hidden = true; el("menue-doku").hidden = false; el("menue").scrollTop = 0; });
 document.querySelectorAll(".doku-zurueck").forEach(b => b.addEventListener("click", () => { el("menue-doku").hidden = true; el("menue-start").hidden = false; el("menue").scrollTop = 0; }));
 let gewaehlterModus = null;
+let nachRundeKurswahl = false; // „Anderer Kurs“ vom Abschlussscreen: gleiche Spieler, direkt los
 // ---------- Einstellungen (in diesem Browser gespeichert) ----------
 const JAHRESZEIT_NAME = { fruehling: "Frühling", sommer: "Sommer", herbst: "Herbst", winter: "Winter" };
 function zeigeEinstellungen() {
@@ -2409,7 +2531,7 @@ async function blSchickeOffene() {
       const r = await fetch(blAdresse(), { method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify(m) });
       if (r.status >= 500) break; // später nochmal
       const d = r.ok ? await r.json() : null;
-      if (d && blAktuell.has(m.runde)) blErgebnis[m.name] = d; // für die Anzeige am Rundenende
+      if (d && blAktuell.has(m.runde)) { blErgebnis[m.name] = d; if (!el("abschluss").hidden && abschlussMoeglich()) zeigeAbschluss(); } // für die Anzeige am Rundenende
       offen = blOffene().filter(x => !(x.runde === m.runde && x.name === m.name));
       blSpeichereOffene(offen);
     }
@@ -2628,19 +2750,47 @@ document.querySelectorAll("[data-modus]").forEach(b => b.addEventListener("click
   el("menue-wahl").hidden = false;
 }));
 el("kurs-weiter").addEventListener("click", () => {
+  if (nachRundeKurswahl) { starteModus(gewaehlterModus, teilnehmer[0]); return; }
   el("menue-kurs").hidden = true;
   if (gewaehlterModus === "vierer") { zeigeViererAufstellung(); return; }
   el("wahl-titel").textContent = "Wer spielt?";
   el("menue-wahl").hidden = false;
   el("menue").scrollTop = 0;
 });
-el("kurs-zurueck").addEventListener("click", () => { el("menue-kurs").hidden = true; el("menue-start").hidden = false; });
+el("kurs-zurueck").addEventListener("click", () => {
+  nachRundeKurswahl = false;
+  el("kurs-weiter").textContent = "Weiter";
+  el("menue-kurs").hidden = true; el("menue-start").hidden = false;
+});
 el("personen").addEventListener("click", e => {
   const b = e.target.closest("[data-person]");
   if (b) zeigeKarte(+b.dataset.person);
 });
 el("zurueck").addEventListener("click", () => { el(gewaehlterModus === "single" ? "menue-kurs" : "menue-start").hidden = false; el("menue-wahl").hidden = true; });
 el("zummenue").addEventListener("click", hauptmenueKlick);
+// Abschlussscreen: Knöpfe
+el("ab-neu").addEventListener("click", () => {
+  if (modus === "online") { if (!mpIchHost()) return; mpSende({ typ: "weiter", vorher: mpSchnappschuss() }); }
+  versteckeAbschluss();
+  neuesSpiel();
+});
+el("ab-kurswahl").addEventListener("click", () => {
+  if (modus === "online") { if (mpIchHost()) mpSende({ typ: "lobby" }); return; }
+  const m = modus;
+  zeigeMenue();
+  gewaehlterModus = m;
+  nachRundeKurswahl = true;
+  el("kurs-weiter").textContent = "Los geht's";
+  zeigeKurse();
+  el("menue-start").hidden = true;
+  el("menue-kurs").hidden = false;
+  el("menue").scrollTop = 0;
+});
+el("ab-menue").addEventListener("click", () => {
+  if (modus === "online" && online) { if (confirm("Online-Spiel verlassen?")) mpVerlassen(); return; }
+  zeigeMenue();
+});
+window.addEventListener("resize", () => { if (!el("abschluss").hidden && abschlussMoeglich()) zeigeAbschluss(); });
 // Vorschau der Branches dev und dev-graphic (www.discgolf-game.de/dev/ bzw. /dev-graphic/) deutlich kennzeichnen
 const VORSCHAU_PFAD = (location.pathname.match(/^\/(dev(?:-graphic)?)(\/|$)/) || [])[1];
 const IST_VORSCHAU = !!VORSCHAU_PFAD;
