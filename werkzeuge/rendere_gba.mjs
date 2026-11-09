@@ -59,6 +59,15 @@ seite.on("pageerror", e => fehler.push(e.message));
 await seite.goto(pathToFileURL(join(WURZEL, "index.html")).href);
 await seite.waitForFunction(() => typeof bahnBild === "function" && typeof BAHNEN !== "undefined");
 
+// Die GBA-Version nutzt die klassische Grafik in einfacher Auflösung (512 × 288, 256 Farben).
+// Seit 0.6.0 zeichnet bahnBild() sonst die Detailgrafik und bei hoher Auflösung doppelt so groß.
+await seite.evaluate(() => {
+  einstellungen.grafik = "klassisch";
+  einstellungen.hd = false;
+  AUF = 1;
+  for (const k of Object.keys(stufenBilder)) delete stufenBilder[k];
+});
+
 const anzahl = await seite.evaluate(() => BAHNEN.length);
 for (const sp of await seite.evaluate(() => SPIELER.map(s => s.rufDatei || ""))) {
   if (sp) rufDateien.push({ datei: sp, basis: sp.split("/").pop().replace(/\.[^.]+$/, "").toLowerCase().replace(/[^a-z0-9]+/g, "_") });

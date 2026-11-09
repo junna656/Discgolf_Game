@@ -4,7 +4,7 @@ name: GBA-ROM
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main, dev, V1.0_GBA]
     paths: ["gba/**", "tests/**", "werkzeuge/**", "portraets.js", "physik.js", "bahnen.js", "taschen.js", "index.html", ".github/workflows/gba.yml"]
   pull_request:
     paths: ["gba/**", "tests/**", "werkzeuge/**", "portraets.js", "physik.js", "bahnen.js", "taschen.js", "index.html", ".github/workflows/gba.yml"]
