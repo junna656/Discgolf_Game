@@ -58,6 +58,16 @@ hält die gewählte Scheibe in ihrer Typfarbe.
 ![Figuren](bilder/figuren_hd.png)
 
 Abschaltbar unter Einstellungen → Hohe Auflösung.
+
+### Proportionen Figur ↔ Korb
+
+Figur und Korb wachsen gemeinsam mit dem Zoom (`figurMasstab()` in index.html): Übersicht und mittel ×1,
+nah ×2 (ganzzahlig, damit die Figurpixel gleich groß bleiben). Der Korb ist immer 0,75 × so hoch wie die Figur
+(echt: Korb ≈ 1,35 m, Mensch ≈ 1,8 m; `KORB_ZU_FIGUR` in grafik.js). Vorher war die Figur fest 16 px
+und der Korb 22/33/44 px, also in der nahen Ansicht fast dreimal so groß wie der Spieler.
+
+![Proportionen vorher/nachher](bilder/proportionen_vergleich.png)
+(je Zeile links vorher, rechts nachher; Übersicht, mittel, nah)
 Bahnbild am Rechner: Übersicht 50–140 ms, nah (im Leerlauf vorbereitet) 0,3–0,5 s.
 
 Die Physik ändert sich nicht (Schnee bremst die Scheibe z. B. nicht stärker) – das wäre ein eigener Schritt.

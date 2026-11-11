@@ -986,12 +986,14 @@ window.zeichnePuttKorb = function (c, K, wx, winter) {
   if (winter) p(x0 - 14, ky - 1, KORB.schnee, 29, 1);
 };
 
-// Draufsicht (leicht schräg) auf der Bahn; wird beim Reinzoomen größer und feiner.
-// x, y = Fuß am Boden (Bildschirm), dx = Wackeln, z = Zoomstufe
+// Draufsicht (leicht schräg) auf der Bahn; wächst mit der Figur (figurMasstab in index.html),
+// damit das Verhältnis stimmt: Korb ≈ 1,35 m, Mensch ≈ 1,8 m → Korb ≈ 0,75 × Figurhöhe.
+// x, y = Fuß am Boden (Bildschirm), dx = Wackeln, f = Figurmaßstab (1 oder 2)
 // auf = echte Pixel je Spielpixel (hohe Auflösung): der Korb bleibt gleich groß, wird aber feiner
-window.zeichneKorbObenDetail = function (c, x, y, dx, z, winter, auf = 1) {
+const KORB_ZU_FIGUR = 0.75 * 8 / 11; // Figur 8 Spielpixel hoch, Korb 11 g hoch
+window.zeichneKorbObenDetail = function (c, x, y, dx, f, winter, auf = 1) {
   const M = KORB.metall, G = KORB.gelb, p = (px, py, f, w, h) => punktSetzen(c, px, py, f, w, h);
-  const g = (z >= 2.5 ? 2 : z >= 1.5 ? 1.5 : 1) * auf;
+  const g = KORB_ZU_FIGUR * f * auf;
   const rx = Math.round(3.5 * g), ry = Math.max(1, Math.round(1.2 * g)), ringY = y - Math.round(11 * g), korbY = y - Math.round(5 * g);
   const ellipse = (cx, cy, a, b, farbe, nurVorne = 0) => {
     for (let w = 0; w < Math.PI * 2; w += 0.5 / Math.max(a, 1)) {
@@ -1042,12 +1044,13 @@ window.blattFarbenAn = function (bild, x, y) {
 // ============================================================
 //  SPIELERFIGUR IN HOHER AUFLÖSUNG
 // ============================================================
-// Gleich groß wie die 8-Bit-Figur (3 × 8 Spielpixel), aber in echten Pixeln (6 × 16 bei AUF = 2) –
+// Gleich groß wie die 8-Bit-Figur (3 × 8 Spielpixel), aber in echten Pixeln (6 × 16 bei AUF = 2;
+// in der nahen Zoomstufe doppelt so groß, f = 2) –
 // mit Frisur, Bart, Brille, Kopfbedeckung, Jacke/Weste, Hose und Schuhen aus "aussehen" (taschen.js).
 // x, y: Fuß der Figur in echten Pixeln; scheibe: Farbe der Scheibe in der Hand (nur wer dran ist) oder null
 const hellerDunkler = (h, f) => { const p = rgb(h).map(v => Math.max(0, Math.min(255, Math.round(f > 0 ? v + (255 - v) * f : v * (1 + f))))); return "rgb(" + p.join(",") + ")"; };
-window.zeichneFigurDetail = function (c, x, y, s, marke, auf, scheibe) {
-  const a = s.aussehen || {}, kopf = a.kopf || {}, u = auf / 2; // u: Maßstab, falls AUF einmal größer als 2 wird
+window.zeichneFigurDetail = function (c, x, y, s, marke, auf, scheibe, f = 1) {
+  const a = s.aussehen || {}, kopf = a.kopf || {}, u = auf / 2 * f; // u: Maßstab (AUF und Figurmaßstab f beim Reinzoomen)
   const p = (dx, dy, f, w = 1, h = 1) => { c.fillStyle = f; c.fillRect(Math.round(x + dx * u), Math.round(y + dy * u), Math.max(1, Math.round(w * u)), Math.max(1, Math.round(h * u))); };
   const haut = a.haut || "#f0c8a0", haare = a.haare || "#5a3a24", jacke = a.jacke || s.farbe, jacke2 = a.jacke2 || "#2a2e3a";
   // Schatten und Sockel in der Spielerfarbe

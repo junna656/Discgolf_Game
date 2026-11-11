@@ -1434,44 +1434,57 @@ function text(t, x, y, farbe = PAL.weiss, ausr = "left", gr = 8, rand = true) {
   ctx.drawImage(b.c, Math.round(links) - 3, Math.round(y) - 3);
 }
 
+// Figurmaßstab: Figur und Korb wachsen gemeinsam beim Reinzoomen, damit ihr Verhältnis stimmt.
+// Übersicht und mittel 1 (Figur 8 Spielpixel), nah 2 (16 Spielpixel ≈ 1,8 m bei ~8 px/m).
+// Ganzzahlig, damit die Pixel der Figur gleich groß bleiben.
+const figurMasstab = () => kamera && kamera.z >= 2.5 ? 2 : 1;
+
 function zeichneKorbOben(wackel) {
   const { x, y } = zuSchirm(bahn.korb);
   const dx = wackel ? Math.round(Math.sin(uhr * 60)) : 0;
   // in echten Pixeln zeichnen, damit er bei hoher Auflösung feiner wird
   ctx.setTransform(1, 0, 0, 1, -kx * AUF, -ky * AUF);
-  zeichneKorbObenDetail(ctx, x * AUF, y * AUF, dx * AUF, kamera ? kamera.z : 1, mitSchnee(aktuelleJahreszeit()), AUF);
+  zeichneKorbObenDetail(ctx, x * AUF, y * AUF, dx * AUF, figurMasstab(), mitSchnee(aktuelleJahreszeit()), AUF);
   figurTransform();
 }
 
 function zeichneSpieler() {
-  const gezaehlt = {};
+  const gezaehlt = {}, f = figurMasstab();
   spieler.forEach((s, i) => {
     if (s.fertig) return;
     const key = Math.round(s.lie.x * 2) + ":" + Math.round(s.lie.y * 2);
     const n = gezaehlt[key] = (gezaehlt[key] || 0) + 1;
     const q = zuSchirm(s.lie);
-    const x = q.x + (n - 1) * 4 - (key === Math.round(bahn.abwurf.x * 2) + ":" + Math.round(bahn.abwurf.y * 2) ? 6 : 0);
+    const x = q.x + ((n - 1) * 4 - (key === Math.round(bahn.abwurf.x * 2) + ":" + Math.round(bahn.abwurf.y * 2) ? 6 : 0)) * f;
     const y = q.y;
     const marke = i === aktiv && zustand !== "flug" && Math.floor(uhr * 3) % 2;
     // hohe Auflösung: feinere Figur in echten Pixeln (grafik.js), gleich groß wie die 8-Bit-Figur
     if (AUF > 1 && window.zeichneFigurDetail) {
       const inHand = i === aktiv && zustand !== "flug" && s.tasche[s.scheibe] ? TYPFARBE[s.tasche[s.scheibe].typ] : null;
       ctx.setTransform(1, 0, 0, 1, -kx * AUF, -ky * AUF);
-      zeichneFigurDetail(ctx, x * AUF, y * AUF, s, marke, AUF, inHand);
+      zeichneFigurDetail(ctx, x * AUF, y * AUF, s, marke, AUF, inHand, f);
       figurTransform();
       return;
     }
-    if (marke) { ctx.fillStyle = PAL.weiss; ctx.fillRect(x, y - 10, 3, 1); ctx.fillRect(x + 1, y - 9, 1, 1); }
-    const a = s.aussehen || {}, kopf = a.kopf || {};
-    ctx.fillStyle = PAL.schatten; ctx.fillRect(x, y + 1, 4, 2);
-    ctx.fillStyle = s.farbe; ctx.fillRect(x - 1, y + 1, 5, 1); // Spielerfarbe als Sockel
-    ctx.fillStyle = a.jacke || s.farbe; ctx.fillRect(x, y - 4, 3, 4);
-    ctx.fillStyle = a.haut || "#f0c8a0"; ctx.fillRect(x, y - 7, 3, 3);
-    ctx.fillStyle = kopf.farbe || a.haare || "#5a3a24"; ctx.fillRect(x, y - 7, 3, 1);
-    if (kopf.typ === "cap") ctx.fillRect(x + 2, y - 6, 2, 1);
-    if (a.bart === "vollbart") { ctx.fillStyle = a.bartfarbe; ctx.fillRect(x, y - 5, 3, 1); }
-    ctx.fillStyle = PAL.schwarz; ctx.fillRect(x, y, 1, 1); ctx.fillRect(x + 2, y, 1, 1);
+    // 8-Bit-Figur: am Fuß um den Figurmaßstab vergrößern
+    ctx.save(); ctx.translate(x, y); ctx.scale(f, f);
+    zeichneFigur8Bit(s, marke);
+    ctx.restore();
   });
+}
+
+function zeichneFigur8Bit(s, marke) {
+  const x = 0, y = 0;
+  if (marke) { ctx.fillStyle = PAL.weiss; ctx.fillRect(x, y - 10, 3, 1); ctx.fillRect(x + 1, y - 9, 1, 1); }
+  const a = s.aussehen || {}, kopf = a.kopf || {};
+  ctx.fillStyle = PAL.schatten; ctx.fillRect(x, y + 1, 4, 2);
+  ctx.fillStyle = s.farbe; ctx.fillRect(x - 1, y + 1, 5, 1); // Spielerfarbe als Sockel
+  ctx.fillStyle = a.jacke || s.farbe; ctx.fillRect(x, y - 4, 3, 4);
+  ctx.fillStyle = a.haut || "#f0c8a0"; ctx.fillRect(x, y - 7, 3, 3);
+  ctx.fillStyle = kopf.farbe || a.haare || "#5a3a24"; ctx.fillRect(x, y - 7, 3, 1);
+  if (kopf.typ === "cap") ctx.fillRect(x + 2, y - 6, 2, 1);
+  if (a.bart === "vollbart") { ctx.fillStyle = a.bartfarbe; ctx.fillRect(x, y - 5, 3, 1); }
+  ctx.fillStyle = PAL.schwarz; ctx.fillRect(x, y, 1, 1); ctx.fillRect(x + 2, y, 1, 1);
 }
 
 function zeichneZiellinie() {
