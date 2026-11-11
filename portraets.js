@@ -2,7 +2,7 @@
 (function (g) {
   "use strict";
 
-  function zeichnePortrait(c, sp) {
+  function zeichnePortrait(c, sp, ohneHintergrund = false) {
     const a = sp.aussehen || {};
     const px = (f, x, y, w = 1, h = 1) => { c.fillStyle = f; c.fillRect(x, y, w, h); };
     const zeile = (f, y, x0, x1) => px(f, x0, y, x1 - x0 + 1, 1);
@@ -10,8 +10,10 @@
     const haare = a.haare || "#5a3a24", jacke = a.jacke || sp.farbe, jacke2 = a.jacke2 || "#202428";
 
     // Hintergrund in der Spielerfarbe, mit Raster
-    px("#141820", 0, 0, 32, 32);
-    for (let y = 0; y < 32; y++) for (let x = (y % 2); x < 32; x += 2) px(sp.farbe + "40", x, y);
+    if (!ohneHintergrund) {
+      px("#141820", 0, 0, 32, 32);
+      for (let y = 0; y < 32; y++) for (let x = (y % 2); x < 32; x += 2) px(sp.farbe + "40", x, y);
+    }
 
     // Oberkörper
     const schultern = [[24, 8, 23], [25, 6, 25], [26, 5, 26]];
@@ -105,5 +107,76 @@
     }
   }
 
+  // ---------- Feine Fassung (64 × 64, 16-Bit-Optik) ----------
+  // Gleiche Gestaltung wie oben, doppelt so fein: Licht oben links und Schatten unten rechts an allen
+  // Flächenkanten, dunkler Umriss, Haarsträhnen, Bartstruktur, Glanzlicht in den Augen, Wangen,
+  // Falten in der Jacke und ein Hintergrund mit Verlauf und Lichtschein in der Spielerfarbe.
+  const rgbVon = f => {
+    if (f[0] === "#") { const h = f.length === 4 ? f.replace(/#(.)(.)(.)/, "#$1$1$2$2$3$3") : f; return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); }
+    const m = f.match(/\d+/g); return m ? m.slice(0, 3).map(Number) : [0, 0, 0];
+  };
+  const stufe = (rgb, t) => rgb.map(v => Math.max(0, Math.min(255, Math.round(t > 0 ? v + (255 - v) * t : v * (1 + t)))));
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], bay = (x, y) => (BAYER[(y & 3) * 4 + (x & 3)] + 0.5) / 16;
+
+  function zeichnePortraitFein(c, sp) {
+    const a = sp.aussehen || {}, N = 64;
+    // grobe Fassung ohne Hintergrund als Vorlage
+    const v = document.createElement("canvas"); v.width = v.height = 32;
+    zeichnePortrait(v.getContext("2d"), sp, true);
+    const q = v.getContext("2d").getImageData(0, 0, 32, 32).data;
+    const farbe = (x, y) => { if (x < 0 || y < 0 || x >= N || y >= N) return null; const i = ((y >> 1) * 32 + (x >> 1)) * 4; return q[i + 3] > 20 ? [q[i], q[i + 1], q[i + 2]] : null; };
+    const gleich = (p, r) => p && r && p[0] === r[0] && p[1] === r[1] && p[2] === r[2];
+    const ist = (p, f) => f && gleich(p, rgbVon(f));
+    const haut = a.haut || "#f0c8a0", haare = a.haare || "#5a3a24", bart = a.bartfarbe || haare, jacke = a.jacke || sp.farbe;
+    // kleine Einzelheiten (Augen, Mund, Brille, Aufnäher) bekommen keine Kantenschattierung
+    const ohneKante = ["#ffffff", a.augen || "#3a2a20", "#5a1e1e", a.brille, (a.kopf || {}).abzeichen, "#000000"].filter(Boolean).map(rgbVon);
+    const bild = c.createImageData(N, N), d = bild.data;
+    const setze = (x, y, rgb) => { const i = (y * N + x) * 4; d[i] = rgb[0]; d[i + 1] = rgb[1]; d[i + 2] = rgb[2]; d[i + 3] = 255; };
+
+    // Hintergrund: Verlauf in der Spielerfarbe (oben heller), gedithert, Lichtschein hinter dem Kopf
+    const sf = rgbVon(sp.farbe), dunkel = [20, 24, 32];
+    const RAMPE = [0.34, 0.27, 0.2, 0.14, 0.09].map(t => dunkel.map((v, i) => Math.round(v + (sf[i] - v) * t)));
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const schein = Math.max(0, 1 - Math.hypot(x - 32, y - 26) / 30) * 0.6;
+      const t = Math.min(1, Math.max(0, y / N * 0.9 - schein + 0.25)) * (RAMPE.length - 1);
+      let i = Math.floor(t); if (t - i > bay(x, y)) i++;
+      setze(x, y, RAMPE[Math.min(RAMPE.length - 1, i)]);
+    }
+
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const p = farbe(x, y);
+      if (!p) {
+        // Umriss: dunkle Stufe der Nachbarfarbe
+        const n = farbe(x + 1, y) || farbe(x - 1, y) || farbe(x, y + 1) || farbe(x, y - 1);
+        if (n) setze(x, y, stufe(n, -0.7));
+        continue;
+      }
+      let f = p;
+      if (!ohneKante.some(o => gleich(o, p))) {
+        const oben = !gleich(farbe(x, y - 1), p), links = !gleich(farbe(x - 1, y), p);
+        const unten = !gleich(farbe(x, y + 1), p), rechts = !gleich(farbe(x + 1, y), p);
+        if (oben || links) f = stufe(p, oben && links ? 0.3 : 0.18);
+        else if (unten || rechts) f = stufe(p, unten && rechts ? -0.3 : -0.2);
+        // Haare: Strähnen schräg, oben ein Glanz
+        if (ist(p, haare) && !oben && !unten && !links && !rechts && (x - y * 2 + 64) % 7 === 0) f = stufe(p, -0.2);
+        // Bart: unruhige Struktur
+        if (ist(p, bart) && !ist(p, haare) || (ist(p, bart) && y > 30)) { if ((x * 3 + y * 5) % 7 === 0) f = stufe(p, -0.25); else if ((x + y * 3) % 9 === 0) f = stufe(p, 0.15); }
+        // Haut: Licht von links oben, Schatten zur rechten Seite des Gesichts
+        if (ist(p, haut)) { if (x > 39 && bay(x, y) < (x - 39) / 8) f = stufe(p, -0.12); if (x < 25 && y < 34 && bay(x, y) < 0.3) f = stufe(p, 0.1); }
+        // Jacke: zwei Falten und Licht auf der linken Schulter
+        if (ist(p, jacke) && y > 50) { if ((x === 20 || x === 43) && y > 54) f = stufe(p, -0.2); if (x < 18 && y < 56 && bay(x, y) < 0.4) f = stufe(p, 0.14); }
+      }
+      setze(x, y, f);
+    }
+    // Wangen (nur auf freier Haut) und Glanzlicht in den Augen
+    for (const [cx, cy] of [[23, 34], [40, 34]]) for (let j = 0; j < 3; j++) for (let i = 0; i < 4; i++) {
+      const x = cx + i, y = cy + j;
+      if (ist(farbe(x, y), haut) && bay(x, y) < 0.45) setze(x, y, stufe(rgbVon(haut), -0.08).map((v, k) => k === 0 ? Math.min(255, v + 18) : v));
+    }
+    for (const x of [27, 37]) if (gleich(farbe(x, 28), rgbVon(a.augen || "#3a2a20"))) setze(x, 28, [255, 255, 255]);
+    c.putImageData(bild, 0, 0);
+  }
+
   g.zeichnePortrait = zeichnePortrait;
+  g.zeichnePortraitFein = zeichnePortraitFein;
 })(window);

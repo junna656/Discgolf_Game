@@ -117,7 +117,16 @@ damit jede Pose in beiden Größen gilt. Umriss automatisch als dunklere Stufe d
 (oben klein, unten groß; je Zeile: Stehen ×2, Rückhand ausholen ×2, Vorhand ausholen ×2, Wurf;
 2. und 4. Reihe groß gespiegelt)
 
-Noch im groben Raster: die Sternframe-Porträts.
+### Porträts in feiner Fassung
+
+`zeichnePortraitFein` (portraets.js) malt die Porträts mit 64 × 64 statt 32 × 32 Pixeln, nach derselben Gestaltung:
+Licht oben links und Schatten unten rechts an allen Flächenkanten, dunkler Umriss, Haarsträhnen,
+Bartstruktur, Wangen, Glanzlicht in den Augen, Falten in der Jacke und ein Hintergrund mit Verlauf und
+Lichtschein in der Spielerfarbe. Genutzt im Sternframe (bei hoher Auflösung, mit Rahmen im 16-Bit-Stil)
+und auf der Spielerkarte; die kleinen Bilder in den Menülisten bleiben 32 × 32.
+
+![Porträts](bilder/portraets_fein.png)
+(oben bisher, unten fein)
 Bahnbild am Rechner: Übersicht 50–140 ms, nah (im Leerlauf vorbereitet) 0,3–0,5 s.
 
 Die Physik ändert sich nicht (Schnee bremst die Scheibe z. B. nicht stärker) – das wäre ein eigener Schritt.

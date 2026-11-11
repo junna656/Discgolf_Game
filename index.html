@@ -1773,12 +1773,14 @@ const zaehltFuerBestenliste = () => !nurEine && runde === kurs.bahnen && kurs.be
 
 // Feier-Bildschirm: Strahlen, funkelnde Sterne, großer Schriftzug und die vier Portraits mit Ergebnis
 const portraitBilder = new Map();
+// bei hoher Auflösung die feine Fassung (64 × 64), gezeichnet auf 32 × 32 Spielpixel
 function portraitBild(s) {
-  let b = portraitBilder.get(s.name);
+  const fein = AUF > 1, key = s.name + "|" + fein;
+  let b = portraitBilder.get(key);
   if (!b) {
-    b = document.createElement("canvas"); b.width = 32; b.height = 32;
-    zeichnePortrait(b.getContext("2d"), s);
-    portraitBilder.set(s.name, b);
+    b = document.createElement("canvas"); b.width = b.height = fein ? 64 : 32;
+    if (fein) zeichnePortraitFein(b.getContext("2d"), s); else zeichnePortrait(b.getContext("2d"), s);
+    portraitBilder.set(key, b);
   }
   return b;
 }
@@ -1818,9 +1820,13 @@ function zeichneSternFrame() {
     if (ti < 0) return;
     const x = 160 - 79 + i * 42, hops = Math.max(0, 1 - ti * 3) * 12 + Math.abs(Math.sin(t * 3 + i)) * 2;
     const y = 70 - hops;
-    ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 2, y - 2, 36, 36);
-    ctx.fillStyle = s.farbe; ctx.fillRect(x - 1, y - 1, 34, 34);
-    ctx.drawImage(portraitBild(s), x, y);
+    // Rahmen in der Spielerfarbe mit Licht oben links, Schatten unten rechts und dunkler Fuge zum Bild
+    const q = 1 / AUF;
+    rahmen(x - 2, y - 2, 36, 36, s.farbe);
+    ctx.fillStyle = hellerDunkler(s.farbe, 0.35); ctx.fillRect(x - 2 + 2 * q, y - 2 + q, 36 - 4 * q, q); ctx.fillRect(x - 2 + q, y - 2 + 2 * q, q, 36 - 4 * q);
+    ctx.fillStyle = hellerDunkler(s.farbe, -0.35); ctx.fillRect(x - 2 + 2 * q, y + 34 - 2 * q, 36 - 4 * q, q); ctx.fillRect(x + 34 - 2 * q, y - 2 + 2 * q, q, 36 - 4 * q);
+    ctx.fillStyle = "#0a0c10"; ctx.fillRect(x - q, y - q, 32 + 2 * q, 32 + 2 * q);
+    ctx.drawImage(portraitBild(s), x, y, 32, 32);
     text(s.name.toUpperCase(), x + 16, 110, s.farbe, "center");
     text(s.wuerfe === 1 ? "ACE" : namen[s.wuerfe - bahn.par] || "BIRDIE", x + 16, 120, "#ffd84a", "center");
   });
@@ -2739,7 +2745,7 @@ function zeigeKarte(i) {
   el("spielerkarte").style.setProperty("--farbe", s.farbe);
   el("spielerkarte").innerHTML = `
     <div class="kopfzeile"><span class="kname">${s.name.toUpperCase()}</span><span class="khand">${s.hand === "links" ? "Linkshand" : "Rechtshand"} · ${s.wurfart === "vorhand" ? "Vorhand" : "Rückhand"}</span></div>
-    <canvas class="portrait" width="32" height="32"></canvas>
+    <canvas class="portrait" width="64" height="64"></canvas>
     ${k.spitzname ? `<div class="kspitz">„${k.spitzname}“</div>` : ""}
     <div class="kwerte">
       <span>Lieblingsscheibe</span><span>${lieb.name} ★</span>
@@ -2749,7 +2755,7 @@ function zeigeKarte(i) {
     </div>
     ${(k.infos || []).length ? `<ul class="kinfo">${k.infos.map(t => `<li>${t}</li>`).join("")}</ul>` : `<p class="klein" style="margin:0 0 8px">Mehr Infos folgen.</p>`}
     <div class="kbag">${s.tasche.map(d => `<span style="border-color:${TYPFARBE[d.typ] || "#888"}">${d.name}</span>`).join("")}</div>`;
-  zeichnePortrait(el("spielerkarte").querySelector("canvas").getContext("2d"), s);
+  zeichnePortraitFein(el("spielerkarte").querySelector("canvas").getContext("2d"), s); // Spielerkarte: feine Fassung
   el("karte-los").hidden = gewaehlterModus === "bags";
   el("menue-wahl").hidden = true;
   el("menue-karte").hidden = false;
