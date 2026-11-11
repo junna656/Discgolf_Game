@@ -1497,19 +1497,45 @@ function zeichneKorbOben(wackel) {
 
 // liste: wenn angegeben, werden die Figuren nicht gezeichnet, sondern als { y, zeichne } eingesammelt
 // (zum Sortieren mit Baumkronen und Korb in der 3/4-Ansicht)
+// ---------- Figuren: Ort, Laufen, Jubeln (nur Bild – das Spiel rechnet sofort mit der neuen Lage) ----------
+const JUBEL_DAUER = 1.8;
+// Ist gerade die Putt-Nahansicht über der Bahn zu sehen?
+const puttAnsichtOffen = () => puttModus && (zustand === "putt" || zustand === "puttflug" || (zustand === "pause" && putt && putt.flug));
+// Wo die Figur gerade zu sehen ist: ändert sich die Lage, läuft sie dorthin (Dauer nach Strecke, höchstens 2,2 s).
+// Neue Bahn und freies Werfen: sofort dort. Wer fertig ist, bleibt zum Jubeln stehen.
+function figurOrt(s) {
+  const a = s.anim || (s.anim = { x: s.lie.x, y: s.lie.y, spiel: spielNr, lauf: null });
+  if (a.spiel !== spielNr || modus === "frei") { a.x = s.lie.x; a.y = s.lie.y; a.spiel = spielNr; a.lauf = null; return a; }
+  if (s.fertig) return a;
+  const nach = a.lauf ? a.lauf.nach : a;
+  if (Math.hypot(s.lie.x - nach.x, s.lie.y - nach.y) > 0.05)
+    a.lauf = { von: { x: a.x, y: a.y }, nach: { x: s.lie.x, y: s.lie.y }, t0: uhr, dauer: Math.min(2.2, 0.4 + abstand(a, s.lie) / 40) };
+  if (a.lauf) {
+    const t = Math.min(1, (uhr - a.lauf.t0) / a.lauf.dauer), { von, nach: n } = a.lauf;
+    a.x = von.x + (n.x - von.x) * t; a.y = von.y + (n.y - von.y) * t;
+    if (t >= 1) a.lauf = null;
+  }
+  return a;
+}
+// Wer gerade eingelocht hat, jubelt noch kurz (bei Putts erst, wenn die Nahansicht zu ist)
+function jubelt(s) {
+  if (!s.fertig) { s.fertigSeit = undefined; return false; }
+  if (s.fertigSeit === undefined) { if (puttAnsichtOffen() || zustand === "ende") return false; s.fertigSeit = uhr; }
+  return uhr - s.fertigSeit < JUBEL_DAUER;
+}
 function zeichneSpieler(liste) {
   const gezaehlt = {}, f = figurMasstab();
   spieler.forEach((s, i) => {
-    if (s.fertig) return;
-    if (liste) { liste.push({ y: zuSchirm(s.lie).y + i * 0.01, zeichne: () => zeichneSpielerNr(s, i, gezaehlt, f) }); return; }
+    if (s.fertig && !jubelt(s)) return;
+    if (liste) { liste.push({ y: zuSchirm(figurOrt(s)).y + i * 0.01, zeichne: () => zeichneSpielerNr(s, i, gezaehlt, f) }); return; }
     zeichneSpielerNr(s, i, gezaehlt, f);
   });
 }
 function zeichneSpielerNr(s, i, gezaehlt, f) {
   {
-    const key = Math.round(s.lie.x * 2) + ":" + Math.round(s.lie.y * 2);
+    const ort = figurOrt(s), key = Math.round(ort.x * 2) + ":" + Math.round(ort.y * 2);
     const n = gezaehlt[key] = (gezaehlt[key] || 0) + 1;
-    const q = zuSchirm(s.lie);
+    const q = zuSchirm(ort);
     const x = q.x + ((n - 1) * 4 - (key === Math.round(bahn.abwurf.x * 2) + ":" + Math.round(bahn.abwurf.y * 2) ? 6 : 0)) * f;
     const y = q.y;
     const marke = i === aktiv && zustand !== "flug" && Math.floor(uhr * 3) % 2;
@@ -1558,7 +1584,10 @@ function kronenListe(hg, liste) {
       let sp = hg.kronenSprites.get(b);
       if (!sp) { sp = objektSprite(b, hg.S, hg.zr, hg.winter); hg.kronenSprites.set(b, sp); }
       ctx.setTransform(1, 0, 0, 1, -kx * AUF, -ky * AUF);
-      ctx.drawImage(sp.c, Math.round(q.x * AUF - sp.ax), Math.round(q.y * AUF - sp.ay));
+      // Wind: Kronen wiegen sich, stärker bei mehr Wind und in Windrichtung (auf dem Bildschirm), je Baum versetzt
+      const wx = hochkant ? wind.y : wind.x, st = Math.hypot(wind.x, wind.y); // hochkant: Bildschirm-x = Bahn-y
+      const ph = b.x * 0.37 + b.y * 0.71, dx = (Math.sign(wx) * Math.min(1, st / 4) * 0.6 + Math.sin(uhr * (1.6 + st * 0.15) + ph) * Math.min(1, 0.25 + st / 6)) * Math.min(2.5, 0.6 + kamera.z * 0.6) * (AUF / 2) * 1.5;
+      zeichneObjektSprite(ctx, sp, q.x * AUF, q.y * AUF, dx);
       figurTransform();
     } });
   }
@@ -1610,12 +1639,21 @@ function figurPose(s, i) {
   const dran = i === aktiv, vh = s.wurfart === "vorhand";
   const nachWurf = dran && flug && flug.start && (zustand === "flug" || zustand === "pause") && uhr - flug.t0 < 0.7
     && abstand(flug.start, s.lie) < 0.01;
-  let pose = "stehen", bild = Math.floor((uhr + i * 0.37) / 0.8) % 2;
-  if (dran && zustand === "laden" && !ladeAbgebrochen()) { pose = (vh ? "ausholenVH" : "ausholenRH") + (kraft > 0.35 ? 2 : 1); bild = 0; }
+  const ort = figurOrt(s);
+  // Stehen: atmen (2 Bilder), ab und zu blinzeln (Bild 2, je Spieler versetzt)
+  let pose = "stehen", bild = (uhr + i * 1.3) % 3.7 < 0.13 ? 2 : Math.floor((uhr + i * 0.37) / 0.8) % 2;
+  let r = null;
+  if (s.fertig) { pose = "jubel" + (Math.floor((uhr - s.fertigSeit) / 0.22) % 2 + 1); bild = 0; }
+  else if (ort.lauf) {
+    // Laufen: Schritt links, stehen, Schritt rechts, stehen; Blick in Laufrichtung
+    pose = ["laufen1", "stehen", "laufen2", "stehen"][Math.floor((uhr - ort.lauf.t0) * 9) % 4]; bild = 0;
+    r = Math.atan2(ort.lauf.nach.y - ort.lauf.von.y, ort.lauf.nach.x - ort.lauf.von.x);
+  }
+  else if (dran && zustand === "laden" && !ladeAbgebrochen()) { pose = (vh ? "ausholenVH" : "ausholenRH") + (kraft > 0.35 ? 2 : 1); bild = 0; }
   else if (nachWurf) { pose = "wurf"; bild = 0; }
-  const r = dran && (zustand === "zielen" || zustand === "laden" || nachWurf) ? (nachWurf && flug.richtung !== undefined ? flug.richtung : ziel) : zumKorb(s.lie);
+  if (r === null) r = dran && (zustand === "zielen" || zustand === "laden" || nachWurf) ? (nachWurf && flug.richtung !== undefined ? flug.richtung : ziel) : zumKorb(ort);
   const links = (hochkant ? Math.sin(r) : Math.cos(r)) < -0.15;
-  const inHand = dran && (zustand === "zielen" || zustand === "laden") && s.tasche[s.scheibe] ? TYPFARBE[s.tasche[s.scheibe].typ] : null;
+  const inHand = dran && !ort.lauf && (zustand === "zielen" || zustand === "laden") && s.tasche[s.scheibe] ? TYPFARBE[s.tasche[s.scheibe].typ] : null;
   return { pose, bild, links, inHand };
 }
 

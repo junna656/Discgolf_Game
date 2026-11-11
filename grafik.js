@@ -642,10 +642,24 @@ window.objektSprite = function (o, S, zr, winter) {
   const cv = document.createElement("canvas"); cv.width = BWs; cv.height = BHs;
   const c = cv.getContext("2d"), rr = zufall(Math.round(o.x * 31 + o.y * 17));
   const ax = Math.round(BWs / 2), ay = BHs - rand - Math.ceil(r * 0.5);
-  ZEICHNER[form](c, o, { ax, ay, r, S, zr, F, rr, winter });
-  return { c: cv, ax, ay };
+  // kroneY: Zeile, ab der nach oben die Krone im Wind schwingt (null = steht fest, z. B. Fels, Kaktus)
+  const kroneY = ZEICHNER[form](c, o, { ax, ay, r, S, zr, F, rr, winter }) ?? null;
+  return { c: cv, ax, ay, kroneY };
 };
 window.baumSprite = window.objektSprite; // früherer Name
+
+// Sprite zeichnen; die Krone wiegt sich im Wind: oberhalb von kroneY in Streifen versetzt, oben am meisten.
+// dx: Auslenkung ganz oben in Bildpunkten (Vorzeichen = Richtung)
+window.zeichneObjektSprite = function (c, sp, x, y, dx) {
+  const X = Math.round(x - sp.ax), Y = Math.round(y - sp.ay);
+  if (!sp.kroneY || Math.abs(dx) < 0.5) { c.drawImage(sp.c, X, Y); return; }
+  const H = sp.kroneY, streifen = Math.max(1, Math.ceil(Math.abs(dx) * 1.5));
+  c.drawImage(sp.c, 0, H, sp.c.width, sp.c.height - H, X, Y + H, sp.c.width, sp.c.height - H); // Stamm fest
+  for (let k = 0; k < streifen; k++) {
+    const y0 = Math.round(H * k / streifen), y1 = Math.round(H * (k + 1) / streifen), anteil = 1 - (k + 0.5) / streifen;
+    c.drawImage(sp.c, 0, y0, sp.c.width, y1 - y0, X + Math.round(dx * anteil), Y + y0, sp.c.width, y1 - y0);
+  }
+};
 
 const ZEICHNER = {
   // Laubbaum (oder kahl im Winter): Stamm, angehobene Krone, Schattenseite unten
@@ -654,12 +668,14 @@ const ZEICHNER = {
     zeichneStamm(c, ax, ay, cy, Math.max(2, Math.round(S * (0.32 + o.r * 0.05))), o.kahl, rr, zr);
     zeichneBaumKrone(c, o, ax, cy, r, zr, winter, true);
     if (!o.kahl) schattenUnten(c, ax - r - zr, ax + r + zr, cy + r * 0.15, cy + r + zr);
+    return Math.round(cy + r * 0.7);
   },
   // Nadelbaum: Stamm und Kegel aus Etagen
   kegel(c, o, { ax, ay, r, S, zr, rr, winter }) {
     const cy = Math.round(ay - baumAnhebung(o) * S);
     zeichneStamm(c, ax, ay, cy, Math.max(2, Math.round(S * (0.32 + o.r * 0.05))), false, rr, zr);
     zeichneKiefernKegel(c, o, ax, cy, r, zr, winter, rr);
+    return Math.round(cy + r * 0.85);
   },
   // Säule mit Armen (Saguaro): Rippen senkrecht, Licht links, runde Kuppe, Stacheln, manchmal Blüte
   saeule(c, o, { ax, ay, r, S, zr, F, rr }) {
@@ -712,6 +728,7 @@ const ZEICHNER = {
     const hp = objektHoehe(o) * 0.6 * S, rk = Math.min(r, Math.max(r * 0.6, hp / 2)), cy = Math.round(ay - Math.max(rk * 0.8, hp - rk));
     zeichneBaumKrone(c, { ...o, kahl: false, kiefer: false, farben: F }, ax, cy, rk, zr, winter, true);
     schattenUnten(c, ax - rk - zr, ax + rk + zr, cy, cy + rk + zr);
+    return Math.round(cy);
   },
 };
 

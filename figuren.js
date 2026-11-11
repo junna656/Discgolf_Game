@@ -6,7 +6,8 @@
 //  - Kopf: pixelgenaue Vorlagen je Größe; Frisur, Bart, Brille, Cap/Stirnband als Ebenen darüber
 //  - Körper, Arme und Beine aus Gelenkpunkten (Posen), damit dieselbe Pose in beiden Größen gilt
 //  - automatische Kontur ("selective outline": dunklere Stufe der Nachbarfarbe), Licht von links oben
-//  - Posen: stehen (2 Bilder, atmet in groß), ausholen (Rückhand/Vorhand, 2 Stufen nach Kraft), wurf
+//  - Posen: stehen (2 Bilder, atmet in groß; Bild 2 blinzelt), ausholen (Rückhand/Vorhand, 2 Stufen nach Kraft),
+//    wurf, laufen (2 Schrittbilder), jubel (2 Bilder, hüpft)
 //  - jede Figur schaut zum Ziel: nach links gespiegelt, wenn das Ziel links liegt
 //  Fertige Bilder werden gemerkt (je Spieler, Pose, Bild, Größe, Richtung und Scheibenfarbe).
 // ============================================================
@@ -122,6 +123,24 @@ const POSEN = {
     armL: [[-0.5, -8.5], [-2, -7], [-3, -6]], armR: [[6.5, -8.5], [8.5, -6.5], [9.5, -4]],
     beinL: [[1, -3], [0, -1]], beinR: [[5, -3], [6, -1]],
   },
+  // Laufen: zwei Schrittbilder (dazwischen "stehen"), Arme schwingen gegen die Beine
+  laufen1: {
+    armL: [[-0.5, -8.5], [0, -6.5], [1, -4.5]], armR: [[6.5, -8.5], [6.5, -6.5], [5.5, -5]],
+    beinL: [[1, -3], [2, -1]], beinR: [[5, -3], [4, -1.5]],
+  },
+  laufen2: {
+    armL: [[-0.5, -8.5], [-0.5, -6.5], [0.5, -5]], armR: [[6.5, -8.5], [6, -6.5], [5, -4.5]],
+    beinL: [[1, -3], [1.5, -1.5]], beinR: [[5, -3], [3.5, -1]],
+  },
+  // Jubeln: Arme hoch (zweites Bild weiter auseinander); das Hüpfen macht zeichneFigurSprite
+  jubel1: {
+    armL: [[-0.5, -8.5], [-1.5, -11], [-1.5, -13.5]], armR: [[6.5, -8.5], [7.5, -11], [7.5, -13.5]],
+    beinL: [[1, -3], [0.5, -1]], beinR: [[5, -3], [5.5, -1]],
+  },
+  jubel2: {
+    armL: [[-0.5, -8.5], [-2.5, -10.5], [-3.5, -13]], armR: [[6.5, -8.5], [8.5, -10.5], [9.5, -13]],
+    beinL: [[1, -3], [0, -1]], beinR: [[5, -3], [6, -1]],
+  },
   // nach dem Abwurf: Wurfarm zum Ziel gestreckt, Ausfallschritt
   wurf: {
     armL: [[-0.5, -8.5], [-2, -7.5], [-3.5, -6.5]], armR: [[6.5, -8.5], [9, -8.5], [11.5, -8]],
@@ -150,6 +169,7 @@ function figurBauen(s, P, bild, gross, links, scheibe) {
     a: haare, B: hellerDunkler(haare, 0.22), A: hellerDunkler(haare, -0.3),
     h: haut, L: hellerDunkler(haut, 0.14), H: hellerDunkler(haut, -0.16),
     w: PAL.weiss, e: a.augen || PAL.schwarz, m: hellerDunkler(haut, -0.38),
+    ...(bild === 2 ? { w: hellerDunkler(haut, -0.12), e: hellerDunkler(haut, -0.4) } : {}), // Bild 2: blinzeln
     b: bart, c: hellerDunkler(bart, -0.28), g: a.brille || "#141414",
     u: kf, y: hellerDunkler(kf, 0.3), U: hellerDunkler(kf, -0.3), i: kopf.abzeichen || kf,
   };
@@ -271,7 +291,8 @@ window.zeichneFigurSprite = function (c, x, y, s, marke, f, pose, bild, links, s
   p(-4 * k, 2 * k, s.farbe, 8 * k, k); p(-3 * k, 3 * k, hellerDunkler(s.farbe, -0.35), 6 * k, k);
   if (gross) p(-4 * k, 2 * k, hellerDunkler(s.farbe, 0.3), 8 * k, 1);
   const b = figurSprite(s, pose, bild, gross, links, scheibe);
-  c.drawImage(b.c, Math.round(x - b.mitteX), Math.round(y - b.fussY));
+  const hops = pose.startsWith("jubel") ? (pose === "jubel2" ? 2 * k : 0) : 0; // beim Jubeln hüpfen (Schatten bleibt)
+  c.drawImage(b.c, Math.round(x - b.mitteX), Math.round(y - b.fussY - hops));
   // Markierung, wer dran ist: kleiner Pfeil über dem Kopf
   if (marke) {
     const oy = -23 * k;

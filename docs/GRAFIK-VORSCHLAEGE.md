@@ -148,10 +148,21 @@ Alle Gegenstände laufen über einen Baukasten aus Formen und Arten (`OBJEKT_FOR
 ![3/4-Ansicht](bilder/dreiviertel.png)
 (oben links bisher, oben rechts 3/4-Ansicht, unten Frühling und Winter)
 
+### Animationen
+
+Nur im Bild – das Spiel rechnet unverändert sofort mit der neuen Lage:
+- **Laufen**: Ändert sich die Lage einer Figur, geht sie dorthin (Dauer nach Strecke, höchstens 2,2 s),
+  mit zwei Schrittbildern, schwingenden Armen und Blick in Laufrichtung (`figurOrt` in index.html).
+  Neue Bahn und freies Werfen: sofort dort.
+- **Jubeln**: Wer eingelocht hat, reißt 1,8 s die Arme hoch und hüpft, bevor die Figur verschwindet;
+  nach einem Putt erst, wenn die Nahansicht zu ist.
+- **Blinzeln**: Stehende Figuren blinzeln alle paar Sekunden (je Spieler versetzt).
+- **Wind**: Kronen von Laub- und Nadelbäumen und Büsche wiegen sich – stärker bei mehr Wind und in
+  Windrichtung; der Stamm bleibt stehen (`zeichneObjektSprite` in grafik.js). Kakteen und Felsen stehen fest.
+
 ## Weitere Ideen (noch nicht gebaut)
 
 - **Tageszeit**: abendliches Licht als Paletten-Tausch
-- **Animation**: Wind bewegt Baumkronen und Gras leicht (2–3 Frames), Blätter fallen
 - **Zaun**: höher wirkender Maschendraht mit deutlicheren Pfosten (im Prototyp noch zu dezent)
 - **Detailstufen**: Deko erst ab Zoomstufe „mittel“ zeigen (Übersicht bleibt ruhig – schon so umgesetzt ab 5 px/m)
 - **Handgezeichnete Sprites** für Schild, Bank, Korb statt Code-Grafik, als kleine PNG-Atlas-Datei
