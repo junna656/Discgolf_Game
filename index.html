@@ -1529,6 +1529,21 @@ function zeichneSpielerNr(s, i, gezaehlt, f) {
 }
 
 // ---------- 3/4-Ansicht ----------
+// Fliegt die Scheibe höher als jeder Gegenstand, der weiter unten steht und sie im Bild überdeckt?
+function ueberDenGegenstaenden(hg, p) {
+  if (!hg.baumFarben) return false;
+  const d = zuSchirm(p), dy = d.y - p.z * S * 0.6;
+  let verdeckt = false;
+  for (const b of hg.baumFarben) {
+    const q = zuSchirm(b);
+    if (q.y <= d.y) continue; // steht dahinter
+    const hoch = (Math.max(baumAnhebung(b), (b.h || 12) * 0.6) + b.r) * S, breit = b.r * S * 1.3;
+    if (Math.abs(d.x - q.x) > breit || dy < q.y - hoch || dy > q.y + b.r * S * 0.5) continue; // überdeckt sie nicht
+    verdeckt = true;
+    if (p.z <= (b.h || Math.min(12, Math.max(3, 1.5 + b.r * 1.8)))) return false; // tiefer als der Gegenstand: dahinter
+  }
+  return verdeckt;
+}
 // Bäume und alle Gegenstände (Kakteen, Felsen, Arten neuer Themen) als Sprites (grafik.js: objektSprite),
 // einmal je Bahnbild gemerkt. Korb, Figuren und
 // Kronen werden nach der Bildschirmhöhe ihres Fußpunkts sortiert: wer weiter oben steht, verschwindet
@@ -1548,14 +1563,38 @@ function kronenListe(hg, liste) {
     } });
   }
 }
+// Scheibe, die gerade zu sehen ist: im Flug (mit Spur) oder nach der Landung liegend; sonst null
+function scheibeImBild() {
+  if (zustand === "flug" || (zustand === "pause" && flug && flug.aktiv)) {
+    const fp = flugPosition(), e = flug.erg, spur = [];
+    for (let k = Math.max(0, fp.i - 40); k < fp.i; k += 3) spur.push(e.pfad[k]);
+    return { p: fp.p, dreht: !fp.fertig && fp.p.z > 0.05, spur };
+  }
+  if (zustand === "pause" && flug && !puttModus) return { p: flug.erg.pfad[flug.erg.pfad.length - 1], dreht: false, spur: [] };
+  return null;
+}
 function zeichneWeltObjekte(korbWackelt) {
   const liste = [];
   const korb = zuSchirm(bahn.korb);
   liste.push({ y: korb.y - 0.005, zeichne: () => zeichneKorbOben(korbWackelt) });
   zeichneSpieler(liste);
-  kronenListe(bahnBild(kamera.z), liste);
+  const hg = bahnBild(kamera.z);
+  kronenListe(hg, liste);
+  // Scheibe: Schatten liegt am Boden unter allem; die Scheibe selbst und ihre Spur werden nach ihrem Punkt
+  // am Boden einsortiert – hinter einem Gegenstand, der weiter unten steht, verschwindet sie. Fliegt sie
+  // höher als dieser Gegenstand, ist sie darüber und bleibt sichtbar (wird am Ende noch einmal gezeichnet).
+  const sch = scheibeImBild();
+  if (sch) {
+    zeichneScheibe(sch.p, sch.dreht, "schatten");
+    for (const q of sch.spur) {
+      const c = zuSchirm(q);
+      liste.push({ y: c.y, zeichne: () => { ctx.fillStyle = "rgba(255,255,255,.3)"; ctx.fillRect(c.x, c.y - Math.round(q.z * S * 0.6), 1, 1); } });
+    }
+    liste.push({ y: zuSchirm(sch.p).y + 0.02, zeichne: () => zeichneScheibe(sch.p, sch.dreht, "scheibe") });
+  }
   liste.sort((a, b) => a.y - b.y);
   for (const o of liste) o.zeichne();
+  if (sch && sch.p.z > 0.05 && ueberDenGegenstaenden(hg, sch.p)) zeichneScheibe(sch.p, sch.dreht, "scheibe");
   // Figuren hinter einer Krone schimmern durch (wer verdeckt ist, bleibt erkennbar); unverdeckt ändert
   // das nichts, weil dieselben Pixel noch einmal gezeichnet werden
   if (liste.length > spieler.length + 1) {
@@ -1693,16 +1732,18 @@ function zeichneKraftbalkenSenkrecht(gelb, rot) {
   ctx.restore();
 }
 
-function zeichneScheibe(p, dreht = false) {
+// teil: "schatten" (am Boden, unter allen Gegenständen), "scheibe" (in der Luft, einsortiert) oder beides
+function zeichneScheibe(p, dreht = false, teil = "beides") {
   const { x, y } = zuSchirm(p), hz = Math.round(p.z * S * 0.6 * AUF) / AUF;
   const f = TYPFARBE[scheibe().typ] || PAL.weiss, oy = y - hz - 1, q = 1 / AUF;
   // Schatten am Boden: zeigt, wo die Scheibe wirklich ist (die Scheibe selbst ist um die Flughöhe versetzt);
   // im feinen Raster als runde Ellipse: Kontur, Rand dunkler, Flugplatte mit Licht oben links
   const rx = 3.5 * AUF, ry = 2.5 * AUF;
-  for (let j = -ry; j < ry; j++) for (let i = -rx; i < rx; i++) {
+  if (teil !== "scheibe") for (let j = -ry; j < ry; j++) for (let i = -rx; i < rx; i++) {
     const e = ((i + 0.5) / rx) ** 2 + ((j + 0.5) / ry) ** 2;
     if (e <= 1) { ctx.fillStyle = "rgba(0,0,0,.4)"; ctx.fillRect(x + 0.5 + i * q, y + 0.5 + j * q, q, q); }
   }
+  if (teil === "schatten") return;
   const rxs = rx - 1, rys = ry - 1;
   for (let j = -ry; j < ry; j++) for (let i = -rx; i < rx; i++) {
     const e = ((i + 0.5) / rxs) ** 2 + ((j + 0.5) / rys) ** 2, ea = ((i + 0.5) / rx) ** 2 + ((j + 0.5) / ry) ** 2;
@@ -2124,15 +2165,8 @@ function schleife(jetzt) {
       flug.obGezeigt = true;
       zeigeOB(modus !== "frei");
     }
-    for (let k = Math.max(0, fp.i - 40); k < fp.i; k += 3) {
-      const q = e.pfad[k], c = zuSchirm(q);
-      ctx.fillStyle = "rgba(255,255,255,.3)";
-      ctx.fillRect(c.x, c.y - Math.round(q.z * S * 0.6), 1, 1);
-    }
-    zeichneScheibe(fp.p, !fp.fertig && fp.p.z > 0.05);
+    // Spur und Scheibe zeichnet zeichneWeltObjekte (einsortiert zwischen Gegenständen und Figuren)
     if (fp.fertig && zustand === "flug") flugEnde();
-  } else if (zustand === "pause" && flug && !puttModus) {
-    zeichneScheibe(flug.erg.pfad[flug.erg.pfad.length - 1]);
   }
   if (sprechblase) zeichneSprechblase();
   schirmTransform(); // Anzeigen ohne Kamera darüber
