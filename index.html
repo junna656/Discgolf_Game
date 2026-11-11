@@ -1681,8 +1681,8 @@ function zeichnePuttHintergrund(c, wx, jahreszeit) {
     c.fillStyle = "#8a94a4"; c.fillRect(bx - 3 + 2 * q, by - 3 + 2 * q, bw + 6 - 4 * q, q); c.fillRect(bx - 3 + 2 * q, by - 3 + 2 * q, q, bh + 6 - 4 * q);
     c.fillStyle = "#0a0c10"; c.fillRect(bx - q, by - q, bw + 2 * q, bh + 2 * q);
   } else { c.fillStyle = PAL.schwarz; c.fillRect(bx - 3, by - 3, bw + 6, bh + 6); }
-  zeichnePuttSzene(c, jahreszeit, bx, by, bw, bh);
-  zeichnePuttKorb(c, KETTEN, wx, mitSchnee(jahreszeit));
+  zeichnePuttSzene(c, jahreszeit, bx, by, bw, bh, c === ctx ? AUF : 1);
+  zeichnePuttKorb(c, KETTEN, wx, mitSchnee(jahreszeit), c === ctx ? AUF : 1);
 }
 
 function zeichnePuttAnsicht() {

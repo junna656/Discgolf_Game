@@ -85,7 +85,21 @@ verdoppelten 320er-Raster:
 ![Oberfläche vorher/nachher](bilder/hud_16bit_vergleich.png)
 (oben jeweils vorher, darunter nachher; unten Wind vorher/nachher und Scheibe im Flug)
 
-Noch im groben Raster: die Putt-Szene selbst (Himmel, Bäume, Korb von der Seite) und die Sternframe-Porträts.
+Menüs und Rechtsseiten nutzen ebenfalls Pixelify Sans, als eigene Variante „Pixelify Menue“ mit
+`size-adjust: 125%` (die Kleinbuchstaben sind kleiner als die Kapitälchen von Silkscreen).
+
+### Putt-Ansicht in hoher Auflösung
+
+`puttSzeneMalen(jz, bw, bh, A)` malt die Szene im feinen Raster: Himmel mit doppelt so vielen Farbstufen,
+Sonne mit Schein, Wolken mit Licht und Schatten, Blätter, Rinde, Nadeln, Äste, Grashalme, Blumen und Laub
+pixelgenau; Formen und Anordnung bleiben gleich (Details haben einen eigenen Zufall). Der Korb von der Seite
+(`puttKorbFein`) hat mehr Ketten mit einzelnen Gliedern, feine Gitterstäbe und Bänder mit Verlauf.
+Fallendes Laub fällt in echten Pixeln.
+
+![Putt-Szene](bilder/putt_hd_jahreszeiten.png)
+(oben bisher, unten hohe Auflösung)
+
+Noch im groben Raster: die Sternframe-Porträts.
 Bahnbild am Rechner: Übersicht 50–140 ms, nah (im Leerlauf vorbereitet) 0,3–0,5 s.
 
 Die Physik ändert sich nicht (Schnee bremst die Scheibe z. B. nicht stärker) – das wäre ein eigener Schritt.
