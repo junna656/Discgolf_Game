@@ -328,6 +328,7 @@
           </ul></li>
         <li><b>Bäume:</b> Fliegt die Scheibe durch eine Krone, gibt es drei Möglichkeiten: Sie <b>prallt ab</b> (45 %, mit leichtem Kick), wird von den Ästen <b>abgebremst</b> und fliegt deutlich kürzer weiter (30 %), oder sie fliegt <b>durch eine Lücke</b> (25 %). In den ersten 5 m ab Abwurfpunkt zählen Bäume nicht.</li>
         <li><b>OB</b> (weiße Linie mit roten Pflöcken, Zaun, dunkleres Gras): Strafwurf, weiter geht es dort, wo die Scheibe ins Aus geflogen ist. Der Rand des Spielfelds ist immer OB.</li>
+        <li><b>Throw-in:</b> Auch ein normaler Wurf kann direkt im Korb landen – von außerhalb des Circles (über 10 m) oder sogar vom Abwurf (Ace). Das ist selten: aus 20 m etwa jeder 250. gut gezielte Wurf, vom Abwurf etwa jeder 2000. Die Scheibe muss tief genug am Korb ankommen; gegen Ende des Flugs (wenn sie schon langsamer wird) bleibt sie öfter in den Ketten hängen, sonst prallt sie ab.</li>
         <li><b>Bahn 1 „Bowling“:</b> Auf dem Holzdeck rutscht die Scheibe weit – und kann direkt in den Korb rutschen (STRIKE!).</li>
         <li><b>Bahn 9 (Insel):</b> Der Korb steht in einer Box kurz hinter dem Weg – vorne und links Baumstämme, rechts Sträucher. Alles außerhalb der Box ist OB. Nach OB geht es vom zweiten Abwurf weiter (gelb umrandeter Kasten auf dem Fairway).</li>
         <li><b>Bahn 14 (Mando):</b> Der Wurf muss rechts am großen Baum vor dem Korb vorbei (gelbe Linie, roter Pfeil). Wer links vorbei fliegt, bekommt +1 und wirft noch einmal von der alten Lage.</li>
@@ -1173,7 +1174,7 @@ function flugEnde() {
       s.bester = Math.max(s.bester, d);
     }
     if (e.ob) { if (!flug.obGezeigt) zeigeOB(false); }
-    else if (e.drin) { sfx.ketten(); zeigeBanner("TREFFER!", "#ffd84a", 1.4); }
+    else if (e.drin) { sfx.ketten(); zeigeBanner(einwurf(e) || "TREFFER!", "#ffd84a", 1.4); }
     else if (e.typ === "baum" || e.typ === "mauer") zeigeHindernis(e);
     else { sfx.landung(); zeigeBanner(Math.round(d) + " M" + (d >= s.bester ? " BEST!" : ""), d >= s.bester ? "#ffd84a" : PAL.weiss, 1.2); }
     s.lie = e.lie;
@@ -1186,7 +1187,7 @@ function flugEnde() {
   if (e.drin) {
     s.fertig = true;
     sfx.ketten();
-    zeigeErgebnis(s, e.typ === "bowling" ? "STRIKE!" : null);
+    zeigeErgebnis(s, e.typ === "bowling" ? "STRIKE!" : einwurf(e));
   } else if (e.mando === "verpasst") {
     s.wuerfe++;
     if (!flug.mandoGezeigt) zeigeMando();
@@ -1204,11 +1205,21 @@ function flugEnde() {
   spaeter(naechster, 1300);
 }
 
+// Throw-in: ein normaler Wurf von außerhalb des Circles (über 10 m) landet direkt im Korb –
+// selten, darum mit Entfernung im Banner (z. B. „THROW-IN 34 M! BIRDIE!“, beim Ace „ACE!!! 87 M“)
+const CIRCLE = 10;
+function einwurf(e) {
+  if (!e.drin || e.typ !== "korb" || !flug || !flug.start) return null;
+  const d = abstand(flug.start, bahn.korb);
+  return d > CIRCLE ? "THROW-IN " + Math.round(d) + " M!" : null;
+}
+
 function zeigeErgebnis(s, extra) {
   const diff = s.wuerfe - bahn.par;
   const namen = { "-3": "ALBATROS!", "-2": "EAGLE!", "-1": "BIRDIE!", "0": "PAR", "1": "BOGEY", "2": "DOPPEL-BOGEY" };
   let t = s.wuerfe === 1 ? "ACE!!!" : (namen[diff] || "+" + diff);
   if (extra && s.wuerfe > 1) t = extra + " " + t;
+  else if (s.wuerfe === 1 && flug && flug.start) t += " " + Math.round(abstand(flug.start, bahn.korb)) + " M";
   if (diff < 0) sfx.jubel();
   zeigeBanner(t, "#ffd84a", 1.6);
 }
@@ -2251,7 +2262,10 @@ function schleife(jetzt) {
     if (t > banner.dauer) banner = null;
     else {
       const farbe = banner.blinkt && Math.floor(t * 7) % 2 ? PAL.weiss : banner.farbe;
-      text(banner.text, SW / 2, Math.round(SH * 0.39) - banner.gr / 2 + 8 - Math.min(6, t * 20), farbe, "center", banner.gr);
+      // lange Banner (z. B. „THROW-IN 34 M! BIRDIE!“) hochkant kleiner setzen, damit sie ins Bild passen
+      let gr = banner.gr;
+      while (gr > 8 && textBreite(banner.text, gr) > SW - 8) gr -= 2;
+      text(banner.text, SW / 2, Math.round(SH * 0.39) - gr / 2 + 8 - Math.min(6, t * 20), farbe, "center", gr);
     }
   }
   if (zustand === "ende") {
