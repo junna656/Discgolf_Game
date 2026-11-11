@@ -1517,10 +1517,17 @@ function figurOrt(s) {
   }
   return a;
 }
-// Wer gerade eingelocht hat, jubelt noch kurz (bei Putts erst, wenn die Nahansicht zu ist)
+// Wer gerade eingelocht hat, jubelt noch kurz. Bei Putts erst, wenn die Nahansicht zu ist – aber nur, wenn das
+// gleich danach passiert (puttet der Nächste sofort weiter, bleibt sie offen: dann kein verspäteter Jubel).
+// Nach dem letzten Spieler kommt die Ergebnistafel, dann entfällt er ebenfalls.
 function jubelt(s) {
-  if (!s.fertig) { s.fertigSeit = undefined; return false; }
-  if (s.fertigSeit === undefined) { if (puttAnsichtOffen() || zustand === "ende") return false; s.fertigSeit = uhr; }
+  if (!s.fertig) { s.fertigSeit = s.fertigBemerkt = undefined; return false; }
+  if (s.fertigBemerkt === undefined) s.fertigBemerkt = uhr;
+  if (s.fertigSeit === undefined) {
+    if (puttAnsichtOffen() || zustand === "ende") return false;
+    if (uhr - s.fertigBemerkt > 2) { s.fertigSeit = -Infinity; return false; } // zu spät: auslassen
+    s.fertigSeit = uhr;
+  }
   return uhr - s.fertigSeit < JUBEL_DAUER;
 }
 function zeichneSpieler(liste) {
