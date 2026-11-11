@@ -1,4 +1,4 @@
-// 8-Bit-Porträts der Spieler (32 × 32 Pixel), gezeichnet aus "aussehen" in taschen.js
+// Porträts der Spieler (32 × 32 Pixel, feine Fassung 64 × 64), gezeichnet aus "aussehen" in taschen.js
 (function (g) {
   "use strict";
 

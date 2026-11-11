@@ -13,13 +13,13 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="fonts/schrift.css">
-<meta name="description" content="Boogie Garanten – Discgolf in 8 Bit. Alle 15 Bahnen des Hyzernauts Discgolfparcours im Volkspark Potsdam, mit Wind, Hyzer und Anhyzer, eigenen Bags und Putt-Modus. Kostenlos im Browser.">
+<meta name="description" content="Boogie Garanten – Discgolf in 16 Bit. Alle 15 Bahnen des Hyzernauts Discgolfparcours im Volkspark Potsdam, mit Wind, Hyzer und Anhyzer, eigenen Bags und Putt-Modus. Kostenlos im Browser.">
 <link rel="canonical" href="https://www.discgolf-game.de/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Boogie Garanten">
 <meta property="og:locale" content="de_DE">
 <meta property="og:url" content="https://www.discgolf-game.de/">
-<meta property="og:title" content="Boogie Garanten – Discgolf in 8 Bit">
+<meta property="og:title" content="Boogie Garanten – Discgolf in 16 Bit">
 <meta property="og:description" content="Alle 15 Bahnen im Volkspark Potsdam, mit Wind, Hyzer, Anhyzer und eigenem Bag. Direkt im Browser spielen.">
 <meta property="og:image" content="https://www.discgolf-game.de/icons/vorschau.png">
 <meta property="og:image:width" content="1200">
@@ -262,7 +262,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.8.0</span></p>
+    <p class="untertitel">Discgolf in 16 Bit<br><span style="color:#9fc49a">Version 0.8.0</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -616,7 +616,7 @@ let zoomManuell = null, umsehen = false, zieh = null;
 // Handy hochkant: Bahn um 90° drehen (Abwurf unten, Korb oben). SW/SH = Bildschirmgröße in Pixeln
 let hochkant = false, SW = W, SH = H;
 // AUF: echte Pixel je Spielpixel. 2 = hohe Auflösung (quer und hochkant): Bahnbild, Korb und Laub
-// doppelt so fein; Schrift, Figuren und Anzeigen bleiben im 8-Bit-Raster (scharf verdoppelt)
+// doppelt so fein; auch Schrift, Figuren und Anzeigen werden im feinen Raster gezeichnet
 let AUF = 1;
 function hoheAufloesung() {
   try { return einstellungen.hd !== false; } catch (e) { return false; } // Einstellungen noch nicht geladen

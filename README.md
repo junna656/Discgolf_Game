@@ -1,6 +1,6 @@
 # Boogie Garanten
 
-8-Bit-Discgolf-Spiel im Browser für Thomas, Daniel, André und Gunnar.
+16-Bit-Discgolf-Spiel im Browser für Thomas, Daniel, André und Gunnar.
 Erster Kurs: der Hyzernauts Discgolfparcours im Volkspark Potsdam mit allen 15 Bahnen.
 Zweiter Kurs: die **Wochenbahn** – jede Woche eine neue, zufällig erzeugte Bahn mit Thema und eigener
 Bestenliste (Archiv: www.discgolf-game.de/archiv/, Ablauf: `docs/WOCHENBAHN.md`).
@@ -19,11 +19,12 @@ Bestenliste (Archiv: www.discgolf-game.de/archiv/, Ablauf: `docs/WOCHENBAHN.md`)
 | `taschen.js` | Spieler, Bags mit Flugzahlen, Stärken, Aussehen, Spielerkarten |
 | `bahnen.js` | alle Kurse (`KURSE`) mit ihren Bahnen und das freie Feld – ein neuer Kurs ist einfach ein weiterer Eintrag |
 | `physik.js` | Flugmodell (Turn, Fade, Hyzer/Anhyzer, Wind, Streuung, Bäume, OB) |
-| `portraets.js` | 8-Bit-Porträts der Spieler |
+| `portraets.js` | Porträts der Spieler (32 × 32 und fein 64 × 64) |
 | `wochenbahnen.js` | alle Wochenbahnen als Daten (erzeugt von `werkzeuge/wochenbahn.mjs`, Fixes von Hand erlaubt) |
 | `wochen.js` | wählt die Bahn dieser Woche (Wechsel Montag 0:00) und hängt sie als Kurs an `KURSE` |
 | `archiv/` | Archiv der Wochenbahnen mit Siegern; alte Bahnen spielbar über `?woche=<jahr>-<kw>` |
 | `grafik.js` | Grafik der Bahnen mit vier Jahreszeiten (Einstellungen → Jahreszeit; Standard: nach Datum) und den Themen-Optiken der Wochenbahnen (z. B. Wüste) |
+| `figuren.js` | Spielerfiguren als Sprites (zwei Größen) mit Posen: Stehen, Ausholen (Rückhand/Vorhand), Wurf |
 | `rufe/` | Ruf-Aufnahmen („Achtung, zweite Scheibe!“) |
 | `werkzeuge/wochenbahn.mjs` | erzeugt eine Wochenbahn aus Thema, Woche und Zufall (`--thema wueste`), prüft `wochenbahnen.js` (`--pruefen`) |
 | `werkzeuge/grafik_vorschau.mjs` | rendert eine Bahn in allen Jahreszeiten/Optiken als PNG (Vergleichsbilder in `docs/GRAFIK-VORSCHLAEGE.md`) |
