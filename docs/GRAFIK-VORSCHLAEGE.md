@@ -68,6 +68,24 @@ und der Korb 22/33/44 px, also in der nahen Ansicht fast dreimal so groß wie de
 
 ![Proportionen vorher/nachher](bilder/proportionen_vergleich.png)
 (je Zeile links vorher, rechts nachher; Übersicht, mittel, nah)
+
+### Einheitliches Pixelraster (16-Bit-Schritt 2)
+
+Bei hoher Auflösung wird auch die Spieloberfläche im feinen Raster (echte Pixel) gezeichnet, statt im
+verdoppelten 320er-Raster:
+- **Schrift**: Pixelify Sans (OFL, `fonts/pixelify-sans-400.woff2`) in echten Pixeln, 1 px Kontur,
+  etwas Buchstaben- und Wortabstand. Ohne hohe Auflösung bleibt Silkscreen. Maße bleiben in Spielpixeln
+  (`textBreite()` statt `measureText`).
+- **Rahmen** (`rahmen()`): Kontur mit abgeschnittenen Ecken, Licht oben links, Schatten unten rechts –
+  Windanzeige, Kraftbalken, Sprechblase, Putt-Ansicht, Bahnende.
+- **Kraftbalken** (`balkenStueck()`): Bereiche mit Licht- und Schattenkante, Zeiger mit Kontur.
+- **Wind-Pfeil** (`feineLinie()`), **fliegende Scheibe** (runde Ellipse mit Rand, Licht und umlaufendem Glanzpunkt,
+  runder Schatten), **Ziellinie**, **Fadenkreuz** und **Putter** im Putt bewegen sich in echten Pixeln.
+
+![Oberfläche vorher/nachher](bilder/hud_16bit_vergleich.png)
+(oben jeweils vorher, darunter nachher; unten Wind vorher/nachher und Scheibe im Flug)
+
+Noch im groben Raster: die Putt-Szene selbst (Himmel, Bäume, Korb von der Seite) und die Sternframe-Porträts.
 Bahnbild am Rechner: Übersicht 50–140 ms, nah (im Leerlauf vorbereitet) 0,3–0,5 s.
 
 Die Physik ändert sich nicht (Schnee bremst die Scheibe z. B. nicht stärker) – das wäre ein eigener Schritt.
