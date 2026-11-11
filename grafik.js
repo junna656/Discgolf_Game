@@ -25,7 +25,9 @@
 "use strict";
 
 window.zeichneHintergrundDetail = function (z, optionen = {}) {
-  const opt = Object.assign({ deko: true, kiefern: true, jahreszeit: "sommer" }, optionen);
+  // kronen: false = 3/4-Ansicht im Spiel – Laub- und Nadelbäume nur als Schatten im Bahnbild, die Kronen
+  // zeichnet das Spiel als angehobene Sprites (baumSprite), damit Figuren dahinter verschwinden können
+  const opt = Object.assign({ deko: true, kiefern: true, jahreszeit: "sommer", kronen: true }, optionen);
   const BW = Math.round(W * z), BH = Math.round(H * z);
   const hg = document.createElement("canvas");
   hg.width = BW; hg.height = BH;
@@ -464,83 +466,164 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   }
 
   // ---------- Bäume ----------
-  // Laubbaum: Krone aus mehreren Blättergruppen, jede mit Kontur, Grund, Mitte, Licht
+  // Laubbaum: Krone aus mehreren Blättergruppen, jede mit Kontur, Grund, Mitte, Licht (zeichneBaumKrone)
   for (const b of baeume) {
-    const r = b.r * S, cx = b.x * S, cy = b.y * S, rr = zufall(Math.round(b.x * 100 + b.y * 7)), LB = b.farben, KI = b.farben;
+    const r = b.r * S, cx = b.x * S, cy = b.y * S, rr = zufall(Math.round(b.x * 100 + b.y * 7)), LB = b.farben;
     if (b.art === "kaktus") zeichneKaktus(c, cx, cy, r, LB, rr, zr);
     else if (b.art === "fels") zeichneFels(c, cx, cy, r, LB, rr, zr, S);
-    else if (b.kahl) {
-      // Winter: kahle Krone aus Ästen, Schatten als Äste auf dem Schnee, Schnee auf der Lichtseite
-      const aeste = [];
-      const ast = (x, y, w, len, tiefe) => {
-        const n = Math.max(2, Math.round(len));
-        for (let k = 0; k <= n; k++) aeste.push({ x: x + Math.cos(w) * len * k / n, y: y + Math.sin(w) * len * k / n, d: tiefe });
-        if (tiefe < 3) for (let j = 0; j < 2; j++) {
-          const t = 0.45 + rr() * 0.45;
-          ast(x + Math.cos(w) * len * t, y + Math.sin(w) * len * t, w + (j ? 1 : -1) * (0.4 + rr() * 0.5), len * (0.45 + rr() * 0.15), tiefe + 1);
-        }
-      };
-      const anz = 6 + Math.floor(rr() * 3);
-      for (let i = 0; i < anz; i++) ast(cx, cy, (i / anz) * Math.PI * 2 + rr() * 0.5, r * (0.5 + rr() * 0.15), 0);
-      const dick = q => q.d === 0 ? Math.max(1, zr + 1) : q.d === 1 ? zr : 1;
-      c.fillStyle = "rgba(60,80,120,.35)";
-      for (const q of aeste) c.fillRect(Math.round(q.x + r * 0.3), Math.round(q.y + r * 0.4), dick(q), dick(q));
-      for (const q of aeste) { c.fillStyle = q.d < 2 ? "#3a2e24" : "#5a4a3c"; c.fillRect(Math.round(q.x), Math.round(q.y), dick(q), dick(q)); }
-      c.fillStyle = "#f4f8ff";
-      for (const q of aeste) if (q.d < 3 && rr() < 0.25) c.fillRect(Math.round(q.x), Math.round(q.y) - 1, dick(q), 1);
-      pixelKreis(c, cx, cy, Math.max(1, zr + 1), "#2a2018");
-    } else if (b.kiefer) {
-      // Kiefer: Nadelbüschel strahlenförmig um die Mitte, bläulicheres Grün
-      const buschel = [];
-      for (let ring = 0; ring < 3; ring++) {
-        const anz = [1, 6, 10][ring], abst = [0, 0.42, 0.72][ring];
-        for (let i = 0; i < anz; i++) {
-          const w = (i / anz) * Math.PI * 2 + rr() * 0.5 + ring;
-          buschel.push({ x: cx + Math.cos(w) * r * abst, y: cy + Math.sin(w) * r * abst, r: r * (ring ? 0.3 + rr() * 0.08 : 0.42) });
-        }
-      }
-      for (const q of buschel) pixelKreis(c, q.x, q.y, q.r + zr, KI[0]);
-      for (const q of buschel) pixelKreis(c, q.x, q.y, q.r, KI[1]);
-      for (const q of buschel) pixelKreis(c, q.x - q.r * 0.2, q.y - q.r * 0.25, q.r * 0.65, KI[2]);
-      for (const q of buschel) pixelKreis(c, q.x - q.r * 0.35, q.y - q.r * 0.4, q.r * 0.3, KI[3]);
-      if (winter) for (const q of buschel) { pixelKreis(c, q.x - q.r * 0.3, q.y - q.r * 0.35, q.r * 0.42, "#c4d0e2"); pixelKreis(c, q.x - q.r * 0.4, q.y - q.r * 0.45, q.r * 0.25, "#f4f8ff"); }
-      // Nadeln: kurze Striche nach außen
-      for (let i = 0; i < r * 5; i++) {
-        const w = rr() * Math.PI * 2, dd = rr() * r * 0.95, lx = Math.cos(w), ly = Math.sin(w);
-        c.fillStyle = rr() < 0.4 ? (winter ? "#f4f8ff" : KI[4]) : KI[0];
-        for (let k = 0; k < Math.max(1, zr * 1.5); k++) c.fillRect(Math.round(cx + lx * (dd + k)), Math.round(cy + ly * (dd + k)), 1, 1);
-      }
-    } else {
-      const gruppen = [{ x: cx, y: cy, r: r * 0.62 }];
-      const anz = 6 + Math.floor(rr() * 3);
-      for (let i = 0; i < anz; i++) {
-        const w = (i / anz) * Math.PI * 2 + rr() * 0.6, rg = r * (0.32 + rr() * 0.12);
-        gruppen.push({ x: cx + Math.cos(w) * (r - rg) * 0.95, y: cy + Math.sin(w) * (r - rg) * 0.95, r: rg });
-      }
-      // hinten liegende (rechts unten) zuerst, vordere (links oben, im Licht) zuletzt
-      gruppen.sort((p, q) => (q.x + q.y) - (p.x + p.y));
-      for (const q of gruppen) pixelKreis(c, q.x, q.y, q.r + zr, LB[0]);
-      for (const q of gruppen) {
-        pixelKreis(c, q.x, q.y, q.r, LB[1]);
-        pixelKreis(c, q.x - q.r * 0.18, q.y - q.r * 0.22, q.r * 0.72, LB[2]);
-        pixelKreis(c, q.x - q.r * 0.36, q.y - q.r * 0.4, q.r * 0.36, LB[3]);
-        if (q.r * 0.14 >= 1) pixelKreis(c, q.x - q.r * 0.45, q.y - q.r * 0.5, q.r * 0.14, LB[4]);
-      }
-      // Blätter-Dither an den Übergängen, bei Blütenbäumen helle Blüten
-      for (let i = 0; i < r * (LB.bluete ? 9 : 4); i++) {
-        const w = rr() * Math.PI * 2, dd = Math.sqrt(rr()) * r * 0.92;
-        c.fillStyle = LB.bluete ? (rr() < 0.5 ? LB[4] : "#ffffff") : rr() < 0.55 ? LB[1] : LB[3];
-        c.fillRect(Math.round(cx + Math.cos(w) * dd), Math.round(cy + Math.sin(w) * dd), 1, 1);
-      }
+    else if (opt.kronen) zeichneBaumKrone(c, b, cx, cy, r, zr, winter);
+    else {
+      // 3/4-Ansicht: nur der Stammfuß auf dem Boden, die Krone kommt als Sprite darüber
+      pixelKreis(c, cx + zr, cy + zr, Math.max(1, Math.round(r * 0.12)), "rgba(0,20,0,.35)");
     }
   }
   zeichneMando(c, z);
   // für das fallende Laub (zeichneLaubfall): Laubbäume mit ihren Farben
   // für Blätter, die beim Treffer aus der Krone fliegen (blattFarbenAn): jeder Baum mit seinen Farben
-  hg.baumFarben = baeume.map(({ x, y, r, farben, kiefer, kahl, art }) => ({ x, y, r, farben, kiefer, kahl, art }));
+  hg.baumFarben = baeume.map(({ x, y, r, h, farben, kiefer, kahl, art }) => ({ x, y, r, h, farben, kiefer, kahl, art }));
+  hg.kronenAlsSprite = !opt.kronen; hg.winter = winter; hg.S = S; hg.zr = zr;
   if (JZ.laubfall) { hg.laubBaeume = baeume.filter(b => !b.kiefer && !b.kahl).map(({ x, y, r, farben }) => ({ x, y, r, farben })); hg.laubBahn = bahn; }
   return hg;
 };
+
+// Krone eines Baums (Laub, Kiefer oder kahl im Winter) mit Mitte cx, cy und Radius r in Bildpunkten.
+// zr: Pixelgröße der Details; gleiche Zufallsfolge je Baum, damit er überall gleich aussieht
+function zeichneBaumKrone(c, b, cx, cy, r, zr, winter, imSprite = false) {
+  const rr = zufall(Math.round(b.x * 100 + b.y * 7)), LB = b.farben, KI = b.farben;
+  if (b.kahl) {
+    // Winter: kahle Krone aus Ästen, Schatten als Äste auf dem Schnee, Schnee auf der Lichtseite
+    const aeste = [];
+    const ast = (x, y, w, len, tiefe) => {
+      const n = Math.max(2, Math.round(len));
+      for (let k = 0; k <= n; k++) aeste.push({ x: x + Math.cos(w) * len * k / n, y: y + Math.sin(w) * len * k / n, d: tiefe });
+      if (tiefe < 3) for (let j = 0; j < 2; j++) {
+        const t = 0.45 + rr() * 0.45;
+        ast(x + Math.cos(w) * len * t, y + Math.sin(w) * len * t, w + (j ? 1 : -1) * (0.4 + rr() * 0.5), len * (0.45 + rr() * 0.15), tiefe + 1);
+      }
+    };
+    const anz = 6 + Math.floor(rr() * 3);
+    for (let i = 0; i < anz; i++) ast(cx, cy, (i / anz) * Math.PI * 2 + rr() * 0.5, r * (0.5 + rr() * 0.15), 0);
+    const dick = q => q.d === 0 ? Math.max(1, zr + 1) : q.d === 1 ? zr : 1;
+    if (!imSprite) { // Astschatten auf dem Schnee (nur im Bahnbild, nicht in der angehobenen Krone)
+      c.fillStyle = "rgba(60,80,120,.35)";
+      for (const q of aeste) c.fillRect(Math.round(q.x + r * 0.3), Math.round(q.y + r * 0.4), dick(q), dick(q));
+    }
+    for (const q of aeste) { c.fillStyle = q.d < 2 ? "#3a2e24" : "#5a4a3c"; c.fillRect(Math.round(q.x), Math.round(q.y), dick(q), dick(q)); }
+    c.fillStyle = "#f4f8ff";
+    for (const q of aeste) if (q.d < 3 && rr() < 0.25) c.fillRect(Math.round(q.x), Math.round(q.y) - 1, dick(q), 1);
+    pixelKreis(c, cx, cy, Math.max(1, zr + 1), "#2a2018");
+  } else if (b.kiefer) {
+    // Kiefer: Nadelbüschel strahlenförmig um die Mitte, bläulicheres Grün
+    const buschel = [];
+    for (let ring = 0; ring < 3; ring++) {
+      const anz = [1, 6, 10][ring], abst = [0, 0.42, 0.72][ring];
+      for (let i = 0; i < anz; i++) {
+        const w = (i / anz) * Math.PI * 2 + rr() * 0.5 + ring;
+        buschel.push({ x: cx + Math.cos(w) * r * abst, y: cy + Math.sin(w) * r * abst, r: r * (ring ? 0.3 + rr() * 0.08 : 0.42) });
+      }
+    }
+    for (const q of buschel) pixelKreis(c, q.x, q.y, q.r + zr, KI[0]);
+    for (const q of buschel) pixelKreis(c, q.x, q.y, q.r, KI[1]);
+    for (const q of buschel) pixelKreis(c, q.x - q.r * 0.2, q.y - q.r * 0.25, q.r * 0.65, KI[2]);
+    for (const q of buschel) pixelKreis(c, q.x - q.r * 0.35, q.y - q.r * 0.4, q.r * 0.3, KI[3]);
+    if (winter) for (const q of buschel) { pixelKreis(c, q.x - q.r * 0.3, q.y - q.r * 0.35, q.r * 0.42, "#c4d0e2"); pixelKreis(c, q.x - q.r * 0.4, q.y - q.r * 0.45, q.r * 0.25, "#f4f8ff"); }
+    // Nadeln: kurze Striche nach außen
+    for (let i = 0; i < r * 5; i++) {
+      const w = rr() * Math.PI * 2, dd = rr() * r * 0.95, lx = Math.cos(w), ly = Math.sin(w);
+      c.fillStyle = rr() < 0.4 ? (winter ? "#f4f8ff" : KI[4]) : KI[0];
+      for (let k = 0; k < Math.max(1, zr * 1.5); k++) c.fillRect(Math.round(cx + lx * (dd + k)), Math.round(cy + ly * (dd + k)), 1, 1);
+    }
+  } else {
+    const gruppen = [{ x: cx, y: cy, r: r * 0.62 }];
+    const anz = 6 + Math.floor(rr() * 3);
+    for (let i = 0; i < anz; i++) {
+      const w = (i / anz) * Math.PI * 2 + rr() * 0.6, rg = r * (0.32 + rr() * 0.12);
+      gruppen.push({ x: cx + Math.cos(w) * (r - rg) * 0.95, y: cy + Math.sin(w) * (r - rg) * 0.95, r: rg });
+    }
+    // hinten liegende (rechts unten) zuerst, vordere (links oben, im Licht) zuletzt
+    gruppen.sort((p, q) => (q.x + q.y) - (p.x + p.y));
+    for (const q of gruppen) pixelKreis(c, q.x, q.y, q.r + zr, LB[0]);
+    for (const q of gruppen) {
+      pixelKreis(c, q.x, q.y, q.r, LB[1]);
+      pixelKreis(c, q.x - q.r * 0.18, q.y - q.r * 0.22, q.r * 0.72, LB[2]);
+      pixelKreis(c, q.x - q.r * 0.36, q.y - q.r * 0.4, q.r * 0.36, LB[3]);
+      if (q.r * 0.14 >= 1) pixelKreis(c, q.x - q.r * 0.45, q.y - q.r * 0.5, q.r * 0.14, LB[4]);
+    }
+    // Blätter-Dither an den Übergängen, bei Blütenbäumen helle Blüten
+    for (let i = 0; i < r * (LB.bluete ? 9 : 4); i++) {
+      const w = rr() * Math.PI * 2, dd = Math.sqrt(rr()) * r * 0.92;
+      c.fillStyle = LB.bluete ? (rr() < 0.5 ? LB[4] : "#ffffff") : rr() < 0.55 ? LB[1] : LB[3];
+      c.fillRect(Math.round(cx + Math.cos(w) * dd), Math.round(cy + Math.sin(w) * dd), 1, 1);
+    }
+  }
+}
+
+// ---------- 3/4-Ansicht: Baum als Sprite ----------
+// Stamm vom Boden bis zur Krone, Krone angehoben um etwa Baumhöhe × 0,6 – derselbe Faktor, mit dem die
+// Scheibe nach ihrer Flughöhe angehoben wird; unten an der Krone eine Schattenseite für Volumen.
+// b: Baum aus bild.baumFarben; S: Bildpunkte je Meter; Rückgabe: Bild und Fußpunkt (ax, ay) darin
+window.baumAnhebung = b => Math.max(b.r * 1.1, (b.h || Math.min(12, Math.max(3, 1.5 + b.r * 1.8))) * 0.6 - b.r * 0.15);
+window.baumSprite = function (b, S, zr, winter) {
+  const r = b.r * S, heb = baumAnhebung(b) * S, rand = Math.ceil(zr * 2 + 2);
+  const BWs = Math.ceil(2 * r + 2 * rand), BHs = Math.ceil(2 * r + heb + 2 * rand);
+  const cv = document.createElement("canvas"); cv.width = BWs; cv.height = BHs;
+  const c = cv.getContext("2d");
+  const ax = Math.round(BWs / 2), ay = BHs - rand, cx = ax, cy = Math.round(ay - heb);
+  // Stamm: unten breiter, Licht links, Schatten rechts, Rinde
+  const sb = Math.max(2, Math.round(S * (0.32 + b.r * 0.05))), rr = zufall(Math.round(b.x * 31 + b.y * 17));
+  const RINDE = b.kahl ? ["#2a2018", "#3a2e24", "#5a4a3c"] : ["#2e2016", "#4a3624", "#6a5038"];
+  for (let y = cy; y <= ay; y++) {
+    const t = (y - cy) / Math.max(1, ay - cy), w = Math.round(sb * (0.8 + 0.35 * t * t));
+    const x0 = ax - Math.floor(w / 2);
+    c.fillStyle = RINDE[1]; c.fillRect(x0, y, w, 1);
+    c.fillStyle = RINDE[2]; c.fillRect(x0, y, Math.max(1, Math.round(w * 0.25)), 1);
+    c.fillStyle = RINDE[0]; c.fillRect(x0 + w - Math.max(1, Math.round(w * 0.3)), y, Math.max(1, Math.round(w * 0.3)), 1);
+    if (rr() < 0.25) { c.fillStyle = RINDE[0]; c.fillRect(x0 + 1 + Math.floor(rr() * Math.max(1, w - 2)), y, 1, 1 + Math.floor(rr() * 2)); }
+  }
+  // Wurzelansatz
+  c.fillStyle = RINDE[0]; c.fillRect(ax - Math.round(sb * 0.8), ay, Math.round(sb * 1.6), Math.max(1, Math.round(zr / 2)));
+  if (b.kiefer) zeichneKiefernKegel(c, b, cx, cy, r, zr, winter, rr);
+  else zeichneBaumKrone(c, b, cx, cy, r, zr, winter, true);
+  // Schattenseite unten an der Krone (gedithert, nur auf der Krone), bei kahlen Bäumen nicht
+  if (!b.kahl) {
+    const BAY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+    c.globalCompositeOperation = "source-atop"; c.fillStyle = "rgba(0,16,8,.32)";
+    for (let y = Math.round(cy + r * 0.15); y <= cy + r + zr; y++) {
+      const t = (y - cy - r * 0.15) / (r * 0.85);
+      for (let x = Math.round(cx - r - zr); x <= cx + r + zr; x++) if ((BAY[(y & 3) * 4 + (x & 3)] + 0.5) / 16 < t * 0.9) c.fillRect(x, y, 1, 1);
+    }
+    c.globalCompositeOperation = "source-over";
+  }
+  return { c: cv, ax, ay };
+};
+
+// Kiefer in der 3/4-Ansicht: Kegel aus vier Etagen, jede unten breiter, Licht links, Schatten rechts,
+// Nadelspitzen am unteren Rand; im Winter Schnee auf den Etagen
+function zeichneKiefernKegel(c, b, cx, cy, r, zr, winter, rr) {
+  const KI = b.farben, oben = cy - r * 1.25, unten = cy + r * 0.85, n = 4, H = unten - oben;
+  for (let e = 0; e < n; e++) {
+    const y0 = oben + H * (e / n) * 0.85, y1 = oben + H * ((e + 1) / n), wUnten = r * (0.45 + 0.55 * (e + 1) / n);
+    for (let y = Math.round(y0); y <= y1; y++) {
+      const t = (y - y0) / Math.max(1, y1 - y0), w = Math.max(1, wUnten * (0.25 + 0.75 * t));
+      for (let x = Math.round(cx - w); x <= cx + w; x++) {
+        const u = (x - (cx - w)) / (2 * w); // 0 links … 1 rechts
+        let f = u < 0.22 ? KI[3] : u < 0.5 ? KI[2] : u < 0.8 ? KI[1] : KI[0];
+        if (y > y1 - zr) f = KI[0];
+        c.fillStyle = f; c.fillRect(x, y, 1, 1);
+      }
+      if (winter && t < 0.35) { c.fillStyle = t < 0.15 ? "#f4f8ff" : "#c4d0e2"; c.fillRect(Math.round(cx - w), y, Math.round(w * 1.1), 1); }
+    }
+    // Nadelspitzen und Kontur unten
+    for (let x = Math.round(cx - wUnten); x <= cx + wUnten; x += Math.max(2, zr + 1)) {
+      c.fillStyle = KI[0]; c.fillRect(x, Math.round(y1), Math.max(1, zr), Math.max(1, zr) + (rr() < 0.5 ? 1 : 0));
+    }
+  }
+  // Nadel-Glanz
+  for (let i = 0; i < r * 3; i++) {
+    const y = oben + rr() * H, rel = (y - oben) / H, w = r * rel * 0.8, x = cx - w + rr() * w * 1.2;
+    c.fillStyle = winter && rr() < 0.4 ? "#f4f8ff" : KI[4]; c.fillRect(Math.round(x), Math.round(y), 1, 1);
+  }
+}
 
 // ---------- Wüste: Kaktus und Fels von oben (Licht von links oben) ----------
 // Kaktus (Saguaro von oben): runder Stamm mit Rippen und Stacheln, dazu zwei bis drei Arme
@@ -604,7 +687,7 @@ window.zeichneLaubfall = function (c, bild, dt, wind) {
   if (laubfall.teile.length < ziel && Math.random() < dt * ziel * 0.3) {
     const b = baeume[Math.floor(Math.random() * baeume.length)], w = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * b.r * 0.9, f = b.farben;
     laubfall.teile.push({
-      x: b.x + Math.cos(w) * d, y: b.y + Math.sin(w) * d, h: 3 + Math.random() * 5, v: 0.5 + Math.random() * 0.6,
+      x: b.x + Math.cos(w) * d, y: b.y + Math.sin(w) * d, h: bild.kronenAlsSprite ? baumAnhebung(b) / 0.6 + (Math.random() - 0.5) * b.r : 3 + Math.random() * 5, v: 0.5 + Math.random() * 0.6,
       phase: Math.random() * 6.3, farbe: f[2 + Math.floor(Math.random() * 2)], rand: f[1], liegt: 0, // Farben wie in der Krone
     });
   }
@@ -617,8 +700,12 @@ window.zeichneLaubfall = function (c, bild, dt, wind) {
     } else t.liegt += dt;
     return t.liegt < 4;
   });
+  // 3/4-Ansicht: Blätter in der Luft um ihre Höhe × 0,6 angehoben (wie die Scheibe); hochkant ist
+  // "oben" auf dem Bildschirm die +x-Richtung der Bahn
+  const heben = bild.kronenAlsSprite, hk = typeof hochkant !== "undefined" && hochkant;
   for (const t of laubfall.teile) {
-    const px = Math.round(t.x * S * A) / A, py = Math.round(t.y * S * A) / A;
+    const L = heben && t.h > 0 ? t.h * 0.6 : 0;
+    const px = Math.round((t.x + (hk ? L : 0)) * S * A) / A, py = Math.round((t.y - (hk ? 0 : L)) * S * A) / A;
     if (t.h > 0) { c.fillStyle = "rgba(0,20,0,.35)"; c.fillRect(Math.round((t.x + t.h * 0.25) * S * A) / A, Math.round((t.y + t.h * 0.35) * S * A) / A, pz, pz); }
     const quer = t.h > 0 && Math.sin(t.phase) > 0; // das Blatt dreht sich: mal breit, mal schmal
     c.globalAlpha = t.liegt > 3 ? 4 - t.liegt : 1;

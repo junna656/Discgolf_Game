@@ -131,6 +131,20 @@ Bahnbild am Rechner: Übersicht 50–140 ms, nah (im Leerlauf vorbereitet) 0,3�
 
 Die Physik ändert sich nicht (Schnee bremst die Scheibe z. B. nicht stärker) – das wäre ein eigener Schritt.
 
+### 3/4-Ansicht der Bäume
+
+Im Spiel enthält das Bahnbild nur noch Boden und Schatten (`kronen: false`); Laub- und Nadelbäume werden als
+Sprites gezeichnet (`baumSprite` in grafik.js): Stamm mit Rinde, Krone angehoben um etwa Baumhöhe × 0,6 –
+derselbe Faktor, mit dem die Scheibe nach ihrer Flughöhe angehoben wird, d. h. eine Scheibe, die in der
+Physik an die Krone prallt, sieht man auch dort. Kiefern sind Kegel aus vier Etagen, Laubkronen haben unten
+eine Schattenseite. Kronen, Korb und Figuren werden nach ihrem Fußpunkt sortiert (`zeichneWeltObjekte`),
+wer weiter oben steht, verschwindet hinter der Krone – verdeckte Figuren schimmern halb durchsichtig durch.
+Herbstlaub fällt aus der angehobenen Krone. Hochkant stehen die Bäume ebenfalls aufrecht.
+Kakteen und Felsen (Wüste) bleiben in der Draufsicht; das Vorschau-Werkzeug zeichnet weiter Kronen ins Bild.
+
+![3/4-Ansicht](bilder/dreiviertel.png)
+(oben links bisher, oben rechts 3/4-Ansicht, unten Frühling und Winter)
+
 ## Weitere Ideen (noch nicht gebaut)
 
 - **Tageszeit**: abendliches Licht als Paletten-Tausch
