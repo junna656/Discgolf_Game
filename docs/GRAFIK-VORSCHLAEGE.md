@@ -57,7 +57,7 @@ hält die gewählte Scheibe in ihrer Typfarbe.
 
 ![Figuren](bilder/figuren_hd.png)
 
-Abschaltbar unter Einstellungen → Hohe Auflösung.
+Immer an (der frühere Schalter „Hohe Auflösung“ in den Einstellungen ist entfallen).
 
 ### Proportionen Figur ↔ Korb
 

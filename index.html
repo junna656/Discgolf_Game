@@ -271,7 +271,7 @@
       <button class="gross" id="zu-doku" style="font-size:12px;padding:10px 16px;margin-top:8px">Anleitung<small>Steuerung, Regeln und Tipps</small></button>
       <button class="gross" id="zu-bags" style="font-size:12px;padding:10px 16px">Spieler & Bags<small>Spielerkarten ansehen, Scheiben im Bag bearbeiten</small></button>
       <button class="gross" id="zu-bestenliste" style="font-size:12px;padding:10px 16px">Bestenliste<small>Beste Runde jeder Person, auch im Wochenkurs – für alle Geräte</small></button>
-      <button class="gross" id="zu-einstellungen" style="font-size:12px;padding:10px 16px">Einstellungen<small>Wurfart, Jahreszeit und Auflösung</small></button>
+      <button class="gross" id="zu-einstellungen" style="font-size:12px;padding:10px 16px">Einstellungen<small>Wurfart und Jahreszeit</small></button>
       <button class="gross" id="zu-dev" style="font-size:12px;padding:10px 16px;border-color:#ff9a5a" hidden>Entwicklung<small>Parameter einstellen – nur in der Vorschau</small></button>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="#" id="melde-fehler" style="color:var(--leise)">Fehler melden</a> · <a href="#" id="melde-wunsch" style="color:var(--leise)">Idee vorschlagen</a></p>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="impressum.html" style="color:var(--leise)">Impressum</a> · <a href="datenschutz.html" style="color:var(--leise)">Datenschutz</a></p>
@@ -433,12 +433,6 @@
           <button data-grafikwahl="winter">Winter</button>
         </div>
       </div>
-      <h3 style="font-size:12px;margin:6px 0 0">Hohe Auflösung</h3>
-      <div class="knoepfe" id="hd-wahl">
-        <button data-hdwahl="an">An</button>
-        <button data-hdwahl="aus">Aus</button>
-      </div>
-      <p class="klein" style="margin:0">Bahn, Bäume, Korb und Figuren doppelt so fein (quer und hochkant). Auf langsamen Handys ggf. ausschalten.</p>
       <p class="klein" style="margin:0">Wird in diesem Browser gespeichert.</p>
       <button id="einstellungen-zurueck">← Zurück</button>
     </div>
@@ -618,9 +612,9 @@ let hochkant = false, SW = W, SH = H;
 // AUF: echte Pixel je Spielpixel. 2 = hohe Auflösung (quer und hochkant): Bahnbild, Korb und Laub
 // doppelt so fein; auch Schrift, Figuren und Anzeigen werden im feinen Raster gezeichnet
 let AUF = 1;
-function hoheAufloesung() {
-  try { return einstellungen.hd !== false; } catch (e) { return false; } // Einstellungen noch nicht geladen
-}
+// Hohe Auflösung ist immer an (der Schalter in den Einstellungen ist entfallen); der Wert 1 bleibt nur
+// als Rückfall im Code, falls er einmal gebraucht wird
+const hoheAufloesung = () => true;
 const hochMQ = matchMedia("(max-width: 860px) and (orientation: portrait), (pointer: coarse) and (orientation: portrait)");
 function pruefeAusrichtung() {
   hochkant = hochMQ.matches;
@@ -917,10 +911,10 @@ let modus = "vierer", teilnehmer = SPIELER.map((_, i) => i), marken = [], spielN
 let online = null;
 // Einstellungen (in diesem Browser gespeichert); Menü dazu weiter unten
 const EINSTELLUNGEN_SPEICHER = "discgolf-einstellungen";
-const einstellungen = { wurfart: "letzte", grafik: "auto", hd: true };
+const einstellungen = { wurfart: "letzte", grafik: "auto" };
 try { Object.assign(einstellungen, JSON.parse(localStorage.getItem(EINSTELLUNGEN_SPEICHER) || "{}")); } catch (e) { /* egal */ }
 if (einstellungen.grafik === "klassisch") einstellungen.grafik = "auto"; // klassische Grafik gibt es nicht mehr
-pruefeAusrichtung(); // jetzt mit Einstellungen: hohe Auflösung ja/nein
+delete einstellungen.hd; // früherer Schalter „Hohe Auflösung“ – entfallen
 function spaeter(fn, ms) {
   const nr = spielNr;
   setTimeout(() => { if (nr === spielNr) fn(); }, ms);
@@ -2632,19 +2626,12 @@ const JAHRESZEIT_NAME = { fruehling: "Frühling", sommer: "Sommer", herbst: "Her
 function zeigeEinstellungen() {
   document.querySelectorAll("[data-wurfartwahl]").forEach(b => b.classList.toggle("an", b.dataset.wurfartwahl === einstellungen.wurfart));
   document.querySelectorAll("[data-grafikwahl]").forEach(b => b.classList.toggle("an", b.dataset.grafikwahl === (einstellungen.grafik || "auto")));
-  document.querySelectorAll("[data-hdwahl]").forEach(b => b.classList.toggle("an", (b.dataset.hdwahl === "an") === (einstellungen.hd !== false)));
   el("grafik-auto-info").textContent = "Jahreszeit wie draußen – gerade " + JAHRESZEIT_NAME[jahreszeitNachDatum()];
 }
 document.querySelectorAll("[data-grafikwahl]").forEach(b => b.addEventListener("click", () => {
   einstellungen.grafik = b.dataset.grafikwahl;
   try { localStorage.setItem(EINSTELLUNGEN_SPEICHER, JSON.stringify(einstellungen)); } catch (e) { /* egal */ }
   for (const k in stufenBilder) delete stufenBilder[k]; // Bahnbild beim nächsten Zeichnen neu erzeugen
-  zeigeEinstellungen();
-}));
-document.querySelectorAll("[data-hdwahl]").forEach(b => b.addEventListener("click", () => {
-  einstellungen.hd = b.dataset.hdwahl === "an";
-  try { localStorage.setItem(EINSTELLUNGEN_SPEICHER, JSON.stringify(einstellungen)); } catch (e) { /* egal */ }
-  pruefeAusrichtung();
   zeigeEinstellungen();
 }));
 document.querySelectorAll("[data-wurfartwahl]").forEach(b => b.addEventListener("click", () => {
