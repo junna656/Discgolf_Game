@@ -157,6 +157,9 @@ Nur im Bild – das Spiel rechnet unverändert sofort mit der neuen Lage:
 - **Jubeln**: Wer eingelocht hat, reißt 1,8 s die Arme hoch und hüpft, bevor die Figur verschwindet;
   nach einem Putt erst, wenn die Nahansicht zu ist.
 - **Blinzeln**: Stehende Figuren blinzeln alle paar Sekunden (je Spieler versetzt).
+![Animationen](bilder/figuren_animation.png)
+(Stehen, Blinzeln, Laufen: Schritt – Stehen – Schritt, Jubeln ×2)
+
 - **Wind**: Kronen von Laub- und Nadelbäumen und Büsche wiegen sich – stärker bei mehr Wind und in
   Windrichtung; der Stamm bleibt stehen (`zeichneObjektSprite` in grafik.js). Kakteen und Felsen stehen fest.
 

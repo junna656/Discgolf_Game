@@ -125,12 +125,12 @@ const POSEN = {
   },
   // Laufen: zwei Schrittbilder (dazwischen "stehen"), Arme schwingen gegen die Beine
   laufen1: {
-    armL: [[-0.5, -8.5], [0, -6.5], [1, -4.5]], armR: [[6.5, -8.5], [6.5, -6.5], [5.5, -5]],
-    beinL: [[1, -3], [2, -1]], beinR: [[5, -3], [4, -1.5]],
+    armL: [[-0.5, -8.5], [0, -6.5], [1, -5]], armR: [[6.5, -8.5], [7, -6.5], [7, -4.5]],
+    beinL: [[1, -3], [0.5, -1]], beinR: [[5, -3], [5.5, -2.5]], hebeR: true,
   },
   laufen2: {
-    armL: [[-0.5, -8.5], [-0.5, -6.5], [0.5, -5]], armR: [[6.5, -8.5], [6, -6.5], [5, -4.5]],
-    beinL: [[1, -3], [1.5, -1.5]], beinR: [[5, -3], [3.5, -1]],
+    armL: [[-0.5, -8.5], [-1, -6.5], [-1, -4.5]], armR: [[6.5, -8.5], [6, -6.5], [5, -5]],
+    beinL: [[1, -3], [0.5, -2.5]], beinR: [[5, -3], [5.5, -1]], hebeL: true,
   },
   // Jubeln: Arme hoch (zweites Bild weiter auseinander); das Hüpfen macht zeichneFigurSprite
   jubel1: {
@@ -204,7 +204,7 @@ function figurBauen(s, P, bild, gross, links, scheibe) {
   // Beine und Schuhe
   for (const bein of [P.beinL, P.beinR]) {
     glied([bein[0][0], bein[0][1]], [bein[1][0], bein[1][1]], 2 * k, gross ? [hellerDunkler(hose, 0.18), hose, hose, hellerDunkler(hose, -0.25)] : [hellerDunkler(hose, 0.15), hose]);
-    const fx = bein[1][0] * k - k, fy = 0;
+    const fx = bein[1][0] * k - k, fy = (bein === P.beinL ? P.hebeL : P.hebeR) ? -2 * k : 0; // angehobener Fuß beim Laufen
     rect(fx, fy, 2 * k + (gross ? 1 : 0), 2 * k, "#1a1a1e");
     rect(fx, fy, gross ? 2 : 1, gross ? 2 : 1, "#4a4a52");
     if (gross) rect(fx, fy + 3, 2 * k + 1, 1, "#d8dce0"); // helle Sohle
