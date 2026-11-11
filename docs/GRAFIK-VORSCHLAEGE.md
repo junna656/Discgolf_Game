@@ -99,6 +99,24 @@ Fallendes Laub fällt in echten Pixeln.
 ![Putt-Szene](bilder/putt_hd_jahreszeiten.png)
 (oben bisher, unten hohe Auflösung)
 
+### Figuren als Sprites mit Animation
+
+`figuren.js`: Die Spielerfiguren sind Sprites in zwei Größen – klein (6 × 16 echte Pixel, Übersicht und mittel)
+und groß (12 × 32, nahe Zoomstufe). Kopf, Frisur, Bart, Brille, Cap und Stirnband sind pixelgenaue
+Vorlagen (Zeichen-Raster im Code, leicht zu ändern); Körper, Arme und Beine entstehen aus Gelenkpunkten,
+damit jede Pose in beiden Größen gilt. Umriss automatisch als dunklere Stufe der Nachbarfarbe.
+
+- **Stehen**: zwei Bilder, in groß atmet die Figur (Oberkörper 1 Pixel tiefer)
+- **Ausholen** beim Laden, je nach Kraft in zwei Stufen; Rückhand (Arm quer vor der Brust) und Vorhand
+  (Arm angewinkelt seitlich) unterschiedlich; die gewählte Scheibe in der Typfarbe in der Hand
+- **Wurf**: nach dem Loslassen 0,7 s Durchschwung mit gestrecktem Arm und Ausfallschritt
+- **Blickrichtung**: zum Ziel (wer dran ist) bzw. zum Korb; nach links gespiegelt
+- Fertige Bilder werden gemerkt (je Spieler, Pose, Größe, Richtung, Scheibe)
+
+![Figuren-Sprites](bilder/figuren_sprites.png)
+(oben klein, unten groß; je Zeile: Stehen ×2, Rückhand ausholen ×2, Vorhand ausholen ×2, Wurf;
+2. und 4. Reihe groß gespiegelt)
+
 Noch im groben Raster: die Sternframe-Porträts.
 Bahnbild am Rechner: Übersicht 50–140 ms, nah (im Leerlauf vorbereitet) 0,3–0,5 s.
 

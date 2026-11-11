@@ -596,6 +596,7 @@
 <script src="physik.js?v=0.8.0"></script>
 <script src="portraets.js?v=0.8.0"></script>
 <script src="grafik.js?v=0.8.0"></script>
+<script src="figuren.js?v=0.8.0"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -1131,7 +1132,7 @@ function loslassen() {
   const verzogen = Math.abs(wurf.richtung - ziel) / DEG > E.rufAbStreuung
     || Math.abs(wurf.kraft - kraft) / Math.max(kraft, 0.1) > E.rufAbStreuung / 60
     || Math.abs(wurf.winkel - winkel) > E.rufAbStreuung * 1.6;
-  flug = { erg, t0: uhr, kraftAngezeigt: kraft, verzogen, start: { x: s.lie.x, y: s.lie.y }, lokal: true };
+  flug = { erg, t0: uhr, kraftAngezeigt: kraft, verzogen, start: { x: s.lie.x, y: s.lie.y }, lokal: true, richtung: ziel };
   zustand = "flug";
   sfx.wurf();
   aktualisierePanel();
@@ -1510,11 +1511,11 @@ function zeichneSpieler() {
     const x = q.x + ((n - 1) * 4 - (key === Math.round(bahn.abwurf.x * 2) + ":" + Math.round(bahn.abwurf.y * 2) ? 6 : 0)) * f;
     const y = q.y;
     const marke = i === aktiv && zustand !== "flug" && Math.floor(uhr * 3) % 2;
-    // hohe Auflösung: feinere Figur in echten Pixeln (grafik.js), gleich groß wie die 8-Bit-Figur
-    if (AUF > 1 && window.zeichneFigurDetail) {
-      const inHand = i === aktiv && zustand !== "flug" && s.tasche[s.scheibe] ? TYPFARBE[s.tasche[s.scheibe].typ] : null;
+    // hohe Auflösung: Sprite in echten Pixeln (figuren.js) mit Pose und Blickrichtung
+    if (AUF > 1 && window.zeichneFigurSprite) {
+      const { pose, bild, links, inHand } = figurPose(s, i);
       ctx.setTransform(1, 0, 0, 1, -kx * AUF, -ky * AUF);
-      zeichneFigurDetail(ctx, x * AUF, y * AUF, s, marke, AUF, inHand, f);
+      zeichneFigurSprite(ctx, x * AUF + 3 * f, y * AUF, s, marke, f, pose, bild, links, inHand);
       figurTransform();
       return;
     }
@@ -1523,6 +1524,21 @@ function zeichneSpieler() {
     zeichneFigur8Bit(s, marke);
     ctx.restore();
   });
+}
+
+// Pose der Figur: wer dran ist, holt beim Laden aus (Rückhand/Vorhand, zwei Stufen nach Kraft) und
+// zeigt nach dem Abwurf kurz den Durchschwung; sonst Stehen mit Atmen. Blick zum Ziel bzw. zum Korb.
+function figurPose(s, i) {
+  const dran = i === aktiv, vh = s.wurfart === "vorhand";
+  const nachWurf = dran && flug && flug.start && (zustand === "flug" || zustand === "pause") && uhr - flug.t0 < 0.7
+    && abstand(flug.start, s.lie) < 0.01;
+  let pose = "stehen", bild = Math.floor((uhr + i * 0.37) / 0.8) % 2;
+  if (dran && zustand === "laden" && !ladeAbgebrochen()) { pose = (vh ? "ausholenVH" : "ausholenRH") + (kraft > 0.35 ? 2 : 1); bild = 0; }
+  else if (nachWurf) { pose = "wurf"; bild = 0; }
+  const r = dran && (zustand === "zielen" || zustand === "laden" || nachWurf) ? (nachWurf && flug.richtung !== undefined ? flug.richtung : ziel) : zumKorb(s.lie);
+  const links = (hochkant ? Math.sin(r) : Math.cos(r)) < -0.15;
+  const inHand = dran && (zustand === "zielen" || zustand === "laden") && s.tasche[s.scheibe] ? TYPFARBE[s.tasche[s.scheibe].typ] : null;
+  return { pose, bild, links, inHand };
 }
 
 function zeichneFigur8Bit(s, marke) {
