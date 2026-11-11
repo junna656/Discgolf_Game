@@ -1529,19 +1529,19 @@ function zeichneSpielerNr(s, i, gezaehlt, f) {
 }
 
 // ---------- 3/4-Ansicht ----------
-// Baumkronen als angehobene Sprites (grafik.js: baumSprite), einmal je Bahnbild gemerkt. Korb, Figuren und
+// Bäume und alle Gegenstände (Kakteen, Felsen, Arten neuer Themen) als Sprites (grafik.js: objektSprite),
+// einmal je Bahnbild gemerkt. Korb, Figuren und
 // Kronen werden nach der Bildschirmhöhe ihres Fußpunkts sortiert: wer weiter oben steht, verschwindet
 // hinter der Krone eines Baums, der weiter unten steht.
 function kronenListe(hg, liste) {
   if (!hg.kronenAlsSprite || !hg.baumFarben) return;
   hg.kronenSprites = hg.kronenSprites || new Map();
   for (const b of hg.baumFarben) {
-    if (b.art === "kaktus" || b.art === "fels") continue;
-    const q = zuSchirm(b), rand = (b.r + baumAnhebung(b)) * S + 4;
+    const q = zuSchirm(b), rand = (b.r * 2 + Math.max(baumAnhebung(b), (b.h || 12) * 0.6)) * S + 4;
     if (q.x < kx - rand || q.x > kx + SW + rand || q.y < ky - 4 || q.y > ky + SH + rand + b.r * S) continue; // außerhalb des Bilds
     liste.push({ y: q.y, zeichne: () => {
       let sp = hg.kronenSprites.get(b);
-      if (!sp) { sp = baumSprite(b, hg.S, hg.zr, hg.winter); hg.kronenSprites.set(b, sp); }
+      if (!sp) { sp = objektSprite(b, hg.S, hg.zr, hg.winter); hg.kronenSprites.set(b, sp); }
       ctx.setTransform(1, 0, 0, 1, -kx * AUF, -ky * AUF);
       ctx.drawImage(sp.c, Math.round(q.x * AUF - sp.ax), Math.round(q.y * AUF - sp.ay));
       figurTransform();

@@ -17,6 +17,7 @@
 - Nach `main` kommt **nur `wochenbahnen.js`**, und zwar automatisch sonntags ab 20:00 durch die Action „Wochenbahn live“.
   Dafür ist kein „Release“-Befehl nötig; alles andere bleibt beim normalen Release-Ablauf.
 - Braucht ein Thema neuen Spiel-Code (neue Zeichenarten), vorher den Nutzer auf ein Release hinweisen – oder die Optik als `optikDaten` mitgeben.
+- Neue Gegenstände eines Themas als Art in `optikDaten.objekte` (Form + Farben) anlegen, dann sind sie ohne Release in 3/4 live; nur eine neue Form braucht Code und Release (`docs/WOCHENBAHN.md`).
 
 ## GBA
 - Die GBA-Version ist eingefroren (Branch `V1.0_GBA`), keine Synchronisierung mehr. Reaktivieren: `docs/GBA-REAKTIVIEREN.md`.

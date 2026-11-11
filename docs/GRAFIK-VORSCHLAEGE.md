@@ -140,7 +140,10 @@ Physik an die Krone prallt, sieht man auch dort. Kiefern sind Kegel aus vier Eta
 eine Schattenseite. Kronen, Korb und Figuren werden nach ihrem Fußpunkt sortiert (`zeichneWeltObjekte`),
 wer weiter oben steht, verschwindet hinter der Krone – verdeckte Figuren schimmern halb durchsichtig durch.
 Herbstlaub fällt aus der angehobenen Krone. Hochkant stehen die Bäume ebenfalls aufrecht.
-Kakteen und Felsen (Wüste) bleiben in der Draufsicht; das Vorschau-Werkzeug zeichnet weiter Kronen ins Bild.
+Auch Kakteen (Säulen mit Armen) und Felsen (Brocken mit Seite und Oberseite) der Wüste stehen in 3/4.
+Alle Gegenstände laufen über einen Baukasten aus Formen und Arten (`OBJEKT_FORMEN`, `OBJEKT_ARTEN`,
+`objektSprite` in grafik.js); neue Themen bringen eigene Arten in `optikDaten.objekte` mit
+(siehe docs/WOCHENBAHN.md). Das Vorschau-Werkzeug zeichnet weiter die Draufsicht.
 
 ![3/4-Ansicht](bilder/dreiviertel.png)
 (oben links bisher, oben rechts 3/4-Ansicht, unten Frühling und Winter)
