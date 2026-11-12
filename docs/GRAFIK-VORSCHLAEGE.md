@@ -154,8 +154,9 @@ Nur im Bild – das Spiel rechnet unverändert sofort mit der neuen Lage:
 - **Laufen**: Ändert sich die Lage einer Figur, geht sie dorthin (Dauer nach Strecke, höchstens 2,2 s),
   mit zwei Schrittbildern, schwingenden Armen und Blick in Laufrichtung (`figurOrt` in index.html).
   Neue Bahn und freies Werfen: sofort dort.
-- **Jubeln**: Wer eingelocht hat, reißt 1,8 s die Arme hoch und hüpft, bevor die Figur verschwindet;
-  nach einem Putt erst, wenn die Nahansicht zu ist.
+- **Jubeln**: Wer eingelocht hat, reißt 1,8 s die Arme hoch und hüpft, bevor die Figur verschwindet.
+  Nach einem Putt schließt die Nahansicht dafür nach 1,1 s (Scheibe liegt in den Ketten), nach einem Wurf in
+  den Korb ist die Pause entsprechend länger – erst danach kommt der nächste Spieler bzw. die Bahnende-Tafel.
 - **Blinzeln**: Stehende Figuren blinzeln alle paar Sekunden (je Spieler versetzt).
 ![Animationen](bilder/figuren_animation.png)
 (Stehen, Blinzeln, Laufen: Schritt – Stehen – Schritt, Jubeln ×2)

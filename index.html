@@ -1202,7 +1202,7 @@ function flugEnde() {
   }
   zustand = "pause";
   if (modus === "online") mpSende({ typ: "stand", stand: mpSchnappschuss() }); // alle senden: falls der Werfer gerade neu lädt
-  spaeter(naechster, 1300);
+  spaeter(naechster, e.drin ? 1300 + JUBEL_DAUER * 1000 * 0.6 : 1300); // eingelocht: Zeit zum Jubeln (figurOrt/jubelt)
 }
 
 // Throw-in: ein normaler Wurf von außerhalb des Circles (über 10 m) landet direkt im Korb –
@@ -1397,7 +1397,9 @@ function puttEnde() {
   }
   zustand = "pause";
   if (modus === "online") mpSende({ typ: "stand", stand: mpSchnappschuss() });
-  spaeter(naechster, 1300);
+  // eingelocht: Nahansicht kurz zeigen (Scheibe in den Ketten), dann schließen – die Figur jubelt auf der Bahn
+  if (ergebnis === "drin") spaeter(() => { putt = null; spaeter(naechster, JUBEL_DAUER * 1000 + 100); }, 1100);
+  else spaeter(naechster, 1300);
 }
 
 // ---------- Zeichnen ----------
