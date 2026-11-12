@@ -326,6 +326,17 @@ const THEMEN = {
       const insel = (m, R) => { const pk = []; for (let i = 0; i < 16; i++) { const w = i / 16 * Math.PI * 2, rr = R * (0.85 + z() * 0.3); pk.push([r1(m.x + Math.cos(w) * rr), r1(m.y + Math.sin(w) * rr * 0.85)]); } return pk; };
       const baum = (p, z, gross = 0) => ({ x: r1(p.x), y: r1(p.y), r: r1(1.6 + z() * 2 + gross), h: r1(7 + z() * 6 + gross * 2) });
       const keinXSpiegeln = typ === "insel" || typ === "inselkette";
+      // Ufer: statt der geraden Kante bei x = ab ein Landstück mit gewelltem Rand (Ring von Rand zu Rand, gilt als
+      // Insel und ist damit nicht OB); ab rückt 8 m zurück, der Rand liegt 0,5–15,5 m dahinter (Buchten und
+      // Landzungen), aber immer 4 m vor den Inseln. Eigener Zufall aus der Korblage, damit der übrige Aufbau gleich bleibt.
+      const ufer = (ab0, ringe) => {
+        const H = g.welt.hoehe, p1 = korb.x * 1.7, p2 = korb.y * 2.3, pk = [[0, 0]];
+        const grenze = y => Math.min(Infinity, ...ringe.filter(r => r.some(q => Math.abs(q[1] - y) < 6)).map(r => Math.min(...r.map(q => q[0])) - 4));
+        for (let y = 0; y <= H + 0.01; y += 2) pk.push([r1(Math.max(ab0 + 0.5, Math.min(grenze(y), ab0 + 8 + 4 * Math.sin(y / 16 + p1) + 2.5 * Math.sin(y / 6 + p2) + Math.sin(y / 2.3 + p1)))), r1(Math.min(H, y))]);
+        if (pk[pk.length - 1][1] < H) pk.push([pk[pk.length - 1][0], r1(H)]);
+        pk.push([0, r1(H)]);
+        return pk;
+      };
 
       if (typ === "quer") {
         baeche.push(querBand(z, g, P(0.35 + z() * 0.35)));
@@ -333,7 +344,8 @@ const THEMEN = {
       } else if (typ === "insel") {
         const R = 8 + z() * 4, ab = r1(korb.x - R - 6 - z() * Math.min(18, L * 0.15));
         if (ab < abwurf.x + 30) return null;
-        ob.push({ name: "Weiher", art: "wasser", insel: insel(korb, R), ab });
+        const ki = insel(korb, R);
+        ob.push({ name: "Weiher", art: "wasser", insel: ki, inseln: [ufer(r1(ab - 8), [ki])], ab: r1(ab - 8) });
       } else if (typ === "inselkette") {
         // Par 4: Wasser ab x = ab, darin 2 Zwischeninseln auf der Linie und die Korbinsel; Lücken 8–14 m Wasser
         if (L < 150) return null;
@@ -348,7 +360,8 @@ const THEMEN = {
         const erste = mitten[mitten.length - 1], ab = r1(erste.x - erste.R - 10 - z() * 6);
         if (ab < abwurf.x + 45) return null;
         for (const m of mitten) inseln.push(insel(m, m.R));
-        ob.push({ name: "Weiher", art: "wasser", insel: insel(korb, Rk), inseln, ab });
+        const ki = insel(korb, Rk);
+        ob.push({ name: "Weiher", art: "wasser", insel: ki, inseln: [ufer(r1(ab - 8), [ki, ...inseln]), ...inseln], ab: r1(ab - 8) });
         sperrZonen.push(...mitten.map(m => ({ x: m.x, y: m.y, r: m.R * 0.55 })));
       } else if (typ === "mando") {
         // Baumriegel quer zur Bahn mit einer Lücke von 8–11 m zwischen zwei großen Eichen

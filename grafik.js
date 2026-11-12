@@ -334,10 +334,12 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   }
 
   // Inselgrün (insel, ab): die Grenze bei x = ab ist auch eine OB-Linie (nur bei Themen-OB wie dem Flussbett)
-  for (const o of bahn.ob) {
+  // Liegt dort Land davor (z. B. ein Ufer als Ring in inseln), fehlt die Linie – die Grenze ist dann der Uferrand
+  for (const [oi, o] of bahn.ob.entries()) {
     if (!o.insel || !o.art || o.ab <= 0) continue;
-    const px = Math.round(o.ab * S), g = Math.max(2, Math.round(0.3 * S));
+    const px = Math.round(o.ab * S), g = Math.max(2, Math.round(0.3 * S)), x = o.ab + 0.5 / S;
     for (let py = 0; py < BH; py++) {
+      if (!obTests[oi](px + 1, py, x, (py + 0.5) / S)) continue;
       if (py % (6 * zr) < 3 * zr) rechteck(px, py, zr, 1, PAL.weiss);
       if (py % Math.round(8 * S) === Math.round(4 * S)) { rechteck(px - g / 2 + zr, py + zr, g, g, "rgba(0,20,0,.45)"); rechteck(px - g / 2, py, g, g, "#c8301f"); rechteck(px - g / 2, py, g, zr, "#f05a40"); }
     }

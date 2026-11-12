@@ -40,7 +40,7 @@ node werkzeuge/grafik_vorschau.mjs                                # (Bilder eine
   die Fläche dahinter ist Fels bis zum Spielfeldrand (kein Weg außen herum). Kein Text bei Treffern an Felsen, Kakteen und Felswänden.
 - Thema **Herbstnacht** (`--thema herbstnacht`): dunkler Herbstwald am Abend, Weiher und Bäche als OB (`art: "wasser"`),
   Bahntypen **mando** (Lücke in einem Baumriegel), **insel** (Korb auf einer Insel im Weiher), **inselkette** (Par 4:
-  ab `ab` alles Wasser, mehrere Inseln hintereinander – `insel` = Korbinsel, `inseln` = weitere), **quer** (Bach quer),
+  ab `ab` alles Wasser, mehrere Inseln hintereinander – `insel` = Korbinsel, `inseln` = weitere; das gewellte Ufer ist ein Ring in `inseln` von Rand zu Rand, die gerade Linie bei `ab` wird nur gezeichnet, wo Wasser angrenzt), **quer** (Bach quer),
   **offen** (Wald); nie zwei kreuzende Bäche. Reihenfolge der Typen über `plan` im Thema (`--typen a,b,…` überschreibt), `typPar` legt das Par
   eines Typs fest (inselkette: 4). Optik: `optikDaten` mit `nacht: true` (Mond, Sterne, dunkle Wolken in der
   Putt-Ansicht), `glow: true` (alle Scheiben leuchten grün wie Phosphor-Glow), `wasser`, `laubbaumVarianten`,
