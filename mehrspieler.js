@@ -105,7 +105,7 @@ function mpNachricht(m) {
     s.scheibe = m.scheibe; s.wurfart = m.wurfart;
     winkel = m.winkel; ziel = m.ziel; puttModus = false; putt = null;
     s.wuerfe++; online.zug++;
-    flug = { erg: m.erg, t0: uhr, kraftAngezeigt: m.kraft, verzogen: m.verzogen, start: { x: s.lie.x, y: s.lie.y }, lokal: false };
+    flug = { erg: m.erg, t0: uhr, kraftAngezeigt: m.kraft, verzogen: m.verzogen, start: { x: s.lie.x, y: s.lie.y }, lokal: false, richtung: m.ziel };
     zustand = "flug";
     sfx.wurf();
     aktualisierePanel();

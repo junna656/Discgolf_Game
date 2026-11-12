@@ -55,13 +55,44 @@ node werkzeuge/grafik_vorschau.mjs                                # (Bilder eine
      `JAHRESZEITEN.wueste` (gras, aus, fair, weg, flussbett, fels, busch, himmel, laubbaum als Farbliste …),
      `basis` = vorhandene Optik für den Rest, `circle` = [dunkel, hell] für Circle 1 auf hellem Boden, `wueste: true` für Sand-Boden/Kakteen-Szene. Die Daten
      landen mit in `wochenbahnen.js` und gehen so am Sonntag live. Nutzbar sind die vorhandenen Arten:
-     Hindernisse `kaktus`, `fels` oder normale Bäume (ohne `art`), OB `flussbett`, Zaun, Linie.
-   - **mit Release:** fester Eintrag in `JAHRESZEITEN` (`grafik.js`), neue Hindernis-Arten mit eigener
-     Zeichenfunktion wie `zeichneKaktus`/`zeichneFels`, neue Bodenarten wie `flussbett`, eigene Putt-Szene
+     Hindernisse `kaktus`, `fels`, `busch` oder normale Bäume (ohne `art`), OB `flussbett`, Zaun, Linie –
+     und **eigene Gegenstände** über `objekte` (siehe unten).
+   - **mit Release:** fester Eintrag in `JAHRESZEITEN` (`grafik.js`), eine neue **Form** für Gegenstände
+     (Zeichner in `ZEICHNER`/`OBJEKT_FORMEN`), neue Bodenarten wie `flussbett`, eigene Putt-Szene
      wie `wuestenSzene`.
-3. Ist das Thema eine Jahreszeit (z. B. Winter), reicht `optik: "winter"`, sonst gibt es keine Jahreszeiten
+3. Bilder in der 3/4-Ansicht prüfen (alle Gegenstände stehen aufrecht, Figuren verschwinden dahinter).
+4. Ist das Thema eine Jahreszeit (z. B. Winter), reicht `optik: "winter"`, sonst gibt es keine Jahreszeiten
    auf Wochenbahnen.
-4. Bilder prüfen (alle Bahnen, Putt-Ansicht), dann bauen, `--pruefen`, committen, auf `dev` pushen.
+5. Bilder prüfen (alle Bahnen, Putt-Ansicht), dann bauen, `--pruefen`, committen, auf `dev` pushen.
+
+## Gegenstände in der 3/4-Ansicht
+
+Alles, was auf einer Bahn steht, ist ein Eintrag in `baeume`: `x`, `y`, `r` (Radius in m, zugleich die
+Trefferfläche), `h` (Höhe in m) und `art`. Das Spiel zeichnet jeden Gegenstand als aufrechtes Sprite;
+die Höhe wird mit 0,6 auf den Bildschirm projiziert – genau wie die Flughöhe der Scheibe. Was eine Art ist,
+steht im Baukasten in `grafik.js`:
+
+- **Formen** (`OBJEKT_FORMEN`, Code): `krone` (Stamm + Laubkrone), `kegel` (Stamm + Nadelbaum-Kegel),
+  `saeule` (Säule mit Armen, z. B. Kaktus), `brocken` (Fels mit Seite und Oberseite), `kugel` (rund auf dem
+  Boden, z. B. Busch).
+- **Eingebaute Arten** (`OBJEKT_ARTEN`): `kaktus` → saeule, `fels` → brocken, `busch` → kugel.
+  Ohne `art` ist es ein Baum (Laub/Kiefer nach Lage, im Winter kahl).
+- **Eigene Arten eines Themas – ohne Release:** in `optikDaten` eintragen, z. B.
+  ```js
+  optikDaten: { basis: "winter", objekte: {
+    eisblock: { form: "brocken", farben: ["#5a7a9a", "#7a9aba", "#9abada", "#c4dcf0", "#eef6ff"] },
+    tanne:    { form: "kegel",   farben: "kiefer" },   // Palettenname der Optik statt Farbliste
+  } }
+  ```
+  `farben`: mind. 5 Farben von dunkel nach hell oder der Name einer Palette der Optik (`fels`, `busch`,
+  `laubbaum`, `kiefer` …). Unbekannte Arten erscheinen als graue Kugel, damit nie etwas unsichtbar ist.
+- Physik: Gegenstände bremsen bzw. werfen die Scheibe wie Bäume; mit `fest: true` prallt sie immer ab (Felsen).
+- `--pruefen` meldet Gegenstände mit unbekannter Art oder Form und solche ohne Höhe `h`.
+![Gegenstände](bilder/gegenstaende_3_4.png)
+(Wüste in Übersicht und nah; Beispiel-Thema nur aus Daten: Tannen, Schneemänner, Eisblock; Formen einzeln)
+
+- **Eine neue Form** (etwas, das sich mit den fünf nicht darstellen lässt) braucht Code in `ZEICHNER` und
+  ein Release **vor** dem Sonntag, an dem die Bahn live geht.
 
 ## Releases
 
@@ -70,3 +101,5 @@ node werkzeuge/grafik_vorschau.mjs                                # (Bilder eine
 - Änderungen an Spiel-Code und Grafik (`grafik.js`, `index.html`, `wochen.js`) kommen erst mit einem normalen
   Release nach `main`. **Wichtig:** Braucht ein Thema neue Zeichenarten, muss das Release vor Sonntag 20:00
   live sein, sonst fehlt `main` die Optik (die Bahn erscheint dann in der Jahreszeit-Optik). Sonst `optikDaten` nehmen.
+- Die 3/4-Ansicht selbst ist Spiel-Code: Sie ist erst nach dem Release (ab 0.9.0) auf `main` live. Danach sind
+  alle Wochenbahnen automatisch in 3/4, auch neue Themen mit eigenen Arten aus `optikDaten.objekte`.

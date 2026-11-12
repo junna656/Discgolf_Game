@@ -13,13 +13,13 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="fonts/schrift.css">
-<meta name="description" content="Boogie Garanten – Discgolf in 8 Bit. Alle 15 Bahnen des Hyzernauts Discgolfparcours im Volkspark Potsdam, mit Wind, Hyzer und Anhyzer, eigenen Bags und Putt-Modus. Kostenlos im Browser.">
+<meta name="description" content="Boogie Garanten – Discgolf in 16 Bit. Alle 15 Bahnen des Hyzernauts Discgolfparcours im Volkspark Potsdam, mit Wind, Hyzer und Anhyzer, eigenen Bags und Putt-Modus. Kostenlos im Browser.">
 <link rel="canonical" href="https://www.discgolf-game.de/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Boogie Garanten">
 <meta property="og:locale" content="de_DE">
 <meta property="og:url" content="https://www.discgolf-game.de/">
-<meta property="og:title" content="Boogie Garanten – Discgolf in 8 Bit">
+<meta property="og:title" content="Boogie Garanten – Discgolf in 16 Bit">
 <meta property="og:description" content="Alle 15 Bahnen im Volkspark Potsdam, mit Wind, Hyzer, Anhyzer und eigenem Bag. Direkt im Browser spielen.">
 <meta property="og:image" content="https://www.discgolf-game.de/icons/vorschau.png">
 <meta property="og:image:width" content="1200">
@@ -37,7 +37,7 @@
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
-  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: "Silkscreen", monospace; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: "Pixelify Menue", "Silkscreen", monospace; }
   body { min-height: 100vh; }
   .rahmen { display: flex; gap: 12px; padding: 12px 16px; max-width: 1400px; margin: 0 auto; align-items: flex-start; }
   .spielfeld { flex: 1; min-width: 0; }
@@ -122,8 +122,8 @@
   .spielerkarte .kbag { display: flex; flex-wrap: wrap; gap: 4px; }
   .spielerkarte .kbag span { font-size: 9px; padding: 3px 5px; border-left: 4px solid; background: #263040; }
   .doku { font-family: system-ui, -apple-system, sans-serif; font-size: 15px; line-height: 1.5; color: var(--text); }
-  .doku h2 { font-family: "Silkscreen", monospace; font-size: 18px; color: var(--akzent); text-align: center; margin: 10px 0; }
-  .doku h3 { font-family: "Silkscreen", monospace; font-size: 13px; color: #ffe08a; margin: 18px 0 6px; font-weight: 400; }
+  .doku h2 { font-family: "Pixelify Menue", "Silkscreen", monospace; font-size: 18px; color: var(--akzent); text-align: center; margin: 10px 0; }
+  .doku h3 { font-family: "Pixelify Menue", "Silkscreen", monospace; font-size: 13px; color: #ffe08a; margin: 18px 0 6px; font-weight: 400; }
   .doku ul { margin: 0; padding-left: 18px; }
   .doku li { margin: 4px 0; }
   .doku p { margin: 0; }
@@ -220,6 +220,41 @@
     body[data-ansicht="feld"] #winkelbox .knoepfe, body[data-ansicht="feld"] #puttbox .knoepfe { flex-wrap: wrap; }
     body[data-ansicht="feld"] #winkelbox .knoepfe button, body[data-ansicht="feld"] #puttbox .knoepfe button { flex: 1 1 100%; padding: 14px 4px; }
   }
+  /* Abschlussscreen nach einer ganzen Runde */
+  .abschluss { max-width: 760px; }
+  .abschluss .titel { font-size: 28px; margin: 0; }
+  .ab-platz { display: grid; grid-template-columns: auto 44px 1fr auto; gap: 4px 10px; align-items: center; border: 2px solid var(--rand); border-left: 6px solid var(--farbe); background: #1a2029; padding: 8px 10px; }
+  .ab-platz.erster { border-color: #ffd84a; border-left-color: var(--farbe); background: #2a2a1a; }
+  .ab-platz .rang { font-size: 18px; color: #ffe08a; min-width: 26px; text-align: center; }
+  .ab-platz canvas.mini { width: 44px; height: 44px; border: 2px solid var(--rand); aspect-ratio: auto; cursor: default; }
+  .ab-platz .aname { font-size: 15px; color: var(--farbe); }
+  .ab-platz .aname small { display: block; font-size: 10px; color: var(--leise); margin-top: 3px; }
+  .ab-platz .aname .best { color: #ffe08a; }
+  .ab-platz .agesamt { text-align: right; font-size: 18px; }
+  .ab-platz .agesamt small { display: block; font-size: 11px; color: var(--leise); }
+  .ab-karte { overflow-x: auto; }
+  .ab-karte table { border-collapse: collapse; margin: 0 auto; font-size: 12px; }
+  .ab-karte th, .ab-karte td { padding: 3px 2px; text-align: center; min-width: 26px; }
+  .ab-karte th { color: var(--leise); font-weight: 400; font-size: 10px; }
+  .ab-karte .pname { text-align: left; padding-right: 8px; white-space: nowrap; }
+  .ab-karte .par td, .ab-karte td.par { color: var(--leise); }
+  .ab-karte .summe { border-left: 2px solid var(--rand); padding-left: 6px; font-weight: 700; }
+  .ab-karte tr.fuss td { border-top: 2px solid var(--rand); border-left: 0; font-weight: 700; }
+  .ab-karte tbody tr:nth-child(even) { background: rgba(255,255,255,.04); }
+  .ab-karte .w { display: inline-block; width: 20px; height: 20px; line-height: 20px; box-sizing: border-box; }
+  .w.ass { background: #ffd84a; color: #1a1400; border-radius: 50%; }
+  .w.eagle { border: 2px solid #9be07a; border-radius: 50%; box-shadow: 0 0 0 2px #9be07a; line-height: 16px; }
+  .w.birdie { border: 2px solid #9be07a; border-radius: 50%; line-height: 16px; }
+  .w.bogey { border: 2px solid #ff9a5a; line-height: 16px; }
+  .w.doppel { background: #c8453a; }
+  .ab-legende { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 12px; margin: 8px 0 0; }
+  .ab-legende span { display: inline-flex; align-items: center; gap: 4px; }
+  .ab-legende .w { width: 14px; height: 14px; line-height: 10px; font-size: 0; }
+  .ab-legende .w.ass, .ab-legende .w.doppel { line-height: 14px; }
+  .ab-knoepfe { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .ab-knoepfe .gross { text-align: center; font-size: 14px; padding: 12px 8px; }
+  .ab-knoepfe #ab-neu { background: #35502f; border-color: var(--akzent); }
+  @media (max-width: 600px) { .ab-knoepfe { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body data-ansicht="feld">
@@ -227,7 +262,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 8 Bit<br><span style="color:#9fc49a">Version 0.8.0</span></p>
+    <p class="untertitel">Discgolf in 16 Bit<br><span style="color:#9fc49a">Version 0.9.0</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -236,7 +271,7 @@
       <button class="gross" id="zu-doku" style="font-size:12px;padding:10px 16px;margin-top:8px">Anleitung<small>Steuerung, Regeln und Tipps</small></button>
       <button class="gross" id="zu-bags" style="font-size:12px;padding:10px 16px">Spieler & Bags<small>Spielerkarten ansehen, Scheiben im Bag bearbeiten</small></button>
       <button class="gross" id="zu-bestenliste" style="font-size:12px;padding:10px 16px">Bestenliste<small>Beste Runde jeder Person, auch im Wochenkurs – für alle Geräte</small></button>
-      <button class="gross" id="zu-einstellungen" style="font-size:12px;padding:10px 16px">Einstellungen<small>Wurfart, Jahreszeit und Auflösung</small></button>
+      <button class="gross" id="zu-einstellungen" style="font-size:12px;padding:10px 16px">Einstellungen<small>Wurfart und Jahreszeit</small></button>
       <button class="gross" id="zu-dev" style="font-size:12px;padding:10px 16px;border-color:#ff9a5a" hidden>Entwicklung<small>Parameter einstellen – nur in der Vorschau</small></button>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="#" id="melde-fehler" style="color:var(--leise)">Fehler melden</a> · <a href="#" id="melde-wunsch" style="color:var(--leise)">Idee vorschlagen</a></p>
       <p class="klein" style="text-align:center;margin:10px 0 0"><a href="impressum.html" style="color:var(--leise)">Impressum</a> · <a href="datenschutz.html" style="color:var(--leise)">Datenschutz</a></p>
@@ -254,6 +289,7 @@
         <li><b>Wochenkurs:</b> Jede Woche gibt es einen neuen, zufällig erzeugten Kurs mit eigenem Thema (z. B. Wüste mit Kakteen, Felsen und ausgetrockneten Flussbetten – die Flussbetten sind OB). Er wechselt montags um 0:00 Uhr. Frühere Wochenkurse mit ihren Siegern stehen im <a href="archiv/" style="color:var(--akzent)">Archiv</a> und können dort weiter gespielt werden (ohne Wertung).</li>
         <li><b>Online spielen:</b> Bis zu vier Handys spielen live zusammen. Eine Person tippt „Raum eröffnen“ und sagt den anderen den 4-Buchstaben-Code; die anderen geben ihn unter „Beitreten“ ein. Jeder wählt seine Figur (mit dem eigenen Bag), freie Figuren kann der Gastgeber vom Computer spielen lassen. Der Gastgeber wählt die Bahnen und startet. Alle sehen jeden Wurf live; wer dran ist, wirft auf seinem Handy. Bricht eine Verbindung ab, übernimmt der Computer, bis das Handy wieder da ist – nach dem Neuladen kommst du automatisch zurück in den Raum. Weiter zur nächsten Bahn und Bahn wählen kann nur der Gastgeber.</li>
         <li><b>Kurs:</b> Nach Single oder Vierer Flight wählst du den Kurs und ob die ganze Runde oder eine einzelne Bahn gespielt wird (online macht das der Gastgeber in der Lobby). Es gibt den Hyzernauts Discgolfparcours im Volkspark Potsdam und den Wochenkurs – weitere Kurse folgen.</li>
+        <li><b>Rundenende:</b> Nach der letzten Bahn einer ganzen Runde führt ein Tippen zum Abschluss: Platzierung, Scorekarte aller Bahnen (Ass, Birdie, Bogey … farbig markiert) und die Wahl zwischen <b>Neue Runde</b> (gleicher Kurs, gleiche Spieler, Taste <kbd>R</kbd>), <b>Anderer Kurs</b> (gleiche Spieler) und <b>Hauptmenü</b> (<kbd>M</kbd>). Online entscheidet der Gastgeber; „Anderer Kurs“ führt dort zurück in die Lobby.</li>
         <li><b>Bahn wählen (Training):</b> Spielst du nur eine einzelne Bahn, kannst du im Spiel (Handy: unter „Menü“, Rechner: rechts) direkt auf jede andere Bahn springen. In einer ganzen Runde geht das nicht – dort werden die Bahnen der Reihe nach gespielt, damit keine Bahn wiederholt werden kann.</li>
       </ul>
 
@@ -292,6 +328,7 @@
           </ul></li>
         <li><b>Bäume:</b> Fliegt die Scheibe durch eine Krone, gibt es drei Möglichkeiten: Sie <b>prallt ab</b> (45 %, mit leichtem Kick), wird von den Ästen <b>abgebremst</b> und fliegt deutlich kürzer weiter (30 %), oder sie fliegt <b>durch eine Lücke</b> (25 %). In den ersten 5 m ab Abwurfpunkt zählen Bäume nicht.</li>
         <li><b>OB</b> (weiße Linie mit roten Pflöcken, Zaun, dunkleres Gras): Strafwurf, weiter geht es dort, wo die Scheibe ins Aus geflogen ist. Der Rand des Spielfelds ist immer OB.</li>
+        <li><b>Throw-in:</b> Auch ein normaler Wurf kann direkt im Korb landen – von außerhalb des Circles (über 10 m) oder sogar vom Abwurf (Ace). Das ist selten: aus 20 m etwa jeder 250. gut gezielte Wurf, vom Abwurf etwa jeder 2000. Die Scheibe muss tief genug am Korb ankommen; gegen Ende des Flugs (wenn sie schon langsamer wird) bleibt sie öfter in den Ketten hängen, sonst prallt sie ab.</li>
         <li><b>Bahn 1 „Bowling“:</b> Auf dem Holzdeck rutscht die Scheibe weit – und kann direkt in den Korb rutschen (STRIKE!).</li>
         <li><b>Bahn 9 (Insel):</b> Der Korb steht in einer Box kurz hinter dem Weg – vorne und links Baumstämme, rechts Sträucher. Alles außerhalb der Box ist OB. Nach OB geht es vom zweiten Abwurf weiter (gelb umrandeter Kasten auf dem Fairway).</li>
         <li><b>Bahn 14 (Mando):</b> Der Wurf muss rechts am großen Baum vor dem Korb vorbei (gelbe Linie, roter Pfeil). Wer links vorbei fliegt, bekommt +1 und wirft noch einmal von der alten Lage.</li>
@@ -397,12 +434,6 @@
           <button data-grafikwahl="winter">Winter</button>
         </div>
       </div>
-      <h3 style="font-size:12px;margin:6px 0 0">Hohe Auflösung</h3>
-      <div class="knoepfe" id="hd-wahl">
-        <button data-hdwahl="an">An</button>
-        <button data-hdwahl="aus">Aus</button>
-      </div>
-      <p class="klein" style="margin:0">Bahn, Bäume, Korb und Figuren doppelt so fein (quer und hochkant). Auf langsamen Handys ggf. ausschalten.</p>
       <p class="klein" style="margin:0">Wird in diesem Browser gespeichert.</p>
       <button id="einstellungen-zurueck">← Zurück</button>
     </div>
@@ -452,6 +483,24 @@
       <h2 id="wahl-titel" style="text-align:center;font-size:13px">Wer spielt?</h2>
       <div id="personen" class="liste" style="gap:10px"></div>
       <button id="zurueck" style="margin-top:6px">← Zurück</button>
+    </div>
+  </div>
+</div>
+<div class="menue" id="abschluss" hidden>
+  <div class="menue-innen abschluss">
+    <h1 class="titel">Runde beendet</h1>
+    <p class="untertitel" id="ab-kurs" style="margin:0"></p>
+    <div id="ab-platz" class="liste" style="gap:6px"></div>
+    <div class="kurswahl">
+      <h2>Scorekarte</h2>
+      <div class="ab-karte" id="ab-karte"></div>
+      <p class="klein ab-legende"><span><i class="w ass"></i>Ass</span><span><i class="w eagle"></i>Eagle</span><span><i class="w birdie"></i>Birdie</span><span><i class="w bogey"></i>Bogey</span><span><i class="w doppel"></i>Doppelbogey+</span></p>
+    </div>
+    <p id="ab-warte" class="klein" style="text-align:center;margin:0" hidden>Der Gastgeber entscheidet, wie es weitergeht.</p>
+    <div class="ab-knoepfe">
+      <button class="gross" id="ab-neu">Neue Runde<small>Gleicher Kurs, gleiche Spieler</small></button>
+      <button class="gross" id="ab-kurswahl">Anderer Kurs<small>Gleiche Spieler</small></button>
+      <button class="gross" id="ab-menue">Hauptmenü</button>
     </div>
   </div>
 </div>
@@ -535,13 +584,14 @@
   <button data-ansicht="feld" class="zum-spiel">← Zurück zum Spiel</button>
 </nav>
 
-<script src="taschen.js?v=0.8.0"></script>
-<script src="bahnen.js?v=0.8.0"></script>
-<script src="wochenbahnen.js?v=0.8.0"></script>
-<script src="wochen.js?v=0.8.0"></script>
-<script src="physik.js?v=0.8.0"></script>
-<script src="portraets.js?v=0.8.0"></script>
-<script src="grafik.js?v=0.8.0"></script>
+<script src="taschen.js?v=0.9.0"></script>
+<script src="bahnen.js?v=0.9.0"></script>
+<script src="wochenbahnen.js?v=0.9.0"></script>
+<script src="wochen.js?v=0.9.0"></script>
+<script src="physik.js?v=0.9.0"></script>
+<script src="portraets.js?v=0.9.0"></script>
+<script src="grafik.js?v=0.9.0"></script>
+<script src="figuren.js?v=0.9.0"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -561,11 +611,11 @@ let zoomManuell = null, umsehen = false, zieh = null;
 // Handy hochkant: Bahn um 90° drehen (Abwurf unten, Korb oben). SW/SH = Bildschirmgröße in Pixeln
 let hochkant = false, SW = W, SH = H;
 // AUF: echte Pixel je Spielpixel. 2 = hohe Auflösung (quer und hochkant): Bahnbild, Korb und Laub
-// doppelt so fein; Schrift, Figuren und Anzeigen bleiben im 8-Bit-Raster (scharf verdoppelt)
+// doppelt so fein; auch Schrift, Figuren und Anzeigen werden im feinen Raster gezeichnet
 let AUF = 1;
-function hoheAufloesung() {
-  try { return einstellungen.hd !== false; } catch (e) { return false; } // Einstellungen noch nicht geladen
-}
+// Hohe Auflösung ist immer an (der Schalter in den Einstellungen ist entfallen); der Wert 1 bleibt nur
+// als Rückfall im Code, falls er einmal gebraucht wird
+const hoheAufloesung = () => true;
 const hochMQ = matchMedia("(max-width: 860px) and (orientation: portrait), (pointer: coarse) and (orientation: portrait)");
 function pruefeAusrichtung() {
   hochkant = hochMQ.matches;
@@ -695,7 +745,7 @@ function bahnBild(z) {
   const k = z + "@" + AUF;
   if (!stufenBilder[k]) {
     const alt = S; S = S0 * z * AUF;
-    stufenBilder[k] = zeichneHintergrundDetail(z * AUF, { jahreszeit: aktuelleJahreszeit() });
+    stufenBilder[k] = zeichneHintergrundDetail(z * AUF, { jahreszeit: aktuelleJahreszeit(), kronen: false }); // Kronen: zeichneKronen
     S = alt;
   }
   return stufenBilder[k];
@@ -862,10 +912,10 @@ let modus = "vierer", teilnehmer = SPIELER.map((_, i) => i), marken = [], spielN
 let online = null;
 // Einstellungen (in diesem Browser gespeichert); Menü dazu weiter unten
 const EINSTELLUNGEN_SPEICHER = "discgolf-einstellungen";
-const einstellungen = { wurfart: "letzte", grafik: "auto", hd: true };
+const einstellungen = { wurfart: "letzte", grafik: "auto" };
 try { Object.assign(einstellungen, JSON.parse(localStorage.getItem(EINSTELLUNGEN_SPEICHER) || "{}")); } catch (e) { /* egal */ }
 if (einstellungen.grafik === "klassisch") einstellungen.grafik = "auto"; // klassische Grafik gibt es nicht mehr
-pruefeAusrichtung(); // jetzt mit Einstellungen: hohe Auflösung ja/nein
+delete einstellungen.hd; // früherer Schalter „Hohe Auflösung“ – entfallen
 function spaeter(fn, ms) {
   const nr = spielNr;
   setTimeout(() => { if (nr === spielNr) fn(); }, ms);
@@ -924,6 +974,7 @@ function aufWindanzeige(e) {
 
 function starteBahn() {
   spielNr++;
+  versteckeAbschluss();
   sternFrame = null;
   kamera = null;
   marken = [];
@@ -1076,7 +1127,7 @@ function loslassen() {
   const verzogen = Math.abs(wurf.richtung - ziel) / DEG > E.rufAbStreuung
     || Math.abs(wurf.kraft - kraft) / Math.max(kraft, 0.1) > E.rufAbStreuung / 60
     || Math.abs(wurf.winkel - winkel) > E.rufAbStreuung * 1.6;
-  flug = { erg, t0: uhr, kraftAngezeigt: kraft, verzogen, start: { x: s.lie.x, y: s.lie.y }, lokal: true };
+  flug = { erg, t0: uhr, kraftAngezeigt: kraft, verzogen, start: { x: s.lie.x, y: s.lie.y }, lokal: true, richtung: ziel };
   zustand = "flug";
   sfx.wurf();
   aktualisierePanel();
@@ -1123,7 +1174,7 @@ function flugEnde() {
       s.bester = Math.max(s.bester, d);
     }
     if (e.ob) { if (!flug.obGezeigt) zeigeOB(false); }
-    else if (e.drin) { sfx.ketten(); zeigeBanner("TREFFER!", "#ffd84a", 1.4); }
+    else if (e.drin) { sfx.ketten(); zeigeBanner(einwurf(e) || "TREFFER!", "#ffd84a", 1.4); }
     else if (e.typ === "baum" || e.typ === "mauer") zeigeHindernis(e);
     else { sfx.landung(); zeigeBanner(Math.round(d) + " M" + (d >= s.bester ? " BEST!" : ""), d >= s.bester ? "#ffd84a" : PAL.weiss, 1.2); }
     s.lie = e.lie;
@@ -1136,7 +1187,7 @@ function flugEnde() {
   if (e.drin) {
     s.fertig = true;
     sfx.ketten();
-    zeigeErgebnis(s, e.typ === "bowling" ? "STRIKE!" : null);
+    zeigeErgebnis(s, e.typ === "bowling" ? "STRIKE!" : einwurf(e));
   } else if (e.mando === "verpasst") {
     s.wuerfe++;
     if (!flug.mandoGezeigt) zeigeMando();
@@ -1151,7 +1202,16 @@ function flugEnde() {
   }
   zustand = "pause";
   if (modus === "online") mpSende({ typ: "stand", stand: mpSchnappschuss() }); // alle senden: falls der Werfer gerade neu lädt
-  spaeter(naechster, 1300);
+  spaeter(naechster, e.drin ? 1300 + JUBEL_DAUER * 1000 * 0.6 : 1300); // eingelocht: Zeit zum Jubeln (figurOrt/jubelt)
+}
+
+// Throw-in: ein normaler Wurf von außerhalb des Circles (über 10 m) landet direkt im Korb –
+// selten, darum mit Entfernung im Banner (z. B. „THROW-IN 34 M! BIRDIE!“, beim Ace „ACE!!! 87 M“)
+const CIRCLE = 10;
+function einwurf(e) {
+  if (!e.drin || e.typ !== "korb" || !flug || !flug.start) return null;
+  const d = abstand(flug.start, bahn.korb);
+  return d > CIRCLE ? "THROW-IN " + Math.round(d) + " M!" : null;
 }
 
 function zeigeErgebnis(s, extra) {
@@ -1159,6 +1219,7 @@ function zeigeErgebnis(s, extra) {
   const namen = { "-3": "ALBATROS!", "-2": "EAGLE!", "-1": "BIRDIE!", "0": "PAR", "1": "BOGEY", "2": "DOPPEL-BOGEY" };
   let t = s.wuerfe === 1 ? "ACE!!!" : (namen[diff] || "+" + diff);
   if (extra && s.wuerfe > 1) t = extra + " " + t;
+  else if (s.wuerfe === 1 && flug && flug.start) t += " " + Math.round(abstand(flug.start, bahn.korb)) + " M";
   if (diff < 0) sfx.jubel();
   zeigeBanner(t, "#ffd84a", 1.6);
 }
@@ -1242,24 +1303,27 @@ function rufe(s) {
 function zeichneSprechblase() {
   const b = sprechblase;
   if (uhr - b.t0 > b.dauer) { sprechblase = null; return; }
-  ctx.font = "8px Silkscreen";
   // Zeilen umbrechen, damit die Blase auch hochkant passt
   const zeilen = [];
   for (const wort of b.text.toUpperCase().split(" ")) {
     const z = zeilen.length ? zeilen[zeilen.length - 1] + " " + wort : wort;
-    if (zeilen.length && ctx.measureText(z).width <= 100) zeilen[zeilen.length - 1] = z;
+    if (zeilen.length && textBreite(z) <= 100) zeilen[zeilen.length - 1] = z;
     else zeilen.push(wort);
   }
-  const bw = Math.ceil(Math.max(...zeilen.map(z => ctx.measureText(z).width))) + 8, bh = zeilen.length * 9 + 5;
+  const bw = Math.ceil(Math.max(...zeilen.map(z => textBreite(z)))) + 8, bh = zeilen.length * 9 + 5;
   const p = zuSchirm(b.pos), hops = Math.round(Math.abs(Math.sin((uhr - b.t0) * 8)) * 2 * Math.max(0, 1 - (uhr - b.t0)));
   const x = Math.max(kx + 2, Math.min(kx + SW - bw - 2, p.x - 6)), y = Math.max(ky + 2, p.y - 14 - bh - hops);
-  ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 1, y - 1, bw + 2, bh + 2);
-  ctx.fillStyle = PAL.weiss; ctx.fillRect(x, y, bw, bh);
-  // Zipfel zum Spieler
+  // Blase im feinen Raster: runde Ecken, Schatten unten rechts, Zipfel zum Spieler
+  const q = 1 / AUF;
+  ctx.fillStyle = "rgba(0,20,0,.35)"; ctx.fillRect(x + 1, y + bh, bw - q, 1 + q); ctx.fillRect(x + bw, y + 1, 1 + q, bh - q);
+  rahmen(x - q, y - q, bw + 2 * q, bh + 2 * q, PAL.weiss, PAL.schwarz);
+  ctx.fillStyle = "#c8ccd4"; ctx.fillRect(x + q, y + bh - 2 * q, bw - 2 * q, q);
   const zx = Math.max(x + 3, Math.min(x + bw - 5, p.x));
-  ctx.fillStyle = PAL.schwarz; ctx.fillRect(zx, y + bh, 4, 1); ctx.fillRect(zx, y + bh + 1, 3, 1); ctx.fillRect(zx, y + bh + 2, 2, 1);
-  ctx.fillStyle = PAL.weiss; ctx.fillRect(zx + 1, y + bh, 2, 1); ctx.fillRect(zx + 1, y + bh + 1, 1, 1);
-  ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillStyle = "#c8281c";
+  for (let i = 0; i < 3 * AUF; i++) {
+    const r = (3 * AUF - i) * q;
+    ctx.fillStyle = PAL.schwarz; ctx.fillRect(zx, y + bh - q + i * q, r + q, q);
+    ctx.fillStyle = i ? PAL.weiss : "#c8ccd4"; if (r > q) ctx.fillRect(zx + q, y + bh - q + i * q, r - q, q);
+  }
   zeilen.forEach((z, i) => text(z, x + 4, y + 3 + i * 9, "#c8281c", "left", 8, false));
 }
 
@@ -1333,23 +1397,30 @@ function puttEnde() {
   }
   zustand = "pause";
   if (modus === "online") mpSende({ typ: "stand", stand: mpSchnappschuss() });
-  spaeter(naechster, 1300);
+  // eingelocht: Nahansicht kurz zeigen (Scheibe in den Ketten), dann schließen – die Figur jubelt auf der Bahn
+  if (ergebnis === "drin") spaeter(() => { putt = null; spaeter(naechster, JUBEL_DAUER * 1000 + 100); }, 1100);
+  else spaeter(naechster, 1300);
 }
 
 // ---------- Zeichnen ----------
 // Scharfe Pixelschrift: Text einmal klein vorzeichnen, Kantenglättung wegschneiden (nur ganze Pixel),
 // mit schwarzem Rand einfärben und zwischenspeichern – sonst verschmiert die Schrift beim Hochskalieren
 const textSpeicher = new Map();
+// Text als Bild. Bei hoher Auflösung im feinen Raster (echte Pixel) mit Pixelify Sans, sonst Silkscreen.
+// gr und alle Maße außerhalb bleiben in Spielpixeln: b.w ist die Breite in Spielpixeln, b.a die Pixel je Spielpixel
+const textSchrift = gr => AUF > 1 ? (gr * AUF) + "px 'Pixelify Sans'" : gr + "px Silkscreen";
 function textBild(t, gr, farbe, rand) {
-  const key = t + "|" + gr + "|" + farbe + "|" + rand;
+  const key = t + "|" + gr + "|" + farbe + "|" + rand + "|" + AUF;
   let b = textSpeicher.get(key);
   if (b) return b;
   if (textSpeicher.size > 600) textSpeicher.clear();
-  const m = document.createElement("canvas"), mc = m.getContext("2d");
-  mc.font = gr + "px Silkscreen";
-  const w = Math.ceil(mc.measureText(t).width) + 4, h = Math.ceil(gr * 1.5) + 4;
+  const a = AUF, m = document.createElement("canvas"), mc = m.getContext("2d");
+  // Pixelify Sans ist enger als Silkscreen: 1 echter Pixel Buchstabenabstand, breitere Wortlücken
+  const abstand = () => { if (a > 1 && "letterSpacing" in mc) { mc.letterSpacing = "1px"; mc.wordSpacing = "3px"; } };
+  mc.font = textSchrift(gr); abstand();
+  const w = Math.ceil(mc.measureText(t).width) + 4, h = Math.ceil(gr * a * 1.5) + 4;
   m.width = w; m.height = h;
-  mc.font = gr + "px Silkscreen"; mc.textBaseline = "top"; mc.fillStyle = "#fff";
+  mc.font = textSchrift(gr); abstand(); mc.textBaseline = "top"; mc.fillStyle = "#fff";
   mc.fillText(t, 2, 2);
   const d = mc.getImageData(0, 0, w, h), px = d.data;
   for (let i = 3; i < px.length; i += 4) px[i] = px[i] >= 110 ? 255 : 0;
@@ -1364,59 +1435,260 @@ function textBild(t, gr, farbe, rand) {
   const cc = c.getContext("2d");
   if (rand) { const s = faerbe(PAL.schwarz); for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) cc.drawImage(s, 1 + dx, 1 + dy); }
   cc.drawImage(faerbe(farbe), 1, 1);
-  b = { c, w: w - 4 };
+  b = { c, w: (w - 4) / a, a };
   textSpeicher.set(key, b);
   return b;
 }
+// Breite eines Textes in Spielpixeln (wie text() ihn zeichnet)
+const textBreite = (t, gr = 8) => textBild(String(t), gr, PAL.weiss, false).w;
 // erst wenn die Pixelschrift geladen ist, stimmen die vorgezeichneten Texte
-if (document.fonts) { document.fonts.ready.then(() => textSpeicher.clear()); document.fonts.addEventListener("loadingdone", () => textSpeicher.clear()); }
+if (document.fonts) {
+  document.fonts.ready.then(() => textSpeicher.clear()); document.fonts.addEventListener("loadingdone", () => textSpeicher.clear());
+  document.fonts.load("16px 'Pixelify Sans'").then(() => textSpeicher.clear(), () => {});
+}
 function text(t, x, y, farbe = PAL.weiss, ausr = "left", gr = 8, rand = true) {
   t = String(t);
-  ctx.font = gr + "px Silkscreen"; // für measureText an anderen Stellen
   if (!t) return;
   const b = textBild(t, gr, farbe, rand);
   const links = ausr === "center" ? x - b.w / 2 : ausr === "right" ? x - b.w : x;
-  ctx.drawImage(b.c, Math.round(links) - 3, Math.round(y) - 3);
+  // 3 echte Pixel Rand (2 Abstand + 1 Kontur); bei hoher Auflösung um die Schrift zu Silkscreen passend versetzt
+  ctx.drawImage(b.c, Math.round(links) - 3 / b.a, Math.round(y) - 3 / b.a + (b.a > 1 ? TEXT_VERSATZ : 0), b.c.width / b.a, b.c.height / b.a);
 }
+const TEXT_VERSATZ = 0;
+
+// ---------- Feines Raster (hohe Auflösung) ----------
+// Koordinaten in Spielpixeln, aber Linien und Kanten 1 echter Pixel breit (p = 1 / AUF)
+// Rahmen im 16-Bit-Stil: Kontur mit abgeschnittenen Ecken, Fläche, Licht oben links, Schatten unten rechts
+function rahmen(x, y, w, h, flaeche = "rgba(12,16,24,.78)", kontur = "#05070a") {
+  const p = 1 / AUF;
+  ctx.fillStyle = flaeche; ctx.fillRect(x + p, y + p, w - 2 * p, h - 2 * p);
+  ctx.fillStyle = kontur;
+  ctx.fillRect(x + 2 * p, y, w - 4 * p, p); ctx.fillRect(x + 2 * p, y + h - p, w - 4 * p, p);
+  ctx.fillRect(x, y + 2 * p, p, h - 4 * p); ctx.fillRect(x + w - p, y + 2 * p, p, h - 4 * p);
+  ctx.fillRect(x + p, y + p, p, p); ctx.fillRect(x + w - 2 * p, y + p, p, p);
+  ctx.fillRect(x + p, y + h - 2 * p, p, p); ctx.fillRect(x + w - 2 * p, y + h - 2 * p, p, p);
+  ctx.fillStyle = "rgba(255,255,255,.18)"; ctx.fillRect(x + 2 * p, y + p, w - 4 * p, p); ctx.fillRect(x + p, y + 2 * p, p, h - 4 * p);
+  ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.fillRect(x + 2 * p, y + h - 2 * p, w - 4 * p, p); ctx.fillRect(x + w - 2 * p, y + 2 * p, p, h - 4 * p);
+}
+// Balkenstück mit Licht oben und Schatten unten (waagrecht) bzw. links/rechts (senkrecht)
+function balkenStueck(x, y, w, h, farbe, senkrecht = false) {
+  if (w <= 0 || h <= 0) return;
+  const p = 1 / AUF;
+  ctx.fillStyle = farbe; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = hellerDunkler(farbe, 0.35);
+  if (senkrecht) ctx.fillRect(x, y, p, h); else ctx.fillRect(x, y, w, p);
+  ctx.fillStyle = hellerDunkler(farbe, 0.15);
+  if (senkrecht) ctx.fillRect(x + p, y, p, h); else ctx.fillRect(x, y + p, w, p);
+  ctx.fillStyle = hellerDunkler(farbe, -0.3);
+  if (senkrecht) ctx.fillRect(x + w - p, y, p, h); else ctx.fillRect(x, y + h - p, w, p);
+}
+// Linie aus echten Pixeln (dicke d in echten Pixeln), optional mit dunkler Kontur
+function feineLinie(x0, y0, x1, y1, farbe, d = 2, kontur = null) {
+  const p = 1 / AUF, n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * AUF));
+  for (const [f, dd] of kontur ? [[kontur, d + 2], [farbe, d]] : [[farbe, d]]) {
+    ctx.fillStyle = f;
+    for (let i = 0; i <= n; i++) {
+      const x = Math.round((x0 + (x1 - x0) * i / n) * AUF - dd / 2) * p, y = Math.round((y0 + (y1 - y0) * i / n) * AUF - dd / 2) * p;
+      ctx.fillRect(x, y, dd * p, dd * p);
+    }
+  }
+}
+
+// Figurmaßstab: Figur und Korb wachsen gemeinsam beim Reinzoomen, damit ihr Verhältnis stimmt.
+// Übersicht und mittel 1 (Figur 8 Spielpixel), nah 2 (16 Spielpixel ≈ 1,8 m bei ~8 px/m).
+// Ganzzahlig, damit die Pixel der Figur gleich groß bleiben.
+const figurMasstab = () => kamera && kamera.z >= 2.5 ? 2 : 1;
 
 function zeichneKorbOben(wackel) {
   const { x, y } = zuSchirm(bahn.korb);
   const dx = wackel ? Math.round(Math.sin(uhr * 60)) : 0;
   // in echten Pixeln zeichnen, damit er bei hoher Auflösung feiner wird
   ctx.setTransform(1, 0, 0, 1, -kx * AUF, -ky * AUF);
-  zeichneKorbObenDetail(ctx, x * AUF, y * AUF, dx * AUF, kamera ? kamera.z : 1, mitSchnee(aktuelleJahreszeit()), AUF);
+  zeichneKorbObenDetail(ctx, x * AUF, y * AUF, dx * AUF, figurMasstab(), mitSchnee(aktuelleJahreszeit()), AUF);
   figurTransform();
 }
 
-function zeichneSpieler() {
-  const gezaehlt = {};
+// liste: wenn angegeben, werden die Figuren nicht gezeichnet, sondern als { y, zeichne } eingesammelt
+// (zum Sortieren mit Baumkronen und Korb in der 3/4-Ansicht)
+// ---------- Figuren: Ort, Laufen, Jubeln (nur Bild – das Spiel rechnet sofort mit der neuen Lage) ----------
+const JUBEL_DAUER = 1.8;
+// Ist gerade die Putt-Nahansicht über der Bahn zu sehen?
+const puttAnsichtOffen = () => puttModus && (zustand === "putt" || zustand === "puttflug" || (zustand === "pause" && putt && putt.flug));
+// Wo die Figur gerade zu sehen ist: ändert sich die Lage, läuft sie dorthin (Dauer nach Strecke, höchstens 2,2 s).
+// Neue Bahn und freies Werfen: sofort dort. Wer fertig ist, bleibt zum Jubeln stehen.
+function figurOrt(s) {
+  const a = s.anim || (s.anim = { x: s.lie.x, y: s.lie.y, spiel: spielNr, lauf: null });
+  if (a.spiel !== spielNr || modus === "frei") { a.x = s.lie.x; a.y = s.lie.y; a.spiel = spielNr; a.lauf = null; return a; }
+  if (s.fertig) return a;
+  const nach = a.lauf ? a.lauf.nach : a;
+  if (Math.hypot(s.lie.x - nach.x, s.lie.y - nach.y) > 0.05)
+    a.lauf = { von: { x: a.x, y: a.y }, nach: { x: s.lie.x, y: s.lie.y }, t0: uhr, dauer: Math.min(2.2, 0.4 + abstand(a, s.lie) / 40) };
+  if (a.lauf) {
+    const t = Math.min(1, (uhr - a.lauf.t0) / a.lauf.dauer), { von, nach: n } = a.lauf;
+    a.x = von.x + (n.x - von.x) * t; a.y = von.y + (n.y - von.y) * t;
+    if (t >= 1) a.lauf = null;
+  }
+  return a;
+}
+// Wer gerade eingelocht hat, jubelt noch kurz. Bei Putts erst, wenn die Nahansicht zu ist – aber nur, wenn das
+// gleich danach passiert (puttet der Nächste sofort weiter, bleibt sie offen: dann kein verspäteter Jubel).
+// Nach dem letzten Spieler kommt die Ergebnistafel, dann entfällt er ebenfalls.
+function jubelt(s) {
+  if (!s.fertig) { s.fertigSeit = s.fertigBemerkt = undefined; return false; }
+  if (s.fertigBemerkt === undefined) s.fertigBemerkt = uhr;
+  if (s.fertigSeit === undefined) {
+    if (puttAnsichtOffen() || zustand === "ende") return false;
+    if (uhr - s.fertigBemerkt > 2) { s.fertigSeit = -Infinity; return false; } // zu spät: auslassen
+    s.fertigSeit = uhr;
+  }
+  return uhr - s.fertigSeit < JUBEL_DAUER;
+}
+function zeichneSpieler(liste) {
+  const gezaehlt = {}, f = figurMasstab();
   spieler.forEach((s, i) => {
-    if (s.fertig) return;
-    const key = Math.round(s.lie.x * 2) + ":" + Math.round(s.lie.y * 2);
+    if (s.fertig && !jubelt(s)) return;
+    if (liste) { liste.push({ y: zuSchirm(figurOrt(s)).y + i * 0.01, zeichne: () => zeichneSpielerNr(s, i, gezaehlt, f) }); return; }
+    zeichneSpielerNr(s, i, gezaehlt, f);
+  });
+}
+function zeichneSpielerNr(s, i, gezaehlt, f) {
+  {
+    const ort = figurOrt(s), key = Math.round(ort.x * 2) + ":" + Math.round(ort.y * 2);
     const n = gezaehlt[key] = (gezaehlt[key] || 0) + 1;
-    const q = zuSchirm(s.lie);
-    const x = q.x + (n - 1) * 4 - (key === Math.round(bahn.abwurf.x * 2) + ":" + Math.round(bahn.abwurf.y * 2) ? 6 : 0);
+    const q = zuSchirm(ort);
+    const x = q.x + ((n - 1) * 4 - (key === Math.round(bahn.abwurf.x * 2) + ":" + Math.round(bahn.abwurf.y * 2) ? 6 : 0)) * f;
     const y = q.y;
     const marke = i === aktiv && zustand !== "flug" && Math.floor(uhr * 3) % 2;
-    // hohe Auflösung: feinere Figur in echten Pixeln (grafik.js), gleich groß wie die 8-Bit-Figur
-    if (AUF > 1 && window.zeichneFigurDetail) {
-      const inHand = i === aktiv && zustand !== "flug" && s.tasche[s.scheibe] ? TYPFARBE[s.tasche[s.scheibe].typ] : null;
+    // hohe Auflösung: Sprite in echten Pixeln (figuren.js) mit Pose und Blickrichtung
+    if (AUF > 1 && window.zeichneFigurSprite) {
+      const { pose, bild, links, inHand } = figurPose(s, i);
       ctx.setTransform(1, 0, 0, 1, -kx * AUF, -ky * AUF);
-      zeichneFigurDetail(ctx, x * AUF, y * AUF, s, marke, AUF, inHand);
+      zeichneFigurSprite(ctx, x * AUF + 3 * f, y * AUF, s, marke, f, pose, bild, links, inHand);
       figurTransform();
       return;
     }
-    if (marke) { ctx.fillStyle = PAL.weiss; ctx.fillRect(x, y - 10, 3, 1); ctx.fillRect(x + 1, y - 9, 1, 1); }
-    const a = s.aussehen || {}, kopf = a.kopf || {};
-    ctx.fillStyle = PAL.schatten; ctx.fillRect(x, y + 1, 4, 2);
-    ctx.fillStyle = s.farbe; ctx.fillRect(x - 1, y + 1, 5, 1); // Spielerfarbe als Sockel
-    ctx.fillStyle = a.jacke || s.farbe; ctx.fillRect(x, y - 4, 3, 4);
-    ctx.fillStyle = a.haut || "#f0c8a0"; ctx.fillRect(x, y - 7, 3, 3);
-    ctx.fillStyle = kopf.farbe || a.haare || "#5a3a24"; ctx.fillRect(x, y - 7, 3, 1);
-    if (kopf.typ === "cap") ctx.fillRect(x + 2, y - 6, 2, 1);
-    if (a.bart === "vollbart") { ctx.fillStyle = a.bartfarbe; ctx.fillRect(x, y - 5, 3, 1); }
-    ctx.fillStyle = PAL.schwarz; ctx.fillRect(x, y, 1, 1); ctx.fillRect(x + 2, y, 1, 1);
-  });
+    // 8-Bit-Figur: am Fuß um den Figurmaßstab vergrößern
+    ctx.save(); ctx.translate(x, y); ctx.scale(f, f);
+    zeichneFigur8Bit(s, marke);
+    ctx.restore();
+  }
+}
+
+// ---------- 3/4-Ansicht ----------
+// Fliegt die Scheibe höher als jeder Gegenstand, der weiter unten steht und sie im Bild überdeckt?
+function ueberDenGegenstaenden(hg, p) {
+  if (!hg.baumFarben) return false;
+  const d = zuSchirm(p), dy = d.y - p.z * S * 0.6;
+  let verdeckt = false;
+  for (const b of hg.baumFarben) {
+    const q = zuSchirm(b);
+    if (q.y <= d.y) continue; // steht dahinter
+    const hoch = (Math.max(baumAnhebung(b), (b.h || 12) * 0.6) + b.r) * S, breit = b.r * S * 1.3;
+    if (Math.abs(d.x - q.x) > breit || dy < q.y - hoch || dy > q.y + b.r * S * 0.5) continue; // überdeckt sie nicht
+    verdeckt = true;
+    if (p.z <= (b.h || Math.min(12, Math.max(3, 1.5 + b.r * 1.8)))) return false; // tiefer als der Gegenstand: dahinter
+  }
+  return verdeckt;
+}
+// Bäume und alle Gegenstände (Kakteen, Felsen, Arten neuer Themen) als Sprites (grafik.js: objektSprite),
+// einmal je Bahnbild gemerkt. Korb, Figuren und
+// Kronen werden nach der Bildschirmhöhe ihres Fußpunkts sortiert: wer weiter oben steht, verschwindet
+// hinter der Krone eines Baums, der weiter unten steht.
+function kronenListe(hg, liste) {
+  if (!hg.kronenAlsSprite || !hg.baumFarben) return;
+  hg.kronenSprites = hg.kronenSprites || new Map();
+  for (const b of hg.baumFarben) {
+    const q = zuSchirm(b), rand = (b.r * 2 + Math.max(baumAnhebung(b), (b.h || 12) * 0.6)) * S + 4;
+    if (q.x < kx - rand || q.x > kx + SW + rand || q.y < ky - 4 || q.y > ky + SH + rand + b.r * S) continue; // außerhalb des Bilds
+    liste.push({ y: q.y, zeichne: () => {
+      let sp = hg.kronenSprites.get(b);
+      if (!sp) { sp = objektSprite(b, hg.S, hg.zr, hg.winter); hg.kronenSprites.set(b, sp); }
+      ctx.setTransform(1, 0, 0, 1, -kx * AUF, -ky * AUF);
+      // Wind: Kronen wiegen sich, stärker bei mehr Wind und in Windrichtung (auf dem Bildschirm), je Baum versetzt
+      const wx = hochkant ? wind.y : wind.x, st = Math.hypot(wind.x, wind.y); // hochkant: Bildschirm-x = Bahn-y
+      const ph = b.x * 0.37 + b.y * 0.71, dx = (Math.sign(wx) * Math.min(1, st / 4) * 0.6 + Math.sin(uhr * (1.6 + st * 0.15) + ph) * Math.min(1, 0.25 + st / 6)) * Math.min(2.5, 0.6 + kamera.z * 0.6) * (AUF / 2) * 1.5;
+      zeichneObjektSprite(ctx, sp, q.x * AUF, q.y * AUF, dx);
+      figurTransform();
+    } });
+  }
+}
+// Scheibe, die gerade zu sehen ist: im Flug (mit Spur) oder nach der Landung liegend; sonst null
+function scheibeImBild() {
+  if (zustand === "flug" || (zustand === "pause" && flug && flug.aktiv)) {
+    const fp = flugPosition(), e = flug.erg, spur = [];
+    for (let k = Math.max(0, fp.i - 40); k < fp.i; k += 3) spur.push(e.pfad[k]);
+    return { p: fp.p, dreht: !fp.fertig && fp.p.z > 0.05, spur };
+  }
+  if (zustand === "pause" && flug && !puttModus) return { p: flug.erg.pfad[flug.erg.pfad.length - 1], dreht: false, spur: [] };
+  return null;
+}
+function zeichneWeltObjekte(korbWackelt) {
+  const liste = [];
+  const korb = zuSchirm(bahn.korb);
+  liste.push({ y: korb.y - 0.005, zeichne: () => zeichneKorbOben(korbWackelt) });
+  zeichneSpieler(liste);
+  const hg = bahnBild(kamera.z);
+  kronenListe(hg, liste);
+  // Scheibe: Schatten liegt am Boden unter allem; die Scheibe selbst und ihre Spur werden nach ihrem Punkt
+  // am Boden einsortiert – hinter einem Gegenstand, der weiter unten steht, verschwindet sie. Fliegt sie
+  // höher als dieser Gegenstand, ist sie darüber und bleibt sichtbar (wird am Ende noch einmal gezeichnet).
+  const sch = scheibeImBild();
+  if (sch) {
+    zeichneScheibe(sch.p, sch.dreht, "schatten");
+    for (const q of sch.spur) {
+      const c = zuSchirm(q);
+      liste.push({ y: c.y, zeichne: () => { ctx.fillStyle = "rgba(255,255,255,.3)"; ctx.fillRect(c.x, c.y - Math.round(q.z * S * 0.6), 1, 1); } });
+    }
+    liste.push({ y: zuSchirm(sch.p).y + 0.02, zeichne: () => zeichneScheibe(sch.p, sch.dreht, "scheibe") });
+  }
+  liste.sort((a, b) => a.y - b.y);
+  for (const o of liste) o.zeichne();
+  if (sch && sch.p.z > 0.05 && ueberDenGegenstaenden(hg, sch.p)) zeichneScheibe(sch.p, sch.dreht, "scheibe");
+  // Figuren hinter einer Krone schimmern durch (wer verdeckt ist, bleibt erkennbar); unverdeckt ändert
+  // das nichts, weil dieselben Pixel noch einmal gezeichnet werden
+  if (liste.length > spieler.length + 1) {
+    ctx.save(); ctx.globalAlpha = 0.45;
+    zeichneSpieler();
+    ctx.restore();
+  }
+}
+
+// Pose der Figur: wer dran ist, holt beim Laden aus (Rückhand/Vorhand, zwei Stufen nach Kraft) und
+// zeigt nach dem Abwurf kurz den Durchschwung; sonst Stehen mit Atmen. Blick zum Ziel bzw. zum Korb.
+function figurPose(s, i) {
+  const dran = i === aktiv, vh = s.wurfart === "vorhand";
+  const nachWurf = dran && flug && flug.start && (zustand === "flug" || zustand === "pause") && uhr - flug.t0 < 0.7
+    && abstand(flug.start, s.lie) < 0.01;
+  const ort = figurOrt(s);
+  // Stehen: atmen (2 Bilder), ab und zu blinzeln (Bild 2, je Spieler versetzt)
+  let pose = "stehen", bild = (uhr + i * 1.3) % 3.7 < 0.13 ? 2 : Math.floor((uhr + i * 0.37) / 0.8) % 2;
+  let r = null;
+  if (s.fertig) { pose = "jubel" + (Math.floor((uhr - s.fertigSeit) / 0.22) % 2 + 1); bild = 0; }
+  else if (ort.lauf) {
+    // Laufen: Schritt links, stehen, Schritt rechts, stehen; Blick in Laufrichtung
+    pose = ["laufen1", "stehen", "laufen2", "stehen"][Math.floor((uhr - ort.lauf.t0) * 9) % 4]; bild = 0;
+    r = Math.atan2(ort.lauf.nach.y - ort.lauf.von.y, ort.lauf.nach.x - ort.lauf.von.x);
+  }
+  else if (dran && zustand === "laden" && !ladeAbgebrochen()) { pose = (vh ? "ausholenVH" : "ausholenRH") + (kraft > 0.35 ? 2 : 1); bild = 0; }
+  else if (nachWurf) { pose = "wurf"; bild = 0; }
+  if (r === null) r = dran && (zustand === "zielen" || zustand === "laden" || nachWurf) ? (nachWurf && flug.richtung !== undefined ? flug.richtung : ziel) : zumKorb(ort);
+  const links = (hochkant ? Math.sin(r) : Math.cos(r)) < -0.15;
+  const inHand = dran && !ort.lauf && (zustand === "zielen" || zustand === "laden") && s.tasche[s.scheibe] ? TYPFARBE[s.tasche[s.scheibe].typ] : null;
+  return { pose, bild, links, inHand };
+}
+
+function zeichneFigur8Bit(s, marke) {
+  const x = 0, y = 0;
+  if (marke) { ctx.fillStyle = PAL.weiss; ctx.fillRect(x, y - 10, 3, 1); ctx.fillRect(x + 1, y - 9, 1, 1); }
+  const a = s.aussehen || {}, kopf = a.kopf || {};
+  ctx.fillStyle = PAL.schatten; ctx.fillRect(x, y + 1, 4, 2);
+  ctx.fillStyle = s.farbe; ctx.fillRect(x - 1, y + 1, 5, 1); // Spielerfarbe als Sockel
+  ctx.fillStyle = a.jacke || s.farbe; ctx.fillRect(x, y - 4, 3, 4);
+  ctx.fillStyle = a.haut || "#f0c8a0"; ctx.fillRect(x, y - 7, 3, 3);
+  ctx.fillStyle = kopf.farbe || a.haare || "#5a3a24"; ctx.fillRect(x, y - 7, 3, 1);
+  if (kopf.typ === "cap") ctx.fillRect(x + 2, y - 6, 2, 1);
+  if (a.bart === "vollbart") { ctx.fillStyle = a.bartfarbe; ctx.fillRect(x, y - 5, 3, 1); }
+  ctx.fillStyle = PAL.schwarz; ctx.fillRect(x, y, 1, 1); ctx.fillRect(x + 2, y, 1, 1);
 }
 
 function zeichneZiellinie() {
@@ -1424,7 +1696,7 @@ function zeichneZiellinie() {
   const x0 = s.lie.x * S, y0 = s.lie.y * S;
   for (let d = 6; d < 75; d += 4) {
     ctx.fillStyle = d % 8 < 4 ? "rgba(255,255,255,.85)" : "rgba(255,255,255,.4)";
-    ctx.fillRect(Math.round(x0 + Math.cos(ziel) * d), Math.round(y0 + Math.sin(ziel) * d), 1, 1);
+    ctx.fillRect(Math.round((x0 + Math.cos(ziel) * d) * AUF) / AUF, Math.round((y0 + Math.sin(ziel) * d) * AUF) / AUF, 1, 1);
   }
   // Pfeilspitze mit Winkelhinweis: Hyzer zieht nach links, Anhyzer nach rechts
   const ex = x0 + Math.cos(ziel) * 78, ey = y0 + Math.sin(ziel) * 78;
@@ -1433,7 +1705,7 @@ function zeichneZiellinie() {
   ctx.fillStyle = "rgba(255,230,120,.8)";
   for (let d = 0; d < 20; d += 3) {
     const a = ziel + k * DEG * (d / 20);
-    ctx.fillRect(Math.round(ex + Math.cos(a) * d - Math.sin(ziel) * k * d * d / 400), Math.round(ey + Math.sin(a) * d + Math.cos(ziel) * k * d * d / 400), 1, 1);
+    ctx.fillRect(Math.round((ex + Math.cos(a) * d - Math.sin(ziel) * k * d * d / 400) * AUF) / AUF, Math.round((ey + Math.sin(a) * d + Math.cos(ziel) * k * d * d / 400) * AUF) / AUF, 1, 1);
   }
 }
 
@@ -1456,13 +1728,14 @@ function zeichneMarken() {
 
 function zeichneWind() {
   const x = SW - 24, y = 4, st = Math.hypot(wind.x, wind.y);
-  ctx.fillStyle = "rgba(10,14,20,.7)"; ctx.fillRect(x - 2, y, 24, 30);
+  rahmen(x - 2, y, 24, 30);
   const a = hochkant ? Math.atan2(-wind.x, wind.y) : Math.atan2(wind.y, wind.x), cx = x + 10, cy = y + 11;
-  ctx.fillStyle = "#bfe4ff";
-  for (let d = -7; d <= 7; d++) ctx.fillRect(Math.round(cx + Math.cos(a) * d), Math.round(cy + Math.sin(a) * d), 1, 1);
-  for (const sg of [-1, 1]) for (let d = 0; d < 4; d++) {
-    const b = a + Math.PI + sg * 0.6;
-    ctx.fillRect(Math.round(cx + Math.cos(a) * 7 + Math.cos(b) * d), Math.round(cy + Math.sin(a) * 7 + Math.sin(b) * d), 1, 1);
+  // Pfeil im feinen Raster mit dunkler Kontur; Spitze aus zwei kurzen Linien
+  const ex = cx + Math.cos(a) * 7, ey = cy + Math.sin(a) * 7;
+  const spitze = sg => [ex, ey, ex + Math.cos(a + Math.PI + sg * 0.6) * 4, ey + Math.sin(a + Math.PI + sg * 0.6) * 4];
+  for (const [f, d] of [["#05070a", 4], ["#bfe4ff", 2]]) {
+    feineLinie(cx - Math.cos(a) * 7, cy - Math.sin(a) * 7, ex, ey, f, d);
+    feineLinie(...spitze(-1), f, d); feineLinie(...spitze(1), f, d);
   }
   text(st.toFixed(1), cx, y + 21, "#bfe4ff", "center");
   text("WIND", x - 4, y + 31, "#d8ecff", "left");
@@ -1476,14 +1749,17 @@ function zeichneKraftbalken() {
   const gelb = Math.max(0.5, Math.min(0.93, 1 - 0.3 * sf)), rot = Math.max(0.75, Math.min(0.97, 1 - 0.1 * sf));
   if (hochkant) { zeichneKraftbalkenSenkrecht(gelb, rot); return; }
   const x = 110, y = SH - 14, w = 100;
-  ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 2, y - 2, w + 4, 10);
-  ctx.fillStyle = "#3a7a30"; ctx.fillRect(x, y, Math.round(w * gelb), 6);
-  ctx.fillStyle = "#c8a830"; ctx.fillRect(x + Math.round(w * gelb), y, Math.round(w * (rot - gelb)), 6);
-  ctx.fillStyle = "#c84030"; ctx.fillRect(x + Math.round(w * rot), y, w - Math.round(w * rot), 6);
+  rahmen(x - 2, y - 2, w + 4, 10, "#05070a");
+  balkenStueck(x, y, Math.round(w * gelb), 6, "#3a8a30");
+  balkenStueck(x + Math.round(w * gelb), y, Math.round(w * rot) - Math.round(w * gelb), 6, "#d0aa30");
+  balkenStueck(x + Math.round(w * rot), y, w - Math.round(w * rot), 6, "#c84030");
   if (zustand === "laden" || zustand === "flug") {
-    const k = zustand === "laden" ? kraft : flug.kraftAngezeigt;
-    ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.fillRect(x, y, Math.round(w * k), 6);
-    ctx.fillStyle = PAL.weiss; ctx.fillRect(x + Math.round(w * k) - 1, y - 3, 2, 12);
+    const k = zustand === "laden" ? kraft : flug.kraftAngezeigt, q = 1 / AUF;
+    ctx.fillStyle = "rgba(255,255,255,.3)"; ctx.fillRect(x, y, Math.round(w * k * AUF) * q, 6);
+    const mx = Math.round(w * k * AUF) * q;
+    ctx.fillStyle = PAL.schwarz; ctx.fillRect(x + mx - 1 - q, y - 3 - q, 2 + 2 * q, 12 + 2 * q);
+    ctx.fillStyle = PAL.weiss; ctx.fillRect(x + mx - 1, y - 3, 2, 12);
+    ctx.fillStyle = "#b8c0cc"; ctx.fillRect(x + mx - q, y - 3, q, 12);
   }
   // Balken zurück bei 0: statt der Beschriftung den Abbruch-Hinweis zeigen
   if (ladeAbgebrochen()) text("LOSLASSEN = ABBRECHEN", x + w / 2, y - 11, "#ffe08a", "center");
@@ -1496,13 +1772,14 @@ function zeichneKraftbalken() {
 // Beschriftung gedreht daneben
 function zeichneKraftbalkenSenkrecht(gelb, rot) {
   const x = 4, b = 6, y0 = 36, y1 = SH - 30, h = y1 - y0;
-  ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 2, y0 - 2, b + 4, h + 4);
-  ctx.fillStyle = "#3a7a30"; ctx.fillRect(x, y1 - Math.round(h * gelb), b, Math.round(h * gelb));
-  ctx.fillStyle = "#c8a830"; ctx.fillRect(x, y1 - Math.round(h * rot), b, Math.round(h * rot) - Math.round(h * gelb));
-  ctx.fillStyle = "#c84030"; ctx.fillRect(x, y0, b, h - Math.round(h * rot));
+  rahmen(x - 2, y0 - 2, b + 4, h + 4, "#05070a");
+  balkenStueck(x, y1 - Math.round(h * gelb), b, Math.round(h * gelb), "#3a8a30", true);
+  balkenStueck(x, y1 - Math.round(h * rot), b, Math.round(h * rot) - Math.round(h * gelb), "#d0aa30", true);
+  balkenStueck(x, y0, b, h - Math.round(h * rot), "#c84030", true);
   if (zustand === "laden" || zustand === "flug") {
-    const k = zustand === "laden" ? kraft : flug.kraftAngezeigt, hk = Math.round(h * k);
-    ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.fillRect(x, y1 - hk, b, hk);
+    const k = zustand === "laden" ? kraft : flug.kraftAngezeigt, q = 1 / AUF, hk = Math.round(h * k * AUF) * q;
+    ctx.fillStyle = "rgba(255,255,255,.3)"; ctx.fillRect(x, y1 - hk, b, hk);
+    ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 3 - q, y1 - hk - 1 - q, b + 6 + 2 * q, 2 + 2 * q);
     ctx.fillStyle = PAL.weiss; ctx.fillRect(x - 3, y1 - hk - 1, b + 6, 2);
   }
   // Text um 90° gedreht, von unten nach oben lesbar, rechts neben dem Balken
@@ -1513,17 +1790,30 @@ function zeichneKraftbalkenSenkrecht(gelb, rot) {
   ctx.restore();
 }
 
-function zeichneScheibe(p, dreht = false) {
-  const { x, y } = zuSchirm(p), hz = Math.round(p.z * S * 0.6);
-  // Schatten am Boden: zeigt, wo die Scheibe wirklich ist (die Scheibe selbst ist um die Flughöhe versetzt)
-  ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(x - 3, y - 1, 7, 3); ctx.fillRect(x - 2, y - 2, 5, 5);
-  const f = TYPFARBE[scheibe().typ] || PAL.weiss, oy = y - hz - 1;
-  ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 3, oy - 1, 7, 3); ctx.fillRect(x - 2, oy - 2, 5, 5);
-  ctx.fillStyle = f; ctx.fillRect(x - 2, oy - 1, 5, 3); ctx.fillRect(x - 1, oy - 1, 3, 3);
-  // ein heller Punkt läuft im Kreis: die Scheibe dreht sich
-  const glanz = [[-2, -1], [0, -1], [2, -1], [2, 1], [0, 1], [-2, 1]];
-  const [gx, gy] = glanz[dreht ? Math.floor(uhr * 30) % glanz.length : 1];
-  ctx.fillStyle = PAL.weiss; ctx.fillRect(x + gx, oy + gy, 1, 1);
+// teil: "schatten" (am Boden, unter allen Gegenständen), "scheibe" (in der Luft, einsortiert) oder beides
+function zeichneScheibe(p, dreht = false, teil = "beides") {
+  const { x, y } = zuSchirm(p), hz = Math.round(p.z * S * 0.6 * AUF) / AUF;
+  const f = TYPFARBE[scheibe().typ] || PAL.weiss, oy = y - hz - 1, q = 1 / AUF;
+  // Schatten am Boden: zeigt, wo die Scheibe wirklich ist (die Scheibe selbst ist um die Flughöhe versetzt);
+  // im feinen Raster als runde Ellipse: Kontur, Rand dunkler, Flugplatte mit Licht oben links
+  const rx = 3.5 * AUF, ry = 2.5 * AUF;
+  if (teil !== "scheibe") for (let j = -ry; j < ry; j++) for (let i = -rx; i < rx; i++) {
+    const e = ((i + 0.5) / rx) ** 2 + ((j + 0.5) / ry) ** 2;
+    if (e <= 1) { ctx.fillStyle = "rgba(0,0,0,.4)"; ctx.fillRect(x + 0.5 + i * q, y + 0.5 + j * q, q, q); }
+  }
+  if (teil === "schatten") return;
+  const rxs = rx - 1, rys = ry - 1;
+  for (let j = -ry; j < ry; j++) for (let i = -rx; i < rx; i++) {
+    const e = ((i + 0.5) / rxs) ** 2 + ((j + 0.5) / rys) ** 2, ea = ((i + 0.5) / rx) ** 2 + ((j + 0.5) / ry) ** 2;
+    let farbe = null;
+    if (e <= 1) farbe = e > 0.55 ? (j >= 0 ? hellerDunkler(f, -0.35) : hellerDunkler(f, 0.1)) : (i + j < -AUF ? hellerDunkler(f, 0.3) : f);
+    else if (ea <= 1.05) farbe = PAL.schwarz;
+    if (farbe) { ctx.fillStyle = farbe; ctx.fillRect(x + 0.5 + i * q, oy + 0.5 + j * q, q, q); }
+  }
+  // ein heller Punkt läuft auf dem Rand im Kreis: die Scheibe dreht sich
+  const w = dreht ? uhr * 12 : -2.4;
+  ctx.fillStyle = PAL.weiss;
+  ctx.fillRect(x + 0.5 + Math.round(Math.cos(w) * (rxs - 1.2)) * q - q / 2, oy + 0.5 + Math.round(Math.sin(w) * (rys - 1)) * q - q / 2, 2 * q, q);
 }
 
 function flugPosition() {
@@ -1539,9 +1829,14 @@ function flugPosition() {
 // wx: Wackeln der Ketten. jahreszeit: Schlüssel in JAHRESZEITEN
 function zeichnePuttHintergrund(c, wx, jahreszeit) {
   const bx = 86, by = 14, bw = 148, bh = 146;
-  c.fillStyle = PAL.schwarz; c.fillRect(bx - 3, by - 3, bw + 6, bh + 6);
-  zeichnePuttSzene(c, jahreszeit, bx, by, bw, bh);
-  zeichnePuttKorb(c, KETTEN, wx, mitSchnee(jahreszeit));
+  if (c === ctx) { // Rahmen im 16-Bit-Stil: Kontur, Metallkante mit Licht oben links, dunkle Fuge zum Bild
+    const q = 1 / AUF;
+    rahmen(bx - 3, by - 3, bw + 6, bh + 6, "#5a6270");
+    c.fillStyle = "#8a94a4"; c.fillRect(bx - 3 + 2 * q, by - 3 + 2 * q, bw + 6 - 4 * q, q); c.fillRect(bx - 3 + 2 * q, by - 3 + 2 * q, q, bh + 6 - 4 * q);
+    c.fillStyle = "#0a0c10"; c.fillRect(bx - q, by - q, bw + 2 * q, bh + 2 * q);
+  } else { c.fillStyle = PAL.schwarz; c.fillRect(bx - 3, by - 3, bw + 6, bh + 6); }
+  zeichnePuttSzene(c, jahreszeit, bx, by, bw, bh, c === ctx ? AUF : 1);
+  zeichnePuttKorb(c, KETTEN, wx, mitSchnee(jahreszeit), c === ctx ? AUF : 1);
 }
 
 function zeichnePuttAnsicht() {
@@ -1557,16 +1852,21 @@ function zeichnePuttAnsicht() {
   text(puttStil === "push" ? "PUSH" : "SPIN", bx + bw - 4, by + 3, "#ffe08a", "right");
   const pn = putter(s).name.toUpperCase();
   text(pn, bx + 4, by + 12, TYPFARBE.Putter);
-  ctx.font = "8px Silkscreen";
-  text(flugzahlen(putter(s)), bx + 4 + ctx.measureText(pn).width + 6, by + 12, "#cdd6e2");
+  text(flugzahlen(putter(s)), bx + 4 + textBreite(pn) + 6, by + 12, "#cdd6e2");
 
   if (!putt.flug) {
     const o = puttWackel(uhr - putt.t0);
-    const x = Math.round(K.x + o.x), y = Math.round(K.y + o.y);
-    ctx.fillStyle = PAL.schwarz;
-    ctx.fillRect(x - 4, y - 1, 9, 3); ctx.fillRect(x - 1, y - 4, 3, 9);
-    ctx.fillStyle = Math.abs(o.x) <= K.bx && Math.abs(o.y) <= K.by ? "#9cff7a" : "#ff6a5a";
-    ctx.fillRect(x - 3, y, 7, 1); ctx.fillRect(x, y - 3, 1, 7);
+    // Fadenkreuz im feinen Raster: bewegt sich in echten Pixeln, Mitte frei, dunkle Kontur
+    const q = 1 / AUF, x = Math.round((K.x + o.x) * AUF) * q, y = Math.round((K.y + o.y) * AUF) * q;
+    const farbe = Math.abs(o.x) <= K.bx && Math.abs(o.y) <= K.by ? "#9cff7a" : "#ff6a5a";
+    for (const [f, d] of [[PAL.schwarz, q], [farbe, 0]]) {
+      ctx.fillStyle = f;
+      for (const sg of [-1, 1]) {
+        ctx.fillRect(sg < 0 ? x - 4 - d : x + 1.5 - d, y - d, 2.5 + 2 * d, q + 2 * d);
+        ctx.fillRect(x - d, sg < 0 ? y - 4 - d : y + 1.5 - d, q + 2 * d, 2.5 + 2 * d);
+      }
+    }
+    ctx.fillStyle = farbe; ctx.fillRect(x, y, q, q);
     text(hochkant ? "TIPPEN" : "KLICK / LEERTASTE", bx + bw / 2, by + bh - 12, PAL.weiss, "center");
   } else {
     const f = putt.flug, t = (uhr - f.t0) / 0.45;
@@ -1582,8 +1882,12 @@ function zeichnePuttAnsicht() {
       y = zy + (boden - zy) * t2;
       if (f.ergebnis === "hoch") { x = zx + t2 * 10; y = zy + (by + 98 - zy) * t2; }
     }
-    ctx.fillStyle = PAL.schwarz; ctx.fillRect(Math.round(x) - 4, Math.round(y) - 1, 9, 4);
-    ctx.fillStyle = TYPFARBE.Putter; ctx.fillRect(Math.round(x) - 3, Math.round(y), 7, 2);
+    // Putter von der Seite im feinen Raster: Kontur, Oberseite hell, Unterseite dunkel
+    const q = 1 / AUF, px = Math.round(x * AUF) * q, py = Math.round(y * AUF) * q;
+    ctx.fillStyle = PAL.schwarz; ctx.fillRect(px - 3.5 - q, py - q, 7 + 2 * q, 2 + 2 * q); ctx.fillRect(px - 2.5, py - 2 * q, 5, q);
+    ctx.fillStyle = TYPFARBE.Putter; ctx.fillRect(px - 3.5, py, 7, 2);
+    ctx.fillStyle = hellerDunkler(TYPFARBE.Putter, 0.35); ctx.fillRect(px - 2.5, py - q, 5, q + q);
+    ctx.fillStyle = hellerDunkler(TYPFARBE.Putter, -0.35); ctx.fillRect(px - 3.5, py + 2 - q, 7, q);
     if (t > 1 && t < 1.05 && !f.ton) {
       f.ton = true;
       if (f.ergebnis === "drin" || f.ergebnis === "spit") sfx.ketten(); else sfx.landung();
@@ -1607,12 +1911,14 @@ const zaehltFuerBestenliste = () => !nurEine && runde === kurs.bahnen && kurs.be
 
 // Feier-Bildschirm: Strahlen, funkelnde Sterne, großer Schriftzug und die vier Portraits mit Ergebnis
 const portraitBilder = new Map();
+// bei hoher Auflösung die feine Fassung (64 × 64), gezeichnet auf 32 × 32 Spielpixel
 function portraitBild(s) {
-  let b = portraitBilder.get(s.name);
+  const fein = AUF > 1, key = s.name + "|" + fein;
+  let b = portraitBilder.get(key);
   if (!b) {
-    b = document.createElement("canvas"); b.width = 32; b.height = 32;
-    zeichnePortrait(b.getContext("2d"), s);
-    portraitBilder.set(s.name, b);
+    b = document.createElement("canvas"); b.width = b.height = fein ? 64 : 32;
+    if (fein) zeichnePortraitFein(b.getContext("2d"), s); else zeichnePortrait(b.getContext("2d"), s);
+    portraitBilder.set(key, b);
   }
   return b;
 }
@@ -1652,9 +1958,13 @@ function zeichneSternFrame() {
     if (ti < 0) return;
     const x = 160 - 79 + i * 42, hops = Math.max(0, 1 - ti * 3) * 12 + Math.abs(Math.sin(t * 3 + i)) * 2;
     const y = 70 - hops;
-    ctx.fillStyle = PAL.schwarz; ctx.fillRect(x - 2, y - 2, 36, 36);
-    ctx.fillStyle = s.farbe; ctx.fillRect(x - 1, y - 1, 34, 34);
-    ctx.drawImage(portraitBild(s), x, y);
+    // Rahmen in der Spielerfarbe mit Licht oben links, Schatten unten rechts und dunkler Fuge zum Bild
+    const q = 1 / AUF;
+    rahmen(x - 2, y - 2, 36, 36, s.farbe);
+    ctx.fillStyle = hellerDunkler(s.farbe, 0.35); ctx.fillRect(x - 2 + 2 * q, y - 2 + q, 36 - 4 * q, q); ctx.fillRect(x - 2 + q, y - 2 + 2 * q, q, 36 - 4 * q);
+    ctx.fillStyle = hellerDunkler(s.farbe, -0.35); ctx.fillRect(x - 2 + 2 * q, y + 34 - 2 * q, 36 - 4 * q, q); ctx.fillRect(x + 34 - 2 * q, y - 2 + 2 * q, q, 36 - 4 * q);
+    ctx.fillStyle = "#0a0c10"; ctx.fillRect(x - q, y - q, 32 + 2 * q, 32 + 2 * q);
+    ctx.drawImage(portraitBild(s), x, y, 32, 32);
     text(s.name.toUpperCase(), x + 16, 110, s.farbe, "center");
     text(s.wuerfe === 1 ? "ACE" : namen[s.wuerfe - bahn.par] || "BIRDIE", x + 16, 120, "#ffd84a", "center");
   });
@@ -1664,7 +1974,7 @@ function zeichneSternFrame() {
 
 function zeichneEnde() {
   const ganz = ganzeRunde(), letzte = rundeVorbei();
-  ctx.fillStyle = "rgba(10,14,20,.88)"; ctx.fillRect(70, 26, 180, 128);
+  rahmen(70, 26, 180, 128, "rgba(10,14,20,.9)");
   text(letzte && ganz ? "RUNDE BEENDET" : (bahn.kurz || "BAHN " + bahn.nummer) + " GESPIELT", 160, 32, "#9be07a", "center", 8);
   if (ganz) { text("WÜRFE", 176, 44, "#d0d8e2", "center"); text("GESAMT", 240, 44, "#d0d8e2", "right"); }
   else text("WÜRFE", 236, 44, "#d0d8e2", "right");
@@ -1681,13 +1991,15 @@ function zeichneEnde() {
     const neu = spieler.filter(s => blErgebnis[s.name] && blErgebnis[s.name].neu).map(s => s.name.toUpperCase());
     if (neu.length) text("★ NEUE BESTLEISTUNG: " + neu.join(", "), 160, 116, "#ffe08a", "center");
   }
-  if (modus === "online" && !mpIchHost()) text("WARTEN AUF GASTGEBER …", 160, 128, PAL.weiss, "center");
+  if (abschlussMoeglich()) text(hochkant ? "TIPPEN: ERGEBNISSE" : "KLICK: ERGEBNISSE", 160, 128, PAL.weiss, "center");
+  else if (modus === "online" && !mpIchHost()) text("WARTEN AUF GASTGEBER …", 160, 128, PAL.weiss, "center");
   else text(letzte ? (hochkant ? "TIPPEN: NOCHMAL" : "R / KLICK: NOCHMAL") : (hochkant ? "TIPPEN: NÄCHSTE BAHN" : "KLICK: NÄCHSTE BAHN"), 160, 128, PAL.weiss, "center");
   text(hochkant ? "HAUPTMENÜ: UNTER MENÜ" : "M: HAUPTMENÜ", 160, 140, "#d0d8e2", "center");
 }
 
 // Klick am Bahnende: online entscheidet der Gastgeber für alle
 function weiterKlick() {
+  if (abschlussMoeglich()) { zeigeAbschluss(); return; }
   if (modus === "online") { if (!mpIchHost()) return; mpSende({ typ: "weiter", vorher: mpSchnappschuss() }); }
   weiter();
 }
@@ -1696,6 +2008,62 @@ function hauptmenueKlick() {
   zeigeMenue();
 }
 
+// ---------- Abschlussscreen nach einer ganzen Runde ----------
+// Platzierung, Scorekarte aller Bahnen und wie es weitergeht (neue Runde, anderer Kurs, Hauptmenü)
+const abschlussMoeglich = () => zustand === "ende" && modus !== "frei" && !nurEine && rundeVorbei() && !!spieler;
+function ergebnisArt(w, par) {
+  if (w === 1) return "ass";
+  const d = w - par;
+  return d <= -2 ? "eagle" : d === -1 ? "birdie" : d === 0 ? "par" : d === 1 ? "bogey" : "doppel";
+}
+function zeigeAbschluss() {
+  const bahnen = runde.map((b, i) => ({ b, i })).filter(({ i }) => spieler.some(s => s.karte[i] !== undefined));
+  const parSumme = bahnen.reduce((a, { b }) => a + b.par, 0);
+  const sortiert = [...spieler].sort((a, b) => gesamt(a).w - gesamt(b).w);
+  const datum = new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+  el("ab-kurs").textContent = kurs.name + (kurs.woche && kurs.titel ? " „" + kurs.titel + "“" : "") + " · " + datum + " · Par " + parSumme;
+  // Platzierung: gleiche Würfe = gleicher Platz
+  const zaehlt = zaehltFuerBestenliste();
+  el("ab-platz").innerHTML = sortiert.map((s, i) => {
+    const g = gesamt(s), platz = sortiert.findIndex(x => gesamt(x).w === g.w) + 1;
+    const n = { ass: 0, eagle: 0, birdie: 0, par: 0, bogey: 0, doppel: 0 };
+    bahnen.forEach(({ b, i: j }) => { if (s.karte[j] !== undefined) n[ergebnisArt(s.karte[j], b.par)]++; });
+    const stat = [[n.ass, "Ass", "Asse"], [n.eagle, "Eagle", "Eagles"], [n.birdie, "Birdie", "Birdies"], [n.par, "Par", "Pars"], [n.bogey, "Bogey", "Bogeys"], [n.doppel, "Doppelbogey+", "Doppelbogeys+"]]
+      .filter(([z]) => z).map(([z, e, m]) => z + " " + (z === 1 ? e : m)).join(" · ");
+    const best = zaehlt && blErgebnis[s.name] && blErgebnis[s.name].neu ? `<span class="best">★ Neue Bestleistung</span><br>` : "";
+    return `<div class="ab-platz ${platz === 1 ? "erster" : ""}" style="--farbe:${s.farbe}">
+      <span class="rang">${platz === 1 ? "🏆" : platz + "."}</span><canvas class="mini" width="32" height="32"></canvas>
+      <span class="aname">${s.name}${KI[s.steuerung] ? " (CPU)" : ""}<small>${best}${stat}</small></span>
+      <span class="agesamt">${g.w}<small>${plusMinus(g.d)}</small></span></div>`;
+  }).join("");
+  el("ab-platz").querySelectorAll("canvas.mini").forEach((c, i) => zeichnePortrait(c.getContext("2d"), sortiert[i]));
+  // Scorekarte: am Handy Bahnen untereinander, sonst nebeneinander
+  const zelle = (s, j, par) => s.karte[j] === undefined ? "–" : `<i class="w ${ergebnisArt(s.karte[j], par)}">${s.karte[j]}</i>`;
+  const nameZelle = s => `<span style="color:${s.farbe}">${s.name}</span>`;
+  const summe = s => `${gesamt(s).w} <small>(${plusMinus(gesamt(s).d)})</small>`;
+  let html;
+  if (window.innerWidth < 640) {
+    html = `<table><thead><tr><th>Bahn</th><th>Par</th>${sortiert.map(s => `<th>${nameZelle(s)}</th>`).join("")}</tr></thead><tbody>`
+      + bahnen.map(({ b, i }) => `<tr><td>${b.nummer || i + 1}</td><td class="par">${b.par}</td>${sortiert.map(s => `<td>${zelle(s, i, b.par)}</td>`).join("")}</tr>`).join("")
+      + `<tr class="fuss"><td>Ges.</td><td class="par">${parSumme}</td>${sortiert.map(s => `<td>${summe(s)}</td>`).join("")}</tr></tbody></table>`;
+  } else {
+    html = `<table><thead><tr><th class="pname">Bahn</th>${bahnen.map(({ b, i }) => `<th>${b.nummer || i + 1}</th>`).join("")}<th class="summe">Ges.</th></tr></thead><tbody>`
+      + `<tr class="par"><td class="pname">Par</td>${bahnen.map(({ b }) => `<td>${b.par}</td>`).join("")}<td class="summe">${parSumme}</td></tr>`
+      + sortiert.map(s => `<tr><td class="pname">${nameZelle(s)}</td>${bahnen.map(({ b, i }) => `<td>${zelle(s, i, b.par)}</td>`).join("")}<td class="summe">${summe(s)}</td></tr>`).join("")
+      + `</tbody></table>`;
+  }
+  el("ab-karte").innerHTML = html;
+  // online entscheidet der Gastgeber, wie es weitergeht
+  const gast = modus === "online" && !mpIchHost();
+  el("ab-neu").hidden = el("ab-kurswahl").hidden = gast;
+  el("ab-warte").hidden = !gast;
+  el("ab-kurswahl").querySelector("small").textContent = modus === "online" ? "Zurück in die Lobby" : "Gleiche Spieler";
+  el("ab-menue").innerHTML = modus === "online" ? "Hauptmenü<small>Online-Spiel verlassen</small>" : "Hauptmenü";
+  const neu = el("abschluss").hidden;
+  el("abschluss").hidden = false;
+  if (neu) el("abschluss").scrollTop = 0;
+}
+function versteckeAbschluss() { el("abschluss").hidden = true; }
 // Nach dem Ende einer Bahn: nächste Bahn – wer am besten gespielt hat, wirft zuerst
 function weiter() {
   if (rundeVorbei()) { neuesSpiel(); return; }
@@ -1811,9 +2179,8 @@ function schleife(jetzt) {
       text(String(d), q.x, q.y - 4, "#ffffff", "center");
     }
   }
-  zeichneKorbOben(korbWackelt);
   if (modus === "frei") zeichneMarken();
-  zeichneSpieler();
+  zeichneWeltObjekte(korbWackelt);
 
   if (zustand === "flug" || (zustand === "pause" && flug && flug.aktiv)) {
     const fp = flugPosition();
@@ -1856,15 +2223,8 @@ function schleife(jetzt) {
       flug.obGezeigt = true;
       zeigeOB(modus !== "frei");
     }
-    for (let k = Math.max(0, fp.i - 40); k < fp.i; k += 3) {
-      const q = e.pfad[k], c = zuSchirm(q);
-      ctx.fillStyle = "rgba(255,255,255,.3)";
-      ctx.fillRect(c.x, c.y - Math.round(q.z * S * 0.6), 1, 1);
-    }
-    zeichneScheibe(fp.p, !fp.fertig && fp.p.z > 0.05);
+    // Spur und Scheibe zeichnet zeichneWeltObjekte (einsortiert zwischen Gegenständen und Figuren)
     if (fp.fertig && zustand === "flug") flugEnde();
-  } else if (zustand === "pause" && flug && !puttModus) {
-    zeichneScheibe(flug.erg.pfad[flug.erg.pfad.length - 1]);
   }
   if (sprechblase) zeichneSprechblase();
   schirmTransform(); // Anzeigen ohne Kamera darüber
@@ -1888,8 +2248,7 @@ function schleife(jetzt) {
       // Scheibe mit Flugzahlen (Speed | Glide | Turn | Fade)
       const sc = scheibe(), nm = sc.name.toUpperCase();
       text(nm, 4, unten + 9, TYPFARBE[sc.typ]);
-      ctx.font = "8px Silkscreen";
-      if (hochkant) text(flugzahlen(sc), 4 + ctx.measureText(nm).width + 6, unten + 9, "#cdd6e2");
+      if (hochkant) text(flugzahlen(sc), 4 + textBreite(nm) + 6, unten + 9, "#cdd6e2");
       else text(flugzahlen(sc), 4, unten + 18, "#cdd6e2");
     }
     if (!puttModus || zustand === "flug") zeichneKraftbalken();
@@ -1905,7 +2264,10 @@ function schleife(jetzt) {
     if (t > banner.dauer) banner = null;
     else {
       const farbe = banner.blinkt && Math.floor(t * 7) % 2 ? PAL.weiss : banner.farbe;
-      text(banner.text, SW / 2, Math.round(SH * 0.39) - banner.gr / 2 + 8 - Math.min(6, t * 20), farbe, "center", banner.gr);
+      // lange Banner (z. B. „THROW-IN 34 M! BIRDIE!“) hochkant kleiner setzen, damit sie ins Bild passen
+      let gr = banner.gr;
+      while (gr > 8 && textBreite(banner.text, gr) > SW - 8) gr -= 2;
+      text(banner.text, SW / 2, Math.round(SH * 0.39) - gr / 2 + 8 - Math.min(6, t * 20), farbe, "center", gr);
     }
   }
   if (zustand === "ende") {
@@ -2112,6 +2474,11 @@ cv.addEventListener("pointerdown", e => {
 
 window.addEventListener("keydown", e => {
   const k = e.key;
+  if (!el("abschluss").hidden) {
+    if ((k === "r" || k === "R") && !el("ab-neu").hidden) el("ab-neu").click();
+    else if (k === "m" || k === "M") el("ab-menue").click();
+    return;
+  }
   if (!el("menue").hidden || !spieler) return;
   if (k === "m" || k === "M") { hauptmenueKlick(); return; }
   if (k === "0") { setzeZoom(null); setzeUmsehen(false); return; }
@@ -2339,30 +2706,27 @@ function zeigeMenue() {
   el("menue-dev").hidden = true;
   el("menue-einstellungen").hidden = true;
   el("menue-bestenliste").hidden = true;
+  versteckeAbschluss();
+  nachRundeKurswahl = false;
+  el("kurs-weiter").textContent = "Weiter";
   el("menue").hidden = false;
 }
 
 el("zu-doku").addEventListener("click", () => { el("menue-start").hidden = true; el("menue-doku").hidden = false; el("menue").scrollTop = 0; });
 document.querySelectorAll(".doku-zurueck").forEach(b => b.addEventListener("click", () => { el("menue-doku").hidden = true; el("menue-start").hidden = false; el("menue").scrollTop = 0; }));
 let gewaehlterModus = null;
+let nachRundeKurswahl = false; // „Anderer Kurs“ vom Abschlussscreen: gleiche Spieler, direkt los
 // ---------- Einstellungen (in diesem Browser gespeichert) ----------
 const JAHRESZEIT_NAME = { fruehling: "Frühling", sommer: "Sommer", herbst: "Herbst", winter: "Winter" };
 function zeigeEinstellungen() {
   document.querySelectorAll("[data-wurfartwahl]").forEach(b => b.classList.toggle("an", b.dataset.wurfartwahl === einstellungen.wurfart));
   document.querySelectorAll("[data-grafikwahl]").forEach(b => b.classList.toggle("an", b.dataset.grafikwahl === (einstellungen.grafik || "auto")));
-  document.querySelectorAll("[data-hdwahl]").forEach(b => b.classList.toggle("an", (b.dataset.hdwahl === "an") === (einstellungen.hd !== false)));
   el("grafik-auto-info").textContent = "Jahreszeit wie draußen – gerade " + JAHRESZEIT_NAME[jahreszeitNachDatum()];
 }
 document.querySelectorAll("[data-grafikwahl]").forEach(b => b.addEventListener("click", () => {
   einstellungen.grafik = b.dataset.grafikwahl;
   try { localStorage.setItem(EINSTELLUNGEN_SPEICHER, JSON.stringify(einstellungen)); } catch (e) { /* egal */ }
   for (const k in stufenBilder) delete stufenBilder[k]; // Bahnbild beim nächsten Zeichnen neu erzeugen
-  zeigeEinstellungen();
-}));
-document.querySelectorAll("[data-hdwahl]").forEach(b => b.addEventListener("click", () => {
-  einstellungen.hd = b.dataset.hdwahl === "an";
-  try { localStorage.setItem(EINSTELLUNGEN_SPEICHER, JSON.stringify(einstellungen)); } catch (e) { /* egal */ }
-  pruefeAusrichtung();
   zeigeEinstellungen();
 }));
 document.querySelectorAll("[data-wurfartwahl]").forEach(b => b.addEventListener("click", () => {
@@ -2409,7 +2773,7 @@ async function blSchickeOffene() {
       const r = await fetch(blAdresse(), { method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify(m) });
       if (r.status >= 500) break; // später nochmal
       const d = r.ok ? await r.json() : null;
-      if (d && blAktuell.has(m.runde)) blErgebnis[m.name] = d; // für die Anzeige am Rundenende
+      if (d && blAktuell.has(m.runde)) { blErgebnis[m.name] = d; if (!el("abschluss").hidden && abschlussMoeglich()) zeigeAbschluss(); } // für die Anzeige am Rundenende
       offen = blOffene().filter(x => !(x.runde === m.runde && x.name === m.name));
       blSpeichereOffene(offen);
     }
@@ -2507,7 +2871,7 @@ function zeigeKarte(i) {
   el("spielerkarte").style.setProperty("--farbe", s.farbe);
   el("spielerkarte").innerHTML = `
     <div class="kopfzeile"><span class="kname">${s.name.toUpperCase()}</span><span class="khand">${s.hand === "links" ? "Linkshand" : "Rechtshand"} · ${s.wurfart === "vorhand" ? "Vorhand" : "Rückhand"}</span></div>
-    <canvas class="portrait" width="32" height="32"></canvas>
+    <canvas class="portrait" width="64" height="64"></canvas>
     ${k.spitzname ? `<div class="kspitz">„${k.spitzname}“</div>` : ""}
     <div class="kwerte">
       <span>Lieblingsscheibe</span><span>${lieb.name} ★</span>
@@ -2517,7 +2881,7 @@ function zeigeKarte(i) {
     </div>
     ${(k.infos || []).length ? `<ul class="kinfo">${k.infos.map(t => `<li>${t}</li>`).join("")}</ul>` : `<p class="klein" style="margin:0 0 8px">Mehr Infos folgen.</p>`}
     <div class="kbag">${s.tasche.map(d => `<span style="border-color:${TYPFARBE[d.typ] || "#888"}">${d.name}</span>`).join("")}</div>`;
-  zeichnePortrait(el("spielerkarte").querySelector("canvas").getContext("2d"), s);
+  zeichnePortraitFein(el("spielerkarte").querySelector("canvas").getContext("2d"), s); // Spielerkarte: feine Fassung
   el("karte-los").hidden = gewaehlterModus === "bags";
   el("menue-wahl").hidden = true;
   el("menue-karte").hidden = false;
@@ -2628,19 +2992,47 @@ document.querySelectorAll("[data-modus]").forEach(b => b.addEventListener("click
   el("menue-wahl").hidden = false;
 }));
 el("kurs-weiter").addEventListener("click", () => {
+  if (nachRundeKurswahl) { starteModus(gewaehlterModus, teilnehmer[0]); return; }
   el("menue-kurs").hidden = true;
   if (gewaehlterModus === "vierer") { zeigeViererAufstellung(); return; }
   el("wahl-titel").textContent = "Wer spielt?";
   el("menue-wahl").hidden = false;
   el("menue").scrollTop = 0;
 });
-el("kurs-zurueck").addEventListener("click", () => { el("menue-kurs").hidden = true; el("menue-start").hidden = false; });
+el("kurs-zurueck").addEventListener("click", () => {
+  nachRundeKurswahl = false;
+  el("kurs-weiter").textContent = "Weiter";
+  el("menue-kurs").hidden = true; el("menue-start").hidden = false;
+});
 el("personen").addEventListener("click", e => {
   const b = e.target.closest("[data-person]");
   if (b) zeigeKarte(+b.dataset.person);
 });
 el("zurueck").addEventListener("click", () => { el(gewaehlterModus === "single" ? "menue-kurs" : "menue-start").hidden = false; el("menue-wahl").hidden = true; });
 el("zummenue").addEventListener("click", hauptmenueKlick);
+// Abschlussscreen: Knöpfe
+el("ab-neu").addEventListener("click", () => {
+  if (modus === "online") { if (!mpIchHost()) return; mpSende({ typ: "weiter", vorher: mpSchnappschuss() }); }
+  versteckeAbschluss();
+  neuesSpiel();
+});
+el("ab-kurswahl").addEventListener("click", () => {
+  if (modus === "online") { if (mpIchHost()) mpSende({ typ: "lobby" }); return; }
+  const m = modus;
+  zeigeMenue();
+  gewaehlterModus = m;
+  nachRundeKurswahl = true;
+  el("kurs-weiter").textContent = "Los geht's";
+  zeigeKurse();
+  el("menue-start").hidden = true;
+  el("menue-kurs").hidden = false;
+  el("menue").scrollTop = 0;
+});
+el("ab-menue").addEventListener("click", () => {
+  if (modus === "online" && online) { if (confirm("Online-Spiel verlassen?")) mpVerlassen(); return; }
+  zeigeMenue();
+});
+window.addEventListener("resize", () => { if (!el("abschluss").hidden && abschlussMoeglich()) zeigeAbschluss(); });
 // Vorschau der Branches dev und dev-graphic (www.discgolf-game.de/dev/ bzw. /dev-graphic/) deutlich kennzeichnen
 const VORSCHAU_PFAD = (location.pathname.match(/^\/(dev(?:-graphic)?)(\/|$)/) || [])[1];
 const IST_VORSCHAU = !!VORSCHAU_PFAD;
@@ -2748,6 +3140,6 @@ requestAnimationFrame(schleife);
 // Als App installierbar / offline startbar
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => { /* egal */ });
 </script>
-<script src="mehrspieler.js?v=0.8.0"></script>
+<script src="mehrspieler.js?v=0.9.0"></script>
 </body>
 </html>

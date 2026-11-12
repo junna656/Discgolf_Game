@@ -25,7 +25,9 @@
 "use strict";
 
 window.zeichneHintergrundDetail = function (z, optionen = {}) {
-  const opt = Object.assign({ deko: true, kiefern: true, jahreszeit: "sommer" }, optionen);
+  // kronen: false = 3/4-Ansicht im Spiel – Laub- und Nadelbäume nur als Schatten im Bahnbild, die Kronen
+  // zeichnet das Spiel als angehobene Sprites (baumSprite), damit Figuren dahinter verschwinden können
+  const opt = Object.assign({ deko: true, kiefern: true, jahreszeit: "sommer", kronen: true }, optionen);
   const BW = Math.round(W * z), BH = Math.round(H * z);
   const hg = document.createElement("canvas");
   hg.width = BW; hg.height = BH;
@@ -80,10 +82,9 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   // In der Wüste stehen statt Bäumen Kakteen und Felsen (art in den Bahndaten, sonst zufällig nach Lage)
   const baeume = [...bahn.baeume].sort((a, b) => a.r - b.r).map(b => {
     const h = hash(Math.round(b.x * 10), Math.round(b.y * 10), 6);
-    if (wueste) {
-      const art = b.art || (hash(Math.round(b.x * 10), Math.round(b.y * 10), 5) < 0.55 ? "kaktus" : "fels");
-      return { ...b, art, kiefer: false, kahl: false, farben: art === "fels" ? JZ.fels : JZ.laubbaum(h) };
-    }
+    // Gegenstände mit "art" (Kaktus, Fels, Arten neuer Themen): Form und Farben aus dem Baukasten (objektArt)
+    const art = b.art || (wueste ? (hash(Math.round(b.x * 10), Math.round(b.y * 10), 5) < 0.55 ? "kaktus" : "fels") : null);
+    if (art) { const def = objektArt({ art }, JZ, h); return { ...b, art, kiefer: false, kahl: false, form: def.form, farben: def.farben }; }
     const kiefer = opt.kiefern && hash(Math.round(b.x * 10), Math.round(b.y * 10), 5) < 0.3;
     return { ...b, kiefer, kahl: winter && !kiefer, farben: kiefer ? JZ.kiefer : JZ.laubbaum(h) };
   });
@@ -92,7 +93,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   const schattenMaske = maske(m => {
     for (const b of baeume) {
       if (b.kahl) continue;
-      if (b.art === "kaktus") {
+      if (b.form === "saeule") {
         // Kakteen sind hoch und schmal: langer Schatten nach rechts unten
         m.lineWidth = b.r * 1.3; m.lineCap = "round"; m.beginPath();
         m.moveTo(b.x + b.r * 0.2, b.y + b.r * 0.2); m.lineTo(b.x + b.r * 0.2 + (b.h || 4) * 0.55, b.y + b.r * 0.2 + (b.h || 4) * 0.7); m.stroke();
@@ -464,83 +465,300 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   }
 
   // ---------- Bäume ----------
-  // Laubbaum: Krone aus mehreren Blättergruppen, jede mit Kontur, Grund, Mitte, Licht
+  // Laubbaum: Krone aus mehreren Blättergruppen, jede mit Kontur, Grund, Mitte, Licht (zeichneBaumKrone)
   for (const b of baeume) {
-    const r = b.r * S, cx = b.x * S, cy = b.y * S, rr = zufall(Math.round(b.x * 100 + b.y * 7)), LB = b.farben, KI = b.farben;
-    if (b.art === "kaktus") zeichneKaktus(c, cx, cy, r, LB, rr, zr);
-    else if (b.art === "fels") zeichneFels(c, cx, cy, r, LB, rr, zr, S);
-    else if (b.kahl) {
-      // Winter: kahle Krone aus Ästen, Schatten als Äste auf dem Schnee, Schnee auf der Lichtseite
-      const aeste = [];
-      const ast = (x, y, w, len, tiefe) => {
-        const n = Math.max(2, Math.round(len));
-        for (let k = 0; k <= n; k++) aeste.push({ x: x + Math.cos(w) * len * k / n, y: y + Math.sin(w) * len * k / n, d: tiefe });
-        if (tiefe < 3) for (let j = 0; j < 2; j++) {
-          const t = 0.45 + rr() * 0.45;
-          ast(x + Math.cos(w) * len * t, y + Math.sin(w) * len * t, w + (j ? 1 : -1) * (0.4 + rr() * 0.5), len * (0.45 + rr() * 0.15), tiefe + 1);
-        }
-      };
-      const anz = 6 + Math.floor(rr() * 3);
-      for (let i = 0; i < anz; i++) ast(cx, cy, (i / anz) * Math.PI * 2 + rr() * 0.5, r * (0.5 + rr() * 0.15), 0);
-      const dick = q => q.d === 0 ? Math.max(1, zr + 1) : q.d === 1 ? zr : 1;
-      c.fillStyle = "rgba(60,80,120,.35)";
-      for (const q of aeste) c.fillRect(Math.round(q.x + r * 0.3), Math.round(q.y + r * 0.4), dick(q), dick(q));
-      for (const q of aeste) { c.fillStyle = q.d < 2 ? "#3a2e24" : "#5a4a3c"; c.fillRect(Math.round(q.x), Math.round(q.y), dick(q), dick(q)); }
-      c.fillStyle = "#f4f8ff";
-      for (const q of aeste) if (q.d < 3 && rr() < 0.25) c.fillRect(Math.round(q.x), Math.round(q.y) - 1, dick(q), 1);
-      pixelKreis(c, cx, cy, Math.max(1, zr + 1), "#2a2018");
-    } else if (b.kiefer) {
-      // Kiefer: Nadelbüschel strahlenförmig um die Mitte, bläulicheres Grün
-      const buschel = [];
-      for (let ring = 0; ring < 3; ring++) {
-        const anz = [1, 6, 10][ring], abst = [0, 0.42, 0.72][ring];
-        for (let i = 0; i < anz; i++) {
-          const w = (i / anz) * Math.PI * 2 + rr() * 0.5 + ring;
-          buschel.push({ x: cx + Math.cos(w) * r * abst, y: cy + Math.sin(w) * r * abst, r: r * (ring ? 0.3 + rr() * 0.08 : 0.42) });
-        }
-      }
-      for (const q of buschel) pixelKreis(c, q.x, q.y, q.r + zr, KI[0]);
-      for (const q of buschel) pixelKreis(c, q.x, q.y, q.r, KI[1]);
-      for (const q of buschel) pixelKreis(c, q.x - q.r * 0.2, q.y - q.r * 0.25, q.r * 0.65, KI[2]);
-      for (const q of buschel) pixelKreis(c, q.x - q.r * 0.35, q.y - q.r * 0.4, q.r * 0.3, KI[3]);
-      if (winter) for (const q of buschel) { pixelKreis(c, q.x - q.r * 0.3, q.y - q.r * 0.35, q.r * 0.42, "#c4d0e2"); pixelKreis(c, q.x - q.r * 0.4, q.y - q.r * 0.45, q.r * 0.25, "#f4f8ff"); }
-      // Nadeln: kurze Striche nach außen
-      for (let i = 0; i < r * 5; i++) {
-        const w = rr() * Math.PI * 2, dd = rr() * r * 0.95, lx = Math.cos(w), ly = Math.sin(w);
-        c.fillStyle = rr() < 0.4 ? (winter ? "#f4f8ff" : KI[4]) : KI[0];
-        for (let k = 0; k < Math.max(1, zr * 1.5); k++) c.fillRect(Math.round(cx + lx * (dd + k)), Math.round(cy + ly * (dd + k)), 1, 1);
-      }
-    } else {
-      const gruppen = [{ x: cx, y: cy, r: r * 0.62 }];
-      const anz = 6 + Math.floor(rr() * 3);
-      for (let i = 0; i < anz; i++) {
-        const w = (i / anz) * Math.PI * 2 + rr() * 0.6, rg = r * (0.32 + rr() * 0.12);
-        gruppen.push({ x: cx + Math.cos(w) * (r - rg) * 0.95, y: cy + Math.sin(w) * (r - rg) * 0.95, r: rg });
-      }
-      // hinten liegende (rechts unten) zuerst, vordere (links oben, im Licht) zuletzt
-      gruppen.sort((p, q) => (q.x + q.y) - (p.x + p.y));
-      for (const q of gruppen) pixelKreis(c, q.x, q.y, q.r + zr, LB[0]);
-      for (const q of gruppen) {
-        pixelKreis(c, q.x, q.y, q.r, LB[1]);
-        pixelKreis(c, q.x - q.r * 0.18, q.y - q.r * 0.22, q.r * 0.72, LB[2]);
-        pixelKreis(c, q.x - q.r * 0.36, q.y - q.r * 0.4, q.r * 0.36, LB[3]);
-        if (q.r * 0.14 >= 1) pixelKreis(c, q.x - q.r * 0.45, q.y - q.r * 0.5, q.r * 0.14, LB[4]);
-      }
-      // Blätter-Dither an den Übergängen, bei Blütenbäumen helle Blüten
-      for (let i = 0; i < r * (LB.bluete ? 9 : 4); i++) {
-        const w = rr() * Math.PI * 2, dd = Math.sqrt(rr()) * r * 0.92;
-        c.fillStyle = LB.bluete ? (rr() < 0.5 ? LB[4] : "#ffffff") : rr() < 0.55 ? LB[1] : LB[3];
-        c.fillRect(Math.round(cx + Math.cos(w) * dd), Math.round(cy + Math.sin(w) * dd), 1, 1);
-      }
+    const r = b.r * S, cx = b.x * S, cy = b.y * S, rr = zufall(Math.round(b.x * 100 + b.y * 7)), LB = b.farben;
+    if (b.art && !opt.kronen) continue; // 3/4-Ansicht: Gegenstand kommt als Sprite (objektSprite), hier nur Schatten
+    if (b.art) { // Draufsicht (Vorschau-Werkzeug): Säule wie Kaktus, Krone/Kegel/Kugel als Krone, sonst Fels
+      if (b.form === "saeule") zeichneKaktus(c, cx, cy, r, LB, rr, zr);
+      else if (b.form === "kugel" || b.form === "krone" || b.form === "kegel") zeichneBaumKrone(c, b, cx, cy, r, zr, winter);
+      else zeichneFels(c, cx, cy, r, LB, rr, zr, S);
+    }
+    else if (opt.kronen) zeichneBaumKrone(c, b, cx, cy, r, zr, winter);
+    else {
+      // 3/4-Ansicht: nur der Stammfuß auf dem Boden, die Krone kommt als Sprite darüber
+      pixelKreis(c, cx + zr, cy + zr, Math.max(1, Math.round(r * 0.12)), "rgba(0,20,0,.35)");
     }
   }
   zeichneMando(c, z);
   // für das fallende Laub (zeichneLaubfall): Laubbäume mit ihren Farben
   // für Blätter, die beim Treffer aus der Krone fliegen (blattFarbenAn): jeder Baum mit seinen Farben
-  hg.baumFarben = baeume.map(({ x, y, r, farben, kiefer, kahl, art }) => ({ x, y, r, farben, kiefer, kahl, art }));
-  if (JZ.laubfall) { hg.laubBaeume = baeume.filter(b => !b.kiefer && !b.kahl).map(({ x, y, r, farben }) => ({ x, y, r, farben })); hg.laubBahn = bahn; }
+  hg.baumFarben = baeume.map(({ x, y, r, h, farben, kiefer, kahl, art, form }) => ({ x, y, r, h, farben, kiefer, kahl, art, form }));
+  hg.kronenAlsSprite = !opt.kronen; hg.winter = winter; hg.S = S; hg.zr = zr;
+  if (JZ.laubfall) { hg.laubBaeume = baeume.filter(b => !b.kiefer && !b.kahl && !b.art).map(({ x, y, r, farben }) => ({ x, y, r, farben })); hg.laubBahn = bahn; }
   return hg;
 };
+
+// Krone eines Baums (Laub, Kiefer oder kahl im Winter) mit Mitte cx, cy und Radius r in Bildpunkten.
+// zr: Pixelgröße der Details; gleiche Zufallsfolge je Baum, damit er überall gleich aussieht
+function zeichneBaumKrone(c, b, cx, cy, r, zr, winter, imSprite = false) {
+  const rr = zufall(Math.round(b.x * 100 + b.y * 7)), LB = b.farben, KI = b.farben;
+  if (b.kahl) {
+    // Winter: kahle Krone aus Ästen, Schatten als Äste auf dem Schnee, Schnee auf der Lichtseite
+    const aeste = [];
+    const ast = (x, y, w, len, tiefe) => {
+      const n = Math.max(2, Math.round(len));
+      for (let k = 0; k <= n; k++) aeste.push({ x: x + Math.cos(w) * len * k / n, y: y + Math.sin(w) * len * k / n, d: tiefe });
+      if (tiefe < 3) for (let j = 0; j < 2; j++) {
+        const t = 0.45 + rr() * 0.45;
+        ast(x + Math.cos(w) * len * t, y + Math.sin(w) * len * t, w + (j ? 1 : -1) * (0.4 + rr() * 0.5), len * (0.45 + rr() * 0.15), tiefe + 1);
+      }
+    };
+    const anz = 6 + Math.floor(rr() * 3);
+    for (let i = 0; i < anz; i++) ast(cx, cy, (i / anz) * Math.PI * 2 + rr() * 0.5, r * (0.5 + rr() * 0.15), 0);
+    const dick = q => q.d === 0 ? Math.max(1, zr + 1) : q.d === 1 ? zr : 1;
+    if (!imSprite) { // Astschatten auf dem Schnee (nur im Bahnbild, nicht in der angehobenen Krone)
+      c.fillStyle = "rgba(60,80,120,.35)";
+      for (const q of aeste) c.fillRect(Math.round(q.x + r * 0.3), Math.round(q.y + r * 0.4), dick(q), dick(q));
+    }
+    for (const q of aeste) { c.fillStyle = q.d < 2 ? "#3a2e24" : "#5a4a3c"; c.fillRect(Math.round(q.x), Math.round(q.y), dick(q), dick(q)); }
+    c.fillStyle = "#f4f8ff";
+    for (const q of aeste) if (q.d < 3 && rr() < 0.25) c.fillRect(Math.round(q.x), Math.round(q.y) - 1, dick(q), 1);
+    pixelKreis(c, cx, cy, Math.max(1, zr + 1), "#2a2018");
+  } else if (b.kiefer) {
+    // Kiefer: Nadelbüschel strahlenförmig um die Mitte, bläulicheres Grün
+    const buschel = [];
+    for (let ring = 0; ring < 3; ring++) {
+      const anz = [1, 6, 10][ring], abst = [0, 0.42, 0.72][ring];
+      for (let i = 0; i < anz; i++) {
+        const w = (i / anz) * Math.PI * 2 + rr() * 0.5 + ring;
+        buschel.push({ x: cx + Math.cos(w) * r * abst, y: cy + Math.sin(w) * r * abst, r: r * (ring ? 0.3 + rr() * 0.08 : 0.42) });
+      }
+    }
+    for (const q of buschel) pixelKreis(c, q.x, q.y, q.r + zr, KI[0]);
+    for (const q of buschel) pixelKreis(c, q.x, q.y, q.r, KI[1]);
+    for (const q of buschel) pixelKreis(c, q.x - q.r * 0.2, q.y - q.r * 0.25, q.r * 0.65, KI[2]);
+    for (const q of buschel) pixelKreis(c, q.x - q.r * 0.35, q.y - q.r * 0.4, q.r * 0.3, KI[3]);
+    if (winter) for (const q of buschel) { pixelKreis(c, q.x - q.r * 0.3, q.y - q.r * 0.35, q.r * 0.42, "#c4d0e2"); pixelKreis(c, q.x - q.r * 0.4, q.y - q.r * 0.45, q.r * 0.25, "#f4f8ff"); }
+    // Nadeln: kurze Striche nach außen
+    for (let i = 0; i < r * 5; i++) {
+      const w = rr() * Math.PI * 2, dd = rr() * r * 0.95, lx = Math.cos(w), ly = Math.sin(w);
+      c.fillStyle = rr() < 0.4 ? (winter ? "#f4f8ff" : KI[4]) : KI[0];
+      for (let k = 0; k < Math.max(1, zr * 1.5); k++) c.fillRect(Math.round(cx + lx * (dd + k)), Math.round(cy + ly * (dd + k)), 1, 1);
+    }
+  } else {
+    const gruppen = [{ x: cx, y: cy, r: r * 0.62 }];
+    const anz = 6 + Math.floor(rr() * 3);
+    for (let i = 0; i < anz; i++) {
+      const w = (i / anz) * Math.PI * 2 + rr() * 0.6, rg = r * (0.32 + rr() * 0.12);
+      gruppen.push({ x: cx + Math.cos(w) * (r - rg) * 0.95, y: cy + Math.sin(w) * (r - rg) * 0.95, r: rg });
+    }
+    // hinten liegende (rechts unten) zuerst, vordere (links oben, im Licht) zuletzt
+    gruppen.sort((p, q) => (q.x + q.y) - (p.x + p.y));
+    for (const q of gruppen) pixelKreis(c, q.x, q.y, q.r + zr, LB[0]);
+    for (const q of gruppen) {
+      pixelKreis(c, q.x, q.y, q.r, LB[1]);
+      pixelKreis(c, q.x - q.r * 0.18, q.y - q.r * 0.22, q.r * 0.72, LB[2]);
+      pixelKreis(c, q.x - q.r * 0.36, q.y - q.r * 0.4, q.r * 0.36, LB[3]);
+      if (q.r * 0.14 >= 1) pixelKreis(c, q.x - q.r * 0.45, q.y - q.r * 0.5, q.r * 0.14, LB[4]);
+    }
+    // Blätter-Dither an den Übergängen, bei Blütenbäumen helle Blüten
+    for (let i = 0; i < r * (LB.bluete ? 9 : 4); i++) {
+      const w = rr() * Math.PI * 2, dd = Math.sqrt(rr()) * r * 0.92;
+      c.fillStyle = LB.bluete ? (rr() < 0.5 ? LB[4] : "#ffffff") : rr() < 0.55 ? LB[1] : LB[3];
+      c.fillRect(Math.round(cx + Math.cos(w) * dd), Math.round(cy + Math.sin(w) * dd), 1, 1);
+    }
+  }
+}
+
+// ---------- 3/4-Ansicht: Baum als Sprite ----------
+// Stamm vom Boden bis zur Krone, Krone angehoben um etwa Baumhöhe × 0,6 – derselbe Faktor, mit dem die
+// Scheibe nach ihrer Flughöhe angehoben wird; unten an der Krone eine Schattenseite für Volumen.
+// b: Baum aus bild.baumFarben; S: Bildpunkte je Meter; Rückgabe: Bild und Fußpunkt (ax, ay) darin
+window.baumAnhebung = b => Math.max(b.r * 1.1, (b.h || Math.min(12, Math.max(3, 1.5 + b.r * 1.8))) * 0.6 - b.r * 0.15);
+// ============================================================
+//  GEGENSTÄNDE IN DER 3/4-ANSICHT (Baukasten)
+// ============================================================
+//  Alles, was auf der Bahn steht (Bäume, Kakteen, Felsen, künftige Gegenstände neuer Themen), ist in den
+//  Bahndaten ein Eintrag in "baeume" mit x, y, r (Radius in m), h (Höhe in m) und optional "art".
+//  - OBJEKT_FORMEN: wie etwas gezeichnet wird (Code). Jede Form malt ein Sprite vom Fußpunkt nach oben.
+//  - OBJEKT_ARTEN: welche Art welche Form und Farben hat (Daten). Eingebaut: kaktus, fels, busch.
+//    Ein Thema kann eigene Arten mitbringen: optikDaten.objekte = { "<art>": { form, farben } } –
+//    farben: Liste dunkel → hell (mind. 5) oder Name einer Palette der Optik ("fels", "busch", "laubbaum" …).
+//    So kommen neue Gegenstände ohne Release live; nur eine neue Form braucht Code (und ein Release).
+//  - unbekannte Art: Form "kugel" in Felsfarben, damit nie etwas unsichtbar ist.
+//  Höhen werden mit 0,6 projiziert – wie die Flughöhe der Scheibe.
+window.OBJEKT_FORMEN = ["krone", "kegel", "saeule", "brocken", "kugel"];
+window.OBJEKT_ARTEN = {
+  kaktus: { form: "saeule", farben: "laubbaum" },
+  fels: { form: "brocken", farben: "fels" },
+  busch: { form: "kugel", farben: "laubbaum" },
+};
+// Art eines Gegenstands auflösen: { form, farben (Liste) }; h01: fester Zufallswert je Ort (für Farbvarianten)
+window.objektArt = function (o, JZ, h01 = 0.5) {
+  const def = (o.art && ((JZ.objekte && JZ.objekte[o.art]) || OBJEKT_ARTEN[o.art])) || (o.art ? { form: "kugel", farben: "fels" } : null);
+  if (!def) return null;
+  let f = def.farben;
+  if (typeof f === "string") f = typeof JZ[f] === "function" ? JZ[f](h01) : JZ[f];
+  if (!Array.isArray(f) || f.length < 5) f = (JZ.fels || ["#4a4440", "#6a625a", "#8a8278", "#aaa296", "#cac2b4"]);
+  return { form: OBJEKT_FORMEN.includes(def.form) ? def.form : "kugel", farben: f };
+};
+// projizierte Höhe in m (wie weit das Sprite über den Fußpunkt reicht)
+const objektHoehe = o => o.h || Math.min(12, Math.max(3, 1.5 + o.r * 1.8));
+
+// Polygon pixelgenau füllen (ohne Kantenglättung): Punkte [[x, y], …] in Bildpunkten
+function fuellePolygon(c, pk, farbe) {
+  const ys = pk.map(p => p[1]), y0 = Math.floor(Math.min(...ys)), y1 = Math.ceil(Math.max(...ys));
+  c.fillStyle = farbe;
+  for (let y = y0; y <= y1; y++) {
+    const yy = y + 0.5, xs = [];
+    for (let i = 0; i < pk.length; i++) {
+      const [ax, ay] = pk[i], [bx, by] = pk[(i + 1) % pk.length];
+      if ((ay <= yy && by > yy) || (by <= yy && ay > yy)) xs.push(ax + (yy - ay) / (by - ay) * (bx - ax));
+    }
+    xs.sort((a, b) => a - b);
+    for (let k = 0; k + 1 < xs.length; k += 2) c.fillRect(Math.round(xs[k]), y, Math.max(0, Math.round(xs[k + 1]) - Math.round(xs[k])), 1);
+  }
+}
+// gedithertes Abdunkeln der unteren Partie eines schon gemalten Bereichs (Volumen, Licht von oben)
+function schattenUnten(c, x0, x1, yVon, yBis, staerke = 0.9) {
+  const BAY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+  c.globalCompositeOperation = "source-atop"; c.fillStyle = "rgba(0,16,8,.32)";
+  for (let y = Math.round(yVon); y <= yBis; y++) {
+    const t = (y - yVon) / Math.max(1, yBis - yVon);
+    for (let x = Math.round(x0); x <= x1; x++) if ((BAY[(y & 3) * 4 + (x & 3)] + 0.5) / 16 < t * staerke) c.fillRect(x, y, 1, 1);
+  }
+  c.globalCompositeOperation = "source-over";
+}
+function zeichneStamm(c, ax, ay, cy, sb, kahl, rr, zr) {
+  const RINDE = kahl ? ["#2a2018", "#3a2e24", "#5a4a3c"] : ["#2e2016", "#4a3624", "#6a5038"];
+  for (let y = cy; y <= ay; y++) {
+    const t = (y - cy) / Math.max(1, ay - cy), w = Math.round(sb * (0.8 + 0.35 * t * t));
+    const x0 = ax - Math.floor(w / 2);
+    c.fillStyle = RINDE[1]; c.fillRect(x0, y, w, 1);
+    c.fillStyle = RINDE[2]; c.fillRect(x0, y, Math.max(1, Math.round(w * 0.25)), 1);
+    c.fillStyle = RINDE[0]; c.fillRect(x0 + w - Math.max(1, Math.round(w * 0.3)), y, Math.max(1, Math.round(w * 0.3)), 1);
+    if (rr() < 0.25) { c.fillStyle = RINDE[0]; c.fillRect(x0 + 1 + Math.floor(rr() * Math.max(1, w - 2)), y, 1, 1 + Math.floor(rr() * 2)); }
+  }
+  c.fillStyle = RINDE[0]; c.fillRect(ax - Math.round(sb * 0.8), ay, Math.round(sb * 1.6), Math.max(1, Math.round(zr / 2)));
+}
+
+// Sprite eines Gegenstands. o: Eintrag aus bild.baumFarben (x, y, r, h, form, farben, kahl …);
+// S: Bildpunkte je Meter; Rückgabe: Bild und Fußpunkt (ax, ay) darin
+window.objektSprite = function (o, S, zr, winter) {
+  const form = o.form || (o.kiefer ? "kegel" : "krone"), F = o.farben, r = o.r * S, rand = Math.ceil(zr * 2 + 2);
+  const hp = form === "krone" || form === "kegel" ? baumAnhebung(o) * S + r * 1.3 : objektHoehe(o) * 0.6 * S + r * 0.9;
+  const BWs = Math.ceil(2 * r * 1.6 + 2 * rand), BHs = Math.ceil(hp + r + 2 * rand);
+  const cv = document.createElement("canvas"); cv.width = BWs; cv.height = BHs;
+  const c = cv.getContext("2d"), rr = zufall(Math.round(o.x * 31 + o.y * 17));
+  const ax = Math.round(BWs / 2), ay = BHs - rand - Math.ceil(r * 0.5);
+  // kroneY: Zeile, ab der nach oben die Krone im Wind schwingt (null = steht fest, z. B. Fels, Kaktus)
+  const kroneY = ZEICHNER[form](c, o, { ax, ay, r, S, zr, F, rr, winter }) ?? null;
+  return { c: cv, ax, ay, kroneY };
+};
+window.baumSprite = window.objektSprite; // früherer Name
+
+// Sprite zeichnen; die Krone wiegt sich im Wind: oberhalb von kroneY in Streifen versetzt, oben am meisten.
+// dx: Auslenkung ganz oben in Bildpunkten (Vorzeichen = Richtung)
+window.zeichneObjektSprite = function (c, sp, x, y, dx) {
+  const X = Math.round(x - sp.ax), Y = Math.round(y - sp.ay);
+  if (!sp.kroneY || Math.abs(dx) < 0.5) { c.drawImage(sp.c, X, Y); return; }
+  const H = sp.kroneY, streifen = Math.max(1, Math.ceil(Math.abs(dx) * 1.5));
+  c.drawImage(sp.c, 0, H, sp.c.width, sp.c.height - H, X, Y + H, sp.c.width, sp.c.height - H); // Stamm fest
+  for (let k = 0; k < streifen; k++) {
+    const y0 = Math.round(H * k / streifen), y1 = Math.round(H * (k + 1) / streifen), anteil = 1 - (k + 0.5) / streifen;
+    c.drawImage(sp.c, 0, y0, sp.c.width, y1 - y0, X + Math.round(dx * anteil), Y + y0, sp.c.width, y1 - y0);
+  }
+};
+
+const ZEICHNER = {
+  // Laubbaum (oder kahl im Winter): Stamm, angehobene Krone, Schattenseite unten
+  krone(c, o, { ax, ay, r, S, zr, rr, winter }) {
+    const cy = Math.round(ay - baumAnhebung(o) * S);
+    zeichneStamm(c, ax, ay, cy, Math.max(2, Math.round(S * (0.32 + o.r * 0.05))), o.kahl, rr, zr);
+    zeichneBaumKrone(c, o, ax, cy, r, zr, winter, true);
+    if (!o.kahl) schattenUnten(c, ax - r - zr, ax + r + zr, cy + r * 0.15, cy + r + zr);
+    return Math.round(cy + r * 0.7);
+  },
+  // Nadelbaum: Stamm und Kegel aus Etagen
+  kegel(c, o, { ax, ay, r, S, zr, rr, winter }) {
+    const cy = Math.round(ay - baumAnhebung(o) * S);
+    zeichneStamm(c, ax, ay, cy, Math.max(2, Math.round(S * (0.32 + o.r * 0.05))), false, rr, zr);
+    zeichneKiefernKegel(c, o, ax, cy, r, zr, winter, rr);
+    return Math.round(cy + r * 0.85);
+  },
+  // Säule mit Armen (Saguaro): Rippen senkrecht, Licht links, runde Kuppe, Stacheln, manchmal Blüte
+  saeule(c, o, { ax, ay, r, S, zr, F, rr }) {
+    const hp = objektHoehe(o) * 0.6 * S, b = Math.max(3, Math.round(r * 1.1));
+    const saeule = (x0, yOben, yUnten, w) => {
+      for (let y = Math.round(yOben); y <= yUnten; y++) {
+        const kuppe = y - yOben < w / 2 ? Math.sqrt(Math.max(0, (w / 2) ** 2 - (w / 2 - (y - yOben)) ** 2)) : w / 2;
+        for (let x = Math.round(x0 + w / 2 - kuppe); x < x0 + w / 2 + kuppe; x++) {
+          const u = (x - x0) / w, rip = Math.round((x - x0) / Math.max(2, zr + 1)) % 2;
+          c.fillStyle = u < 0.18 ? F[3] : u > 0.82 ? F[0] : rip ? F[2] : F[1];
+          c.fillRect(x, y, 1, 1);
+        }
+      }
+    };
+    const x0 = ax - b / 2, oben = ay - hp;
+    // Arme: waagrecht aus dem Stamm, dann nach oben; hinterer Arm zuerst
+    const arme = 1 + Math.floor(rr() * 2.2);
+    for (let i = 0; i < arme; i++) {
+      const seite = i % 2 ? 1 : -1, hy = ay - hp * (0.3 + rr() * 0.2), aw = Math.max(2, Math.round(b * 0.6)), lang = Math.max(1, Math.round(b * (0.25 + rr() * 0.3)));
+      const ox = seite < 0 ? x0 - lang - aw : x0 + b + lang;
+      // kurzes waagrechtes Stück vom Stamm zum Arm, dann der Arm senkrecht nach oben
+      const vx = seite < 0 ? ox + aw / 2 : x0 + b / 2, bx = seite < 0 ? x0 + b / 2 : ox + aw / 2;
+      for (let y = Math.round(hy - aw * 0.4); y < hy + aw * 0.4; y++) { c.fillStyle = y < hy - aw * 0.1 ? F[2] : F[1]; c.fillRect(Math.round(vx), y, Math.round(bx - vx), 1); }
+      saeule(ox, hy - hp * (0.3 + rr() * 0.15), hy + aw * 0.4, aw);
+    }
+    saeule(x0, oben, ay, b);
+    // Stacheln und Blüte
+    for (let i = 0; i < hp * 0.6; i++) { c.fillStyle = F[4]; c.fillRect(Math.round(x0 + rr() * b), Math.round(oben + b / 2 + rr() * (hp - b / 2)), 1, 1); }
+    if (rr() < 0.35) { pixelKreis(c, ax, oben + 1, Math.max(1, b * 0.2), "#e8507a"); c.fillStyle = "#ffe066"; c.fillRect(ax, Math.round(oben + 1), 1, 1); }
+  },
+  // Brocken (Fels): Grundriss unregelmäßig, Seitenfläche bis zur projizierten Höhe, Oberseite hell mit Rissen
+  brocken(c, o, { ax, ay, r, S, zr, F, rr, winter }) {
+    const hp = objektHoehe(o) * 0.6 * S, n = 12, pk = [];
+    for (let i = 0; i < n; i++) { const w = i / n * Math.PI * 2 + rr() * 0.2, d = r * (0.86 + rr() * 0.14); pk.push([ax + Math.cos(w) * d, ay + Math.sin(w) * d * 0.75]); }
+    const oben = pk.map(([x, y]) => [ax + (x - ax) * 0.86, y - hp]);
+    // Seite: Grundriss in Schritten nach oben ziehen (unten dunkel, oben mittel)
+    // erst oben eingezogen (runde Kante statt Spitze)
+    for (let k = 0; k <= hp; k += 1) { const t = Math.pow(k / Math.max(1, hp), 3); fuellePolygon(c, pk.map(([x, y], i) => [x + (oben[i][0] - x) * t, y - k]), k < hp * 0.35 ? F[0] : F[1]); }
+    fuellePolygon(c, oben, F[2]);
+    fuellePolygon(c, oben.map(([x, y]) => [ax - r * 0.15 + (x - ax) * 0.6, ay - hp - r * 0.08 + (y - (ay - hp)) * 0.6]), F[3]); // Glanz oben links
+    // Risse und Kanten
+    for (let i = 0; i < 2 + Math.floor(rr() * 2); i++) {
+      let x = ax + (rr() - 0.5) * r, y = ay - hp + (rr() - 0.5) * r * 0.4; c.fillStyle = F[0];
+      for (let k = 0; k < r * 0.6; k++) { c.fillRect(Math.round(x), Math.round(y), 1, 1); x += rr() - 0.3; y += rr() * 0.8; }
+    }
+    if (winter) fuellePolygon(c, oben.map(([x, y]) => [ax + (x - ax) * 0.75, y - 1]).filter((p, i) => i < 6), "#f4f8ff");
+  },
+  // Kugel (Busch, Strauch oder Unbekanntes): Krone direkt auf dem Boden, unten Schatten
+  kugel(c, o, { ax, ay, r, S, zr, F, winter }) {
+    const hp = objektHoehe(o) * 0.6 * S, rk = Math.min(r, Math.max(r * 0.6, hp / 2)), cy = Math.round(ay - Math.max(rk * 0.8, hp - rk));
+    zeichneBaumKrone(c, { ...o, kahl: false, kiefer: false, farben: F }, ax, cy, rk, zr, winter, true);
+    schattenUnten(c, ax - rk - zr, ax + rk + zr, cy, cy + rk + zr);
+    return Math.round(cy);
+  },
+};
+
+// Kiefer in der 3/4-Ansicht: Kegel aus vier Etagen, jede unten breiter, Licht links, Schatten rechts,
+// Nadelspitzen am unteren Rand; im Winter Schnee auf den Etagen
+function zeichneKiefernKegel(c, b, cx, cy, r, zr, winter, rr) {
+  const KI = b.farben, oben = cy - r * 1.25, unten = cy + r * 0.85, n = 4, H = unten - oben;
+  for (let e = 0; e < n; e++) {
+    const y0 = oben + H * (e / n) * 0.85, y1 = oben + H * ((e + 1) / n), wUnten = r * (0.45 + 0.55 * (e + 1) / n);
+    for (let y = Math.round(y0); y <= y1; y++) {
+      const t = (y - y0) / Math.max(1, y1 - y0), w = Math.max(1, wUnten * (0.25 + 0.75 * t));
+      for (let x = Math.round(cx - w); x <= cx + w; x++) {
+        const u = (x - (cx - w)) / (2 * w); // 0 links … 1 rechts
+        let f = u < 0.22 ? KI[3] : u < 0.5 ? KI[2] : u < 0.8 ? KI[1] : KI[0];
+        if (y > y1 - zr) f = KI[0];
+        c.fillStyle = f; c.fillRect(x, y, 1, 1);
+      }
+      if (winter && t < 0.35) { c.fillStyle = t < 0.15 ? "#f4f8ff" : "#c4d0e2"; c.fillRect(Math.round(cx - w), y, Math.round(w * 1.1), 1); }
+    }
+    // Nadelspitzen und Kontur unten
+    for (let x = Math.round(cx - wUnten); x <= cx + wUnten; x += Math.max(2, zr + 1)) {
+      c.fillStyle = KI[0]; c.fillRect(x, Math.round(y1), Math.max(1, zr), Math.max(1, zr) + (rr() < 0.5 ? 1 : 0));
+    }
+  }
+  // Nadel-Glanz
+  for (let i = 0; i < r * 3; i++) {
+    const y = oben + rr() * H, rel = (y - oben) / H, w = r * rel * 0.8, x = cx - w + rr() * w * 1.2;
+    c.fillStyle = winter && rr() < 0.4 ? "#f4f8ff" : KI[4]; c.fillRect(Math.round(x), Math.round(y), 1, 1);
+  }
+}
 
 // ---------- Wüste: Kaktus und Fels von oben (Licht von links oben) ----------
 // Kaktus (Saguaro von oben): runder Stamm mit Rippen und Stacheln, dazu zwei bis drei Arme
@@ -604,7 +822,7 @@ window.zeichneLaubfall = function (c, bild, dt, wind) {
   if (laubfall.teile.length < ziel && Math.random() < dt * ziel * 0.3) {
     const b = baeume[Math.floor(Math.random() * baeume.length)], w = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * b.r * 0.9, f = b.farben;
     laubfall.teile.push({
-      x: b.x + Math.cos(w) * d, y: b.y + Math.sin(w) * d, h: 3 + Math.random() * 5, v: 0.5 + Math.random() * 0.6,
+      x: b.x + Math.cos(w) * d, y: b.y + Math.sin(w) * d, h: bild.kronenAlsSprite ? baumAnhebung(b) / 0.6 + (Math.random() - 0.5) * b.r : 3 + Math.random() * 5, v: 0.5 + Math.random() * 0.6,
       phase: Math.random() * 6.3, farbe: f[2 + Math.floor(Math.random() * 2)], rand: f[1], liegt: 0, // Farben wie in der Krone
     });
   }
@@ -617,8 +835,12 @@ window.zeichneLaubfall = function (c, bild, dt, wind) {
     } else t.liegt += dt;
     return t.liegt < 4;
   });
+  // 3/4-Ansicht: Blätter in der Luft um ihre Höhe × 0,6 angehoben (wie die Scheibe); hochkant ist
+  // "oben" auf dem Bildschirm die +x-Richtung der Bahn
+  const heben = bild.kronenAlsSprite, hk = typeof hochkant !== "undefined" && hochkant;
   for (const t of laubfall.teile) {
-    const px = Math.round(t.x * S * A) / A, py = Math.round(t.y * S * A) / A;
+    const L = heben && t.h > 0 ? t.h * 0.6 : 0;
+    const px = Math.round((t.x + (hk ? L : 0)) * S * A) / A, py = Math.round((t.y - (hk ? 0 : L)) * S * A) / A;
     if (t.h > 0) { c.fillStyle = "rgba(0,20,0,.35)"; c.fillRect(Math.round((t.x + t.h * 0.25) * S * A) / A, Math.round((t.y + t.h * 0.35) * S * A) / A, pz, pz); }
     const quer = t.h > 0 && Math.sin(t.phase) > 0; // das Blatt dreht sich: mal breit, mal schmal
     c.globalAlpha = t.liegt > 3 ? 4 - t.liegt : 1;
@@ -733,20 +955,31 @@ window.jahreszeitNachDatum = (datum = new Date()) => {
 //  zeichnePuttLaub: im Herbst fallen Blätter aus der Baumreihe vor dem Korb zu Boden.
 const PUTT_HORIZONT = 100;
 const puttSzenen = {};
-window.zeichnePuttSzene = function (c, jz, bx, by, bw, bh) {
-  const k = jz + ":" + bw + "x" + bh;
-  if (!puttSzenen[k]) puttSzenen[k] = puttSzeneMalen(jz, bw, bh);
-  c.drawImage(puttSzenen[k], bx, by);
+// A = echte Pixel je Spielpixel (AUF): bei hoher Auflösung wird die Szene im feinen Raster gemalt –
+// Formen behalten ihre Größe in Spielpixeln, Dithering, Gras, Blumen, Äste und Laub werden pixelgenau feiner.
+window.zeichnePuttSzene = function (c, jz, bx, by, bw, bh, A = 1) {
+  const k = jz + ":" + bw + "x" + bh + "@" + A;
+  if (!puttSzenen[k]) puttSzenen[k] = puttSzeneMalen(jz, bw, bh, A);
+  c.drawImage(puttSzenen[k], bx, by, bw, bh);
 };
 
-function puttSzeneMalen(jz, bw, bh) {
+function puttSzeneMalen(jz, bw, bh, A = 1) {
   const JZ = JAHRESZEITEN[jz] || JAHRESZEITEN.sommer, winter = !!JZ.schnee, wueste = !!JZ.wueste;
-  const cv = document.createElement("canvas"); cv.width = bw; cv.height = bh;
-  const c = cv.getContext("2d"), rnd = zufall(42), hor = PUTT_HORIZONT;
+  const BW = bw * A, BH = bh * A;
+  const cv = document.createElement("canvas"); cv.width = BW; cv.height = BH;
+  const c = cv.getContext("2d"), rnd = zufall(42), hor = PUTT_HORIZONT, HOR = hor * A;
+  // eigener Zufall für Details, deren Anzahl mit A wächst – so stehen Bäume und Wolken bei jeder Auflösung gleich
+  const rd = A > 1 ? zufall(4711) : rnd;
   const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], bay = (x, y) => (BAYER[(y & 3) * 4 + (x & 3)] + 0.5) / 16;
-  const punkt = (x, y, f) => { c.fillStyle = f; c.fillRect(Math.round(x), Math.round(y), 1, 1); };
+  // punkt: echte Pixel; K und R: Kreis bzw. Rechteck in Spielpixeln, gezeichnet im feinen Raster
+  const punkt = (x, y, f, w = 1, h = 1) => { c.fillStyle = f; c.fillRect(Math.round(x), Math.round(y), w, h); };
+  const K = (x, y, r, f) => pixelKreis(c, x * A, y * A, r * A, f);
+  const R = (x, y, w, h, f) => { c.fillStyle = f; c.fillRect(Math.round(x * A), Math.round(y * A), Math.max(1, Math.round(w * A)), Math.max(1, Math.round(h * A))); };
   // Farbe mit Himmel mischen: weiter hinten liegende Bäume wirken blasser
   const misch = (a, b, t) => { const p = rgb(a), q = rgb(b); return "rgb(" + p.map((v, i) => Math.round(v + (q[i] - v) * t)).join(",") + ")"; };
+  // Farbrampe verfeinern: zwischen je zwei Stufen eine Mischstufe (bei hoher Auflösung)
+  const feiner = P => A > 1 ? P.flatMap((f, i) => i ? [misch(P[i - 1], f, 0.5), f] : [f]) : P;
+  const rampe = (P, t, x, y) => { const f = Math.max(0, Math.min(1, t)) * (P.length - 1); let i = Math.floor(f); if (f - i > bay(x, y)) i++; return P[Math.min(P.length - 1, i)]; };
 
   // ---- Himmel: Verlauf mit Dithering, Sonne, Wolken ----
   const HIMMEL = {
@@ -755,52 +988,75 @@ function puttSzeneMalen(jz, bw, bh) {
     herbst: ["#6a9cc8", "#86b0d4", "#a6c4dc", "#c8d8e2"],
     winter: ["#9aaec4", "#b4c4d4", "#ccd6e0", "#e2e8ee"],
   }[jz] || JZ.himmel || ["#2f8ee0", "#4aa6ec", "#6cbcf2", "#94d0f6"];
-  for (let y = 0; y < hor; y++) for (let x = 0; x < bw; x++) {
-    const f = (y / hor) * (HIMMEL.length - 1); let i = Math.floor(f); if (f - i > bay(x, y)) i++;
-    punkt(x, y, HIMMEL[Math.min(HIMMEL.length - 1, i)]);
-  }
+  const HF = feiner(HIMMEL);
+  for (let y = 0; y < HOR; y++) for (let x = 0; x < BW; x++) punkt(x, y, rampe(HF, y / HOR, x, y));
   if (jz === "sommer" || jz === "fruehling" || wueste) {
-    pixelKreis(c, bw - 24, 18, 9, "#fff2a8"); pixelKreis(c, bw - 24, 18, 7, "#ffe066"); pixelKreis(c, bw - 26, 16, 3, "#fff6c8");
+    // Sonne mit gedithertem Schein
+    if (A > 1) for (let y = -13 * A; y <= 13 * A; y++) for (let x = -13 * A; x <= 13 * A; x++) {
+      const d = Math.hypot(x, y) / A; if (d > 9 && d < 13 && bay(x & 3, y & 3) < (13 - d) / 8) punkt((bw - 24) * A + x, 18 * A + y, "#fff6c8");
+    }
+    K(bw - 24, 18, 9, "#fff2a8"); K(bw - 24, 18, 7, "#ffe066"); K(bw - 26, 16, 3, "#fff6c8");
   }
   const wolke = (x, y, w, hell, dunkel) => {
-    for (let i = 0; i < w; i += 5) pixelKreis(c, x + i, y - Math.round(Math.sin(i / w * Math.PI) * 5), 5 + (i % 3), hell);
-    c.fillStyle = dunkel; c.fillRect(Math.round(x - 4), Math.round(y + 3), w + 8, 2);
-    c.fillStyle = hell; c.fillRect(Math.round(x - 5), Math.round(y + 1), w + 10, 2);
+    // Unterseite dunkler, darüber die hellen Ballen, oben links ein Lichtrand
+    for (let i = 0; i < w; i += 5) K(x + i, y + 1 - Math.round(Math.sin(i / w * Math.PI) * 5), 5 + (i % 3), dunkel);
+    for (let i = 0; i < w; i += 5) K(x + i, y - Math.round(Math.sin(i / w * Math.PI) * 5), 5 + (i % 3), hell);
+    if (A > 1) for (let i = 0; i < w; i += 5) K(x + i - 1, y - 1.5 - Math.round(Math.sin(i / w * Math.PI) * 5), 2.5 + (i % 3) * 0.6, "#ffffff");
+    R(x - 4, y + 3, w + 8, 2, dunkel);
+    R(x - 5, y + 1, w + 10, 2, hell);
   };
   const wolken = { fruehling: 3, sommer: 2, herbst: 4, winter: 5, wueste: 1 }[jz] ?? 2;
   for (let i = 0; i < wolken; i++) {
     const w = 18 + Math.floor(rnd() * 22), x = 6 + rnd() * (bw - w - 12), y = 12 + rnd() * 40;
-    wolke(x, y, w, winter ? "#eef2f6" : "#ffffff", winter ? "#c4ccd6" : jz === "herbst" ? "#b8c4cc" : "#d8e8f2");
+    wolke(x, y, w, winter ? "#eef2f6" : "#f8fbff", winter ? "#c4ccd6" : jz === "herbst" ? "#b8c4cc" : "#d8e8f2");
   }
 
-  if (wueste) { wuestenSzene(c, JZ, HIMMEL, bw, bh, hor, rnd, bay, punkt, misch); return cv; }
+  if (wueste) { wuestenSzene(c, JZ, HIMMEL, bw, bh, hor, rnd, bay, punkt, misch, A, K, R, rd); return cv; }
 
   // ---- Baumreihen am Horizont ----
   const laubFarben = i => JZ.laubbaum(((i * 0.37) % 1 + 1) % 1);
   // hintere Reihe: blasse Kronen (im Winter blasse Äste) direkt auf dem Horizont
   for (let x = -4; x < bw + 8; x += 7 + Math.floor(rnd() * 4)) {
     const r = 6 + Math.floor(rnd() * 4), y = hor - 4 - Math.floor(rnd() * 5);
-    if (winter) { const f = misch("#4a3e34", HIMMEL[3], 0.55); c.fillStyle = f; c.fillRect(x, y - r, 1, r + 4); for (let k = 0; k < r; k += 2) { c.fillRect(x - (k >> 1), y - r + k, 1, 1); c.fillRect(x + (k >> 1), y - r + k + 1, 1, 1); } }
-    else { const p = laubFarben(Math.floor(x)); pixelKreis(c, x, y, r, misch(p[1], HIMMEL[3], 0.5)); pixelKreis(c, x - 2, y - 2, r * 0.6, misch(p[2], HIMMEL[3], 0.5)); }
+    if (winter) {
+      const f = misch("#4a3e34", HIMMEL[3], 0.55);
+      punkt(x * A, (y - r) * A, f, Math.max(1, A / 2), (r + 4) * A);
+      for (let k = 0; k < r * A; k += 2) { punkt(x * A - (k >> 1), (y - r) * A + k, f); punkt(x * A + (k >> 1), (y - r) * A + k + 1, f); }
+    } else {
+      const p = laubFarben(Math.floor(x));
+      K(x, y, r, misch(p[1], HIMMEL[3], 0.5)); K(x - 2, y - 2, r * 0.6, misch(p[2], HIMMEL[3], 0.5));
+      if (A > 1) for (let k = 0; k < r * 4; k++) { const w = rd() * Math.PI * 2, d = Math.sqrt(rd()) * r * 0.9; punkt((x + Math.cos(w) * d) * A, (y + Math.sin(w) * d) * A, misch(rd() < 0.5 ? p[1] : p[2], HIMMEL[3], 0.45)); }
+    }
   }
   // vordere Reihe: Laubbäume mit Stamm, Kontur und Licht von links oben; dazwischen Kiefern
   const baeume = [];
   for (let x = 4; x < bw; x += 13 + Math.floor(rnd() * 7)) baeume.push({ x, r: 8 + Math.floor(rnd() * 5), kiefer: rnd() < 0.25, i: baeume.length });
   for (const b of baeume) {
     const fuss = hor + 2, cy = fuss - b.r - 6;
-    c.fillStyle = "#3a2a1c"; c.fillRect(b.x - 1, cy, 3, fuss - cy);
-    c.fillStyle = "#5a4430"; c.fillRect(b.x - 1, cy, 1, fuss - cy);
+    R(b.x - 1, cy, 3, fuss - cy, "#3a2a1c");
+    punkt((b.x - 1) * A, cy * A, "#5a4430", A > 1 ? 2 : 1, (fuss - cy) * A);
+    if (A > 1) { punkt((b.x - 1) * A + 2, cy * A, "#4a3624", 1, (fuss - cy) * A); for (let y = cy * A; y < fuss * A; y += 3) if (rd() < 0.5) punkt((b.x - 1) * A + 1 + Math.floor(rd() * 4), y, "#2a1e14"); }
     if (b.kiefer) {
       const KI = JZ.kiefer;
       for (let s = 0; s < 4; s++) {
         const w = b.r - s * 2, y = fuss - 6 - s * 5;
-        for (let k = 0; k < 6; k++) { c.fillStyle = k < 2 ? KI[0] : k < 4 ? KI[1] : KI[2]; c.fillRect(b.x - w + k, y - k, (w - k) * 2, 1); }
-        if (winter) { c.fillStyle = "#f4f8ff"; c.fillRect(b.x - w + 5, y - 5, Math.max(1, (w - 5) * 2), 1); c.fillRect(b.x - w + 2, y - 2, 2, 1); }
+        for (let k = 0; k < 6 * A; k++) {
+          const kk = k / A;
+          punkt((b.x - w) * A + k, y * A - k, kk < 2 ? KI[0] : kk < 4 ? KI[1] : KI[2], Math.max(1, (w * A - k) * 2), 1);
+          // Nadelspitzen am unteren Rand
+          if (A > 1 && k === 0) for (let i = 0; i < w * 2 * A; i += 3) punkt((b.x - w) * A + i, y * A + 1, KI[0]);
+        }
+        if (winter) { R(b.x - w + 5, y - 5, Math.max(1, (w - 5) * 2), 1, "#f4f8ff"); R(b.x - w + 2, y - 2, 2, 1, "#f4f8ff"); }
       }
     } else if (winter) {
       // kahler Baum: Äste nach oben verzweigt, Schnee auf den Ästen
       const ast = (x, y, w, len, t) => {
-        for (let k = 0; k < len; k++) { const px = x + Math.cos(w) * k, py = y + Math.sin(w) * k; c.fillStyle = t < 2 ? "#3a2e24" : "#5a4a3c"; c.fillRect(Math.round(px), Math.round(py), t ? 1 : 2, 1); if (t < 3 && k % 3 === 1 && rnd() < 0.5) punkt(px, py - 1, "#f4f8ff"); }
+        const dicke = A > 1 ? [3, 2, 1, 1][t] : t ? 1 : 2;
+        for (let k = 0; k < len * A; k++) {
+          const px = x * A + Math.cos(w) * k, py = y * A + Math.sin(w) * k;
+          punkt(px, py, t < 2 ? "#3a2e24" : "#5a4a3c", dicke, 1);
+          if (t < 3 && k % (3 * A) === 1 && rd() < 0.5) punkt(px, py - 1, "#f4f8ff", A > 1 ? 2 : 1, 1);
+        }
         if (t < 3) for (const s of [-1, 1]) ast(x + Math.cos(w) * len * 0.6, y + Math.sin(w) * len * 0.6, w + s * (0.4 + rnd() * 0.3), len * 0.6, t + 1);
       };
       ast(b.x, cy + 4, -Math.PI / 2, b.r + 4, 0);
@@ -808,99 +1064,113 @@ function puttSzeneMalen(jz, bw, bh) {
       const LB = laubFarben(b.i + 3);
       const gruppen = [{ x: b.x, y: cy, r: b.r * 0.7 }];
       for (let k = 0; k < 5; k++) { const w = Math.PI + k / 4 * Math.PI, rg = b.r * (0.4 + rnd() * 0.12); gruppen.push({ x: b.x + Math.cos(w) * b.r * 0.55, y: cy + Math.sin(w) * b.r * 0.5 + 2, r: rg }); }
-      for (const q of gruppen) pixelKreis(c, q.x, q.y, q.r + 1, LB[0]);
+      for (const q of gruppen) K(q.x, q.y, q.r + 1, LB[0]);
       for (const q of gruppen) {
-        pixelKreis(c, q.x, q.y, q.r, LB[1]);
-        pixelKreis(c, q.x - q.r * 0.2, q.y - q.r * 0.25, q.r * 0.7, LB[2]);
-        pixelKreis(c, q.x - q.r * 0.38, q.y - q.r * 0.42, q.r * 0.34, LB[3]);
+        K(q.x, q.y, q.r, LB[1]);
+        K(q.x - q.r * 0.2, q.y - q.r * 0.25, q.r * 0.7, LB[2]);
+        K(q.x - q.r * 0.38, q.y - q.r * 0.42, q.r * 0.34, LB[3]);
       }
-      for (let k = 0; k < b.r * 3; k++) { const w = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * b.r * 0.9; punkt(b.x + Math.cos(w) * d, cy + Math.sin(w) * d, LB.bluete ? (rnd() < 0.5 ? LB[4] : "#ffffff") : rnd() < 0.5 ? LB[1] : LB[3]); }
+      // einzelne Blätter bzw. Blüten; bei hoher Auflösung mehr und kleiner
+      for (let k = 0; k < b.r * 3 * A * A; k++) {
+        const w = rd() * Math.PI * 2, d = Math.sqrt(rd()) * b.r * 0.9;
+        punkt((b.x + Math.cos(w) * d) * A, (cy + Math.sin(w) * d) * A, LB.bluete ? (rd() < 0.5 ? LB[4] : "#ffffff") : rd() < 0.5 ? LB[1] : LB[3]);
+      }
     }
   }
 
   // ---- Wiese: Mähstreifen in Perspektive (nach vorne breiter), Büschel, Blumen, Laub oder Schnee ----
-  const F = winter ? JZ.gras : JZ.fair, G = JZ.gras;
+  const F = winter ? JZ.gras : JZ.fair, G = JZ.gras, FF = feiner(F);
   let streifen = 0;
   for (let y = hor, k = 0; y < bh; k++) {
     const h = 2 + Math.floor(k * 1.3);
-    for (let yy = y; yy < Math.min(bh, y + h); yy++) for (let x = 0; x < bw; x++) {
-      const t = (winter ? 0.62 : 0.4) + (streifen ? 0.18 : 0) + ((yy - hor) / (bh - hor)) * 0.12 + (rnd() - 0.5) * 0.2;
-      const f = t * (F.length - 1); let i = Math.floor(f); if (f - i > bay(x, yy)) i++;
-      punkt(x, yy, F[Math.max(0, Math.min(F.length - 1, i))]);
+    for (let yy = y * A; yy < Math.min(BH, (y + h) * A); yy++) for (let x = 0; x < BW; x++) {
+      const t = (winter ? 0.62 : 0.4) + (streifen ? 0.18 : 0) + ((yy - HOR) / (BH - HOR)) * 0.12 + (rd() - 0.5) * 0.2;
+      punkt(x, yy, rampe(FF, t, x, yy));
     }
     y += h; streifen = 1 - streifen;
   }
   // Schatten der Baumreihe direkt am Horizont
-  for (let x = 0; x < bw; x++) if (bay(x, hor) < 0.6) punkt(x, hor, winter ? "#8a9ab8" : G[0]);
-  if (!winter) for (let x = 0; x < bw; x++) if (bay(x, hor + 1) < 0.3) punkt(x, hor + 1, G[1]);
-  // Büschel (vorne größer)
-  for (let i = 0; i < (winter ? 0 : 70); i++) {
-    const y = hor + 3 + Math.floor(rnd() * (bh - hor - 4)), x = Math.floor(rnd() * bw), g = y > hor + 25 ? 2 : 1;
-    punkt(x, y, G[0]); punkt(x - 1, y - g, F[F.length - 1]); punkt(x + 1, y - g, F[F.length - 2]); if (g > 1) punkt(x, y - 2 * g + 1, F[F.length - 1]);
+  for (let yy = 0; yy < A; yy++) for (let x = 0; x < BW; x++) if (bay(x, HOR + yy) < 0.6 - yy * 0.15) punkt(x, HOR + yy, winter ? "#8a9ab8" : G[0]);
+  if (!winter) for (let yy = A; yy < 2 * A; yy++) for (let x = 0; x < BW; x++) if (bay(x, HOR + yy) < 0.3) punkt(x, HOR + yy, G[1]);
+  // Büschel (vorne größer): Halme als kurze Striche
+  const tiefeG = y => (y - HOR) / (BH - HOR);
+  for (let i = 0; i < (winter ? 0 : 70 * A); i++) {
+    const y = HOR + 3 * A + Math.floor(rd() * (BH - HOR - 4 * A)), x = Math.floor(rd() * BW);
+    const g = A > 1 ? 1 + Math.round(tiefeG(y) * 4) : (y > HOR + 25 ? 2 : 1);
+    punkt(x, y, G[0]);
+    punkt(x - 1, y - g, F[F.length - 1], 1, g); punkt(x + 1, y - g, F[F.length - 2], 1, g);
+    if (g > 1) punkt(x, y - 2 * g + 1, F[F.length - 1], 1, g);
   }
-  // Blumen
-  for (let i = 0; i < JZ.blumen.dichte * 300; i++) {
-    const y = hor + 4 + Math.floor(rnd() * (bh - hor - 6)), x = Math.floor(rnd() * bw), f = JZ.blumen.farben[Math.floor(rnd() * JZ.blumen.farben.length)];
-    if (y > hor + 25) { punkt(x - 1, y, f); punkt(x + 1, y, f); punkt(x, y - 1, f); punkt(x, y + 1, f); }
+  // Blumen (vorne mit Blütenblättern)
+  for (let i = 0; i < JZ.blumen.dichte * 300 * A; i++) {
+    const y = HOR + 4 * A + Math.floor(rd() * (BH - HOR - 6 * A)), x = Math.floor(rd() * BW), f = JZ.blumen.farben[Math.floor(rd() * JZ.blumen.farben.length)];
+    const nah = A > 1 ? tiefeG(y) > 0.55 : y > HOR + 25;
+    if (nah) { punkt(x - 1, y, f); punkt(x + 1, y, f); punkt(x, y - 1, f); punkt(x, y + 1, f); if (A > 1) punkt(x, y + 2, G[0], 1, 2); }
     punkt(x, y, "#f2c62e");
   }
   // Laub (Herbst) bzw. Blütenblätter (Frühling): am Horizont dichter, vorne einzelne größere Blätter
-  if (JZ.laub) for (let i = 0; i < JZ.laub.dichte * 260; i++) {
-    const nah = rnd(), y = hor + 2 + Math.floor(nah * nah * (bh - hor - 4)), x = Math.floor(rnd() * bw), f = JZ.laub.farben[Math.floor(rnd() * JZ.laub.farben.length)];
-    punkt(x, y, f); if (y > hor + 22) punkt(x + 1, y, f);
+  if (JZ.laub) for (let i = 0; i < JZ.laub.dichte * 260 * A; i++) {
+    const nah = rd(), y = HOR + 2 * A + Math.floor(nah * nah * (BH - HOR - 4 * A)), x = Math.floor(rd() * BW), f = JZ.laub.farben[Math.floor(rd() * JZ.laub.farben.length)];
+    const g = A > 1 ? 1 + Math.floor(tiefeG(y) * 3) : (y > HOR + 22 ? 2 : 1);
+    punkt(x, y, f, g, Math.max(1, g - 1));
   }
   // Schnee: Glitzern und ein paar Fußspuren zum Korb
   if (winter) {
-    for (let i = 0; i < 120; i++) punkt(rnd() * bw, hor + 2 + rnd() * (bh - hor - 2), rnd() < 0.5 ? "#ffffff" : "#a8b8d0");
+    for (let i = 0; i < 120 * A; i++) punkt(rd() * BW, HOR + 2 * A + rd() * (BH - HOR - 2 * A), rd() < 0.5 ? "#ffffff" : "#a8b8d0");
     for (let y = bh - 4, s = 0; y > hor + 8; y -= 3 + Math.floor((y - hor) / 12), s = 1 - s) {
       const x = bw / 2 - 14 + s * 4 + (bh - y) * 0.25, g = y > hor + 25 ? 2 : 1;
-      c.fillStyle = "#9eb0cc"; c.fillRect(Math.round(x), Math.round(y), g + 1, g);
+      R(x, y, g + 1, g, "#9eb0cc");
+      if (A > 1) punkt(x * A, y * A, "#7f93b4", (g + 1) * A, 1);
     }
   }
   return cv;
 }
 
 // Wüste in der Putt-Ansicht: Dünen und Tafelberge am Horizont, Saguaros, Sand mit Rippeln
-function wuestenSzene(c, JZ, HIMMEL, bw, bh, hor, rnd, bay, punkt, misch) {
-  const F = JZ.fair, G = JZ.gras, FE = JZ.fels;
+// (A, K, R wie in puttSzeneMalen: Feinraster, Kreis und Rechteck in Spielpixeln)
+function wuestenSzene(c, JZ, HIMMEL, bw, bh, hor, rnd, bay, punkt, misch, A = 1, K, R, rd = rnd) {
+  const F = JZ.fair, G = JZ.gras, FE = JZ.fels, BW = bw * A, BH = bh * A, HOR = hor * A;
   // Tafelberge weit hinten (blass)
   for (const [x0, w, h] of [[8, 38, 16], [bw - 52, 46, 22]]) {
-    for (let x = x0; x < x0 + w; x++) {
-      const rand = Math.min(x - x0, x0 + w - x), hh = Math.min(h, rand * 1.6);
-      for (let y = hor - hh; y < hor; y++) punkt(x, y, misch(y < hor - hh + 2 ? FE[3] : FE[2], HIMMEL[3], 0.5));
+    for (let X = x0 * A; X < (x0 + w) * A; X++) {
+      const x = X / A, rand = Math.min(x - x0, x0 + w - x), hh = Math.min(h, rand * 1.6) * A;
+      for (let Y = Math.round(HOR - hh); Y < HOR; Y++) punkt(X, Y, misch(Y < HOR - hh + 2 * A ? FE[3] : (A > 1 && (X + Y) % 7 === 0 ? FE[1] : FE[2]), HIMMEL[3], 0.5));
     }
   }
   // Dünen: zwei Reihen weicher Hügel
   for (const [hoehe, farbe, ph] of [[10, misch(G[3], HIMMEL[3], 0.35), 0.7], [6, G[2], 2.1]]) {
-    for (let x = 0; x < bw; x++) {
-      const hh = Math.round(hoehe * (0.55 + 0.45 * Math.sin(x / 17 + ph) * Math.sin(x / 7.3 + ph * 2)));
-      for (let y = hor - Math.max(1, hh); y <= hor; y++) punkt(x, y, farbe);
-      punkt(x, hor - Math.max(1, hh), G[4]);
+    for (let X = 0; X < BW; X++) {
+      const x = X / A, hh = Math.round(hoehe * A * (0.55 + 0.45 * Math.sin(x / 17 + ph) * Math.sin(x / 7.3 + ph * 2)));
+      for (let Y = HOR - Math.max(1, hh); Y <= HOR; Y++) punkt(X, Y, farbe);
+      punkt(X, HOR - Math.max(1, hh), G[4]);
     }
   }
   // Sand vorne: Rippel in Perspektive (nach vorne breiter)
-  for (let y = hor + 1; y < bh; y++) for (let x = 0; x < bw; x++) {
-    const tiefe = (y - hor) / (bh - hor), rip = Math.sin(y * (1.6 - tiefe) + Math.sin(x / 13) * 1.5);
-    const t = 0.4 + tiefe * 0.2 + rip * 0.12 + (rnd() - 0.5) * 0.12;
-    const f = t * (F.length - 1); let i = Math.floor(f); if (f - i > bay(x, y)) i++;
-    punkt(x, y, F[Math.max(0, Math.min(F.length - 1, i))]);
+  for (let Y = HOR + 1; Y < BH; Y++) for (let X = 0; X < BW; X++) {
+    const y = Y / A, x = X / A, tiefe = (y - hor) / (bh - hor), rip = Math.sin(y * (1.6 - tiefe) + Math.sin(x / 13) * 1.5);
+    const t = 0.4 + tiefe * 0.2 + rip * 0.12 + (rd() - 0.5) * 0.12;
+    const f = t * (F.length - 1); let i = Math.floor(f); if (f - i > bay(X, Y)) i++;
+    punkt(X, Y, F[Math.max(0, Math.min(F.length - 1, i))]);
   }
-  // Saguaros: Stamm mit Armen, Licht links
-  const K = JZ.laubbaum(0.2);
+  // Saguaros: Stamm mit Armen, Licht links, Rippen als Linien
+  const KF = JZ.laubbaum(0.2);
   for (const [x, h, gross] of [[14, 30, 1], [44, 16, 0], [bw - 22, 34, 1], [bw - 50, 14, 0]]) {
     const fuss = gross ? hor + 14 : hor + 3, br = gross ? 5 : 3;
-    const saeule = (sx, y0, y1, b) => { for (let y = y0; y < y1; y++) for (let k = 0; k < b; k++) punkt(sx + k, y, k === 0 ? K[3] : k === b - 1 ? K[0] : (k + y) % 3 ? K[2] : K[1]); };
+    const saeule = (sx, y0, y1, b) => {
+      for (let Y = Math.round(y0 * A); Y < Math.round(y1 * A); Y++) for (let k = 0; k < b * A; k++)
+        punkt(sx * A + k, Y, k === 0 ? KF[3] : k === b * A - 1 ? KF[0] : (A > 1 ? (k % 3 === 1 ? KF[1] : KF[2]) : (k + Y) % 3 ? KF[2] : KF[1]));
+    };
     saeule(x, fuss - h, fuss, br);
     const ah = Math.round(h * 0.45), ax = br + 2;
-    saeule(x - ax, fuss - h * 0.75, fuss - h * 0.75 + ah, br - 1); for (let k = 0; k < ax; k++) punkt(x - ax + k, fuss - h * 0.75 + ah, K[1]);
-    saeule(x + br + 1, fuss - h * 0.85, fuss - h * 0.85 + ah * 0.8, br - 1); for (let k = 0; k < 2; k++) punkt(x + br + k, fuss - h * 0.85 + ah * 0.8, K[1]);
-    for (let k = -2; k < br + 4; k++) if (bay(x + k, fuss) < 0.6) punkt(x + k + 1, fuss, G[0]);
+    saeule(x - ax, fuss - h * 0.75, fuss - h * 0.75 + ah, br - 1); R(x - ax, fuss - h * 0.75 + ah, ax, 1, KF[1]);
+    saeule(x + br + 1, fuss - h * 0.85, fuss - h * 0.85 + ah * 0.8, br - 1); R(x + br, fuss - h * 0.85 + ah * 0.8, 2, 1, KF[1]);
+    for (let X = (x - 2) * A; X < (x + br + 4) * A; X++) if (bay(X, fuss * A) < 0.6) punkt(X + A, fuss * A, G[0], 1, A);
   }
   // Steine und trockene Büsche
-  for (let i = 0; i < 40; i++) {
-    const y = hor + 3 + Math.floor(rnd() * (bh - hor - 4)), x = Math.floor(rnd() * bw), g = y > hor + 25 ? 2 : 1;
-    if (rnd() < 0.5) { punkt(x, y, FE[1]); if (g > 1) { punkt(x + 1, y, FE[2]); punkt(x, y - 1, FE[3]); } }
-    else { const B = JZ.busch; punkt(x, y, B[0]); punkt(x - 1, y - g, B[2]); punkt(x + 1, y - g, B[1]); if (g > 1) punkt(x, y - 2 * g + 1, B[2]); }
+  for (let i = 0; i < 40 * A; i++) {
+    const Y = HOR + 3 * A + Math.floor(rd() * (BH - HOR - 4 * A)), X = Math.floor(rd() * BW), g = (Y > HOR + 25 * A ? 2 : 1) * (A > 1 ? 1.5 : 1) | 0;
+    if (rd() < 0.5) { punkt(X, Y, FE[1], g, 1); if (g > 1) { punkt(X + g, Y, FE[2]); punkt(X, Y - 1, FE[3], g, 1); } }
+    else { const B = JZ.busch; punkt(X, Y, B[0]); punkt(X - 1, Y - g, B[2], 1, g); punkt(X + 1, Y - g, B[1], 1, g); if (g > 1) punkt(X, Y - 2 * g + 1, B[2], 1, g); }
   }
 }
 
@@ -927,7 +1197,9 @@ window.zeichnePuttLaub = function (c, jz, bx, by, bw, bh, wind) {
   c.save();
   c.beginPath(); c.rect(bx, by, bw, bh); c.clip();
   for (const t of puttLaub.teile) {
-    const nah = (t.y - PUTT_HORIZONT + 30) / (bh - PUTT_HORIZONT + 30), g = nah > 0.6 ? 2 : 1, px = Math.round(bx + t.x), py = Math.round(by + t.y);
+    // bei hoher Auflösung (AUF) in echten Pixeln: Größe wächst feiner nach vorne
+    const A = typeof AUF === "number" ? AUF : 1, nah = (t.y - PUTT_HORIZONT + 30) / (bh - PUTT_HORIZONT + 30);
+    const g = A > 1 ? (1 + Math.round(nah * 3)) / A : nah > 0.6 ? 2 : 1, px = Math.round((bx + t.x) * A) / A, py = Math.round((by + t.y) * A) / A;
     const quer = t.liegt === 0 && Math.sin(t.phase) > 0;
     c.globalAlpha = t.liegt > 2 ? 3 - t.liegt : 1;
     c.fillStyle = t.rand; c.fillRect(px, py, quer ? 2 * g : g, quer ? g : 2 * g);
@@ -947,7 +1219,9 @@ const KORB = {
 const punktSetzen = (c, x, y, f, w = 1, h = 1) => { c.fillStyle = f; c.fillRect(Math.round(x), Math.round(y), w, h); };
 
 // Seitenansicht in der Putt-Ansicht. K = KETTEN (Mitte der Ketten), wx = Wackeln nach einem Treffer
-window.zeichnePuttKorb = function (c, K, wx, winter) {
+// a = echte Pixel je Spielpixel: bei a > 1 im feinen Raster (puttKorbFein), sonst die grobe Fassung
+window.zeichnePuttKorb = function (c, K, wx, winter, a = 1) {
+  if (a > 1) { puttKorbFein(c, K, wx, winter, a); return; }
   const M = KORB.metall, G = KORB.gelb, p = (x, y, f, w, h) => punktSetzen(c, x, y, f, w, h);
   const x0 = K.x, oben = K.y - 13, boden = K.y + 40;
   // Schatten am Boden: flache Ellipse, gedithert
@@ -986,12 +1260,68 @@ window.zeichnePuttKorb = function (c, K, wx, winter) {
   if (winter) p(x0 - 14, ky - 1, KORB.schnee, 29, 1);
 };
 
-// Draufsicht (leicht schräg) auf der Bahn; wird beim Reinzoomen größer und feiner.
-// x, y = Fuß am Boden (Bildschirm), dx = Wackeln, z = Zoomstufe
+// Gleiche Maße wie oben (Spielpixel), aber Kanten, Glieder, Stäbe und Lichter in echten Pixeln (q = 1 / a)
+function puttKorbFein(c, K, wx, winter, a) {
+  const M = KORB.metall, G = KORB.gelb, q = 1 / a;
+  const p = (x, y, f, w = q, h = q) => { c.fillStyle = f; c.fillRect(Math.round(x * a) / a, Math.round(y * a) / a, w, h); };
+  const x0 = K.x, oben = K.y - 13, boden = K.y + 40;
+  // Schatten am Boden: flache Ellipse, gedithert
+  for (let j = 0; j < 3 * a; j++) for (let i = -13 * a + j * 3; i <= 13 * a - j * 3; i++) if (((i + j) & 1) === 0 || j < a) p(x0 + 2 + i * q, boden + 1 + q - j * q, "rgba(0,20,0,.4)");
+  // Stange: 3 Spielpixel breit, je echter Spalte eine Stufe – Licht links der Mitte, Schatten rechts
+  const STANGE = [M[2], M[4], M[5], M[3], M[2], M[1]];
+  for (let i = 0; i < 3 * a; i++) p(x0 - 1 + i * q, oben + 1, STANGE[Math.min(5, Math.floor(i * 6 / (3 * a)))], q, boden - oben - 1);
+  // Bodenhülse mit Kante, Fuß
+  p(x0 - 2, boden - 3, M[1], 5, 3); p(x0 - 2, boden - 3, M[4], 5, q); p(x0 - 2, boden - 3 + q, M[2], 5, q);
+  p(x0 - 2, boden - 3, M[3], q, 3); p(x0 + 3 - q, boden - 3, M[0], q, 3);
+  p(x0 - 3, boden, M[0], 7, 1); p(x0 - 3, boden, M[1], 7, q);
+  // Ketten: Glieder aus je 2 echten Pixeln, abwechselnd hell/dunkel; hinten dunkler und dichter
+  const kette = (xr, xk, y0, y1, hell, dunkel, wackel) => {
+    for (let Y = Math.round(y0 * a); Y <= Math.round(y1 * a); Y++) {
+      const t = (Y * q - y0) / (y1 - y0), x = xr + (xk - xr) * Math.pow(t, 2.2) + wackel * Math.sin(t * Math.PI);
+      p(x, Y * q, (Y + Math.round(xr * a)) % 4 < 2 ? hell : dunkel);
+    }
+  };
+  for (let i = -11; i <= 11.01; i += 1.84) kette(x0 + i, x0 + i * 0.4, oben + 5, K.y + 5, M[2], M[0], -wx * 0.6);
+  // Kragen, an dem die Ketten unten hängen
+  p(x0 - 6, K.y + 5, M[1], 13, 2); p(x0 - 6, K.y + 5, M[4], 13, q); p(x0 - 6, K.y + 5 + q, M[3], 13, q); p(x0 + 7 - q, K.y + 5, M[0], q, 2);
+  for (let i = -12; i <= 12.01; i += 1.6) kette(x0 + i, x0 + i * 0.5, oben + 4, K.y + 6, Math.abs(i) < 6 ? M[5] : M[4], M[2], wx * (Math.round(i) % 2 ? 1 : -1));
+  // Ring oben: Band mit Verlauf (Licht oben), abgerundete Enden, Glanz, dunkle Unterseite
+  p(x0 - 12, oben + 4, M[0], 25, 1); p(x0 - 12, oben + 4, M[1], 25, q);
+  for (let Y = 0; Y < 4 * a; Y++) {
+    const t = Y / (4 * a), rund = Y === 0 || Y === 4 * a - 1 ? 1 : 0, l = x0 - 14 + rund, w = 29 - 2 * rund;
+    const f = t < 0.15 ? G[3] : t < 0.6 ? G[2] : t < 0.85 ? G[1] : G[0];
+    p(l, oben + Y * q, f, w, q);
+    p(l, oben + Y * q, t < 0.6 ? G[2] : G[1]); p(l + w - q, oben + Y * q, G[0]); // Enden: links Licht, rechts Schatten
+  }
+  p(x0 - 11, oben + q, "#fff4c0", 5, q); p(x0 - 10, oben + 2 * q, G[3], 3, q); p(x0 + 6, oben + q, G[3], 2, q); // Glanz
+  if (winter) { p(x0 - 12, oben - 1, KORB.schnee, 25, 1); p(x0 - 7, oben - 2, KORB.schnee, 6, 1); p(x0 + 4, oben - 2, KORB.schnee, 4, 1); p(x0 - 12, oben - q, "#c8d4e6", 25, q); }
+  // Korb: Rand, Gitterstäbe vor dunklem Inneren, gelbes Band, Boden nach unten schmaler
+  const ky = K.y + 9;
+  [M[5], M[4], M[3], M[2]].forEach((f, i) => p(x0 - 15, ky + i * 2 / 4, f, 31, 2 / 4)); // Rand: 2 Spielpixel, vier Stufen
+  for (let Y = 0; Y < 6 * a; Y++) {
+    const y = ky + 2 + Y * q, w = 14 - Y * q / 2;
+    p(x0 - w, y, M[0], 2 * w + q, q);
+    for (let X = -Math.floor(w * a); X <= Math.floor(w * a); X++) if ((X + 300) % 3 === 0) {
+      const x = X * q;
+      p(x0 + x, y, x < -w / 3 ? M[3] : x > w / 3 ? M[2] : M[4]);
+    }
+  }
+  // gelbes Band mit Licht und Schatten
+  p(x0 - 13, ky + 4, G[2], 27, 2); p(x0 - 13, ky + 4, G[3], 27, q); p(x0 - 13, ky + 4, "#fff4c0", 8, q);
+  p(x0 - 13, ky + 6 - q, G[1], 27, q); p(x0 + 14 - q, ky + 4, G[0], q, 2);
+  // Boden des Korbs
+  p(x0 - 11, ky + 8, M[1], 23, 1); p(x0 - 11, ky + 8, M[2], 23, q); p(x0 - 9, ky + 9, M[0], 19, 1);
+  if (winter) { p(x0 - 14, ky - 1, KORB.schnee, 29, 1); p(x0 - 14, ky - 1 + q, "#c8d4e6", 29, q); }
+}
+
+// Draufsicht (leicht schräg) auf der Bahn; wächst mit der Figur (figurMasstab in index.html),
+// damit das Verhältnis stimmt: Korb ≈ 1,35 m, Mensch ≈ 1,8 m → Korb ≈ 0,75 × Figurhöhe.
+// x, y = Fuß am Boden (Bildschirm), dx = Wackeln, f = Figurmaßstab (1 oder 2)
 // auf = echte Pixel je Spielpixel (hohe Auflösung): der Korb bleibt gleich groß, wird aber feiner
-window.zeichneKorbObenDetail = function (c, x, y, dx, z, winter, auf = 1) {
+const KORB_ZU_FIGUR = 0.75 * 8 / 11; // Figur 8 Spielpixel hoch, Korb 11 g hoch
+window.zeichneKorbObenDetail = function (c, x, y, dx, f, winter, auf = 1) {
   const M = KORB.metall, G = KORB.gelb, p = (px, py, f, w, h) => punktSetzen(c, px, py, f, w, h);
-  const g = (z >= 2.5 ? 2 : z >= 1.5 ? 1.5 : 1) * auf;
+  const g = KORB_ZU_FIGUR * f * auf;
   const rx = Math.round(3.5 * g), ry = Math.max(1, Math.round(1.2 * g)), ringY = y - Math.round(11 * g), korbY = y - Math.round(5 * g);
   const ellipse = (cx, cy, a, b, farbe, nurVorne = 0) => {
     for (let w = 0; w < Math.PI * 2; w += 0.5 / Math.max(a, 1)) {
@@ -1033,8 +1363,7 @@ window.blattFarbenAn = function (bild, x, y) {
   let best = null, bd = Infinity;
   for (const b of liste) { const d = Math.hypot(b.x - x, b.y - y) - b.r; if (d < bd) { bd = d; best = b; } }
   if (best.kahl) return ["#f4f8ff", "#c4d0e2"];
-  if (best.art === "fels") return [best.farben[3], best.farben[1]]; // Steinsplitter
-  if (best.art === "kaktus") return [best.farben[3], best.farben[1]];
+  if (best.art) return [best.farben[3], best.farben[1]]; // Gegenstände (Fels, Kaktus, Arten neuer Themen)
   const f = best.farben;
   return best.kiefer ? [f[3], f[1]] : f.bluete ? [f[4], f[2]] : [f[3], f[1]];
 };
@@ -1042,53 +1371,5 @@ window.blattFarbenAn = function (bild, x, y) {
 // ============================================================
 //  SPIELERFIGUR IN HOHER AUFLÖSUNG
 // ============================================================
-// Gleich groß wie die 8-Bit-Figur (3 × 8 Spielpixel), aber in echten Pixeln (6 × 16 bei AUF = 2) –
-// mit Frisur, Bart, Brille, Kopfbedeckung, Jacke/Weste, Hose und Schuhen aus "aussehen" (taschen.js).
-// x, y: Fuß der Figur in echten Pixeln; scheibe: Farbe der Scheibe in der Hand (nur wer dran ist) oder null
+// Die Figuren selbst stehen in figuren.js (Sprites mit Posen); hier nur die Farbhilfe.
 const hellerDunkler = (h, f) => { const p = rgb(h).map(v => Math.max(0, Math.min(255, Math.round(f > 0 ? v + (255 - v) * f : v * (1 + f))))); return "rgb(" + p.join(",") + ")"; };
-window.zeichneFigurDetail = function (c, x, y, s, marke, auf, scheibe) {
-  const a = s.aussehen || {}, kopf = a.kopf || {}, u = auf / 2; // u: Maßstab, falls AUF einmal größer als 2 wird
-  const p = (dx, dy, f, w = 1, h = 1) => { c.fillStyle = f; c.fillRect(Math.round(x + dx * u), Math.round(y + dy * u), Math.max(1, Math.round(w * u)), Math.max(1, Math.round(h * u))); };
-  const haut = a.haut || "#f0c8a0", haare = a.haare || "#5a3a24", jacke = a.jacke || s.farbe, jacke2 = a.jacke2 || "#2a2e3a";
-  // Schatten und Sockel in der Spielerfarbe
-  c.fillStyle = "rgba(0,20,0,.35)";
-  for (let i = -1; i <= 8; i++) if (i & 1 || i < 1 || i > 6) p(i, 4, c.fillStyle); else p(i, 3, c.fillStyle, 1, 2);
-  p(-2, 2, s.farbe, 10, 1); p(-1, 3, hellerDunkler(s.farbe, -0.35), 8, 1);
-  // Schuhe und Hose
-  p(0, 0, "#1a1a1e", 2, 2); p(4, 0, "#1a1a1e", 2, 2); p(0, 0, "#4a4a52"); p(4, 0, "#4a4a52");
-  const hose = a.weste ? "#2a2e3a" : hellerDunkler(jacke2, -0.1);
-  p(0, -3, hose, 2, 3); p(4, -3, hose, 2, 3); p(2, -3, hose, 2, 1); p(1, -3, hellerDunkler(hose, 0.2), 1, 3);
-  // Oberkörper: Licht links, Schatten rechts; Ärmel mit Händen
-  p(0, -9, jacke, 6, 6);
-  p(0, -9, hellerDunkler(jacke, 0.25), 1, 6); p(5, -9, hellerDunkler(jacke, -0.3), 1, 6);
-  if (a.weste) { p(1, -9, jacke2, 4, 6); p(2, -9, hellerDunkler(jacke2, 0.2), 1, 5); }
-  if (a.fleece) for (let i = 0; i < 6; i += 2) p(1 + (i % 4), -8 + i, hellerDunkler(jacke, 0.12));
-  if (a.reissverschluss) p(3, -9, a.reissverschluss, 1, 6);
-  if (a.kordel) { p(2, -8, a.kordel, 1, 2); p(3, -8, a.kordel, 1, 2); }
-  if (a.riemen) for (let i = 0; i < 6; i++) p(5 - i, -9 + i, a.riemen);
-  p(-1, -8, hellerDunkler(jacke, -0.15), 1, 4); p(6, -8, hellerDunkler(jacke, -0.4), 1, 4); // Ärmel
-  p(-1, -4, haut); p(6, -4, haut); // Hände
-  if (scheibe) { p(6, -5, PAL.schwarz, 3, 3); p(7, -4, scheibe, 2, 1); p(7, -5, hellerDunkler(scheibe, 0.4)); }
-  // Kopf: Gesicht, Haare, Augen, Bart, Brille, Kopfbedeckung
-  p(1, -15, haut, 4, 6); p(0, -14, haut, 6, 4);
-  p(0, -14, hellerDunkler(haut, 0.12), 1, 3); p(5, -13, hellerDunkler(haut, -0.18), 1, 3);
-  p(1, -16, haare, 4, 1); p(0, -15, haare, 6, 1);
-  if (a.frisur === "geheimratsecken") { p(1, -15, haut); p(4, -15, haut); }
-  else { p(0, -14, haare); p(5, -14, haare); }
-  if (a.frisur === "zerzaust") { p(0, -17, haare); p(3, -17, haare); p(6, -16, haare); p(-1, -15, haare); }
-  const auge = a.augen || PAL.schwarz;
-  p(1, -13, PAL.weiss); p(4, -13, PAL.weiss); p(2, -13, auge); p(3, -13, auge);
-  if (a.brille) { p(0, -13, a.brille); p(5, -13, a.brille); p(1, -14, a.brille, 4, 1); }
-  const bart = a.bartfarbe || haare;
-  if (a.bart === "vollbart") { p(0, -11, bart, 6, 2); p(1, -12, bart); p(4, -12, bart); p(2, -11, hellerDunkler(haut, -0.25), 2, 1); }
-  else if (a.bart === "kurz") { p(0, -12, bart, 1, 2); p(5, -12, bart, 1, 2); p(1, -10, bart, 4, 1); p(2, -11, hellerDunkler(haut, -0.25), 2, 1); }
-  else if (a.bart === "schnurrbart") { p(1, -11, bart, 4, 1); p(2, -10, hellerDunkler(haut, -0.25), 2, 1); }
-  else if (a.bart === "stoppeln") { p(1, -10, bart); p(3, -10, bart); p(0, -11, bart); p(5, -11, bart); }
-  else p(2, -11, hellerDunkler(haut, -0.25), 2, 1);
-  if (kopf.typ === "cap") {
-    p(0, -17, kopf.farbe, 6, 2); p(4, -15, kopf.farbe, 4, 1); p(1, -17, hellerDunkler(kopf.farbe, 0.25), 2, 1);
-    if (kopf.abzeichen) p(2, -16, kopf.abzeichen);
-  } else if (kopf.typ === "stirnband") { p(0, -15, kopf.farbe, 6, 1); p(-1, -14, kopf.farbe); }
-  // Markierung, wer dran ist: kleiner Pfeil über dem Kopf
-  if (marke) { p(0, -22, PAL.schwarz, 6, 1); p(0, -21, PAL.weiss, 6, 1); p(1, -20, PAL.weiss, 4, 1); p(2, -19, PAL.weiss, 2, 1); }
-};

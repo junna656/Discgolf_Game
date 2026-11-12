@@ -14,6 +14,9 @@
 // Neues Thema: in THEMEN unten einen Eintrag mit name, optik, namen und baue(z, g, L) ergänzen.
 // Die Optik entweder als optikDaten im Thema (Paletten, landen mit in wochenbahnen.js – kein Release nötig)
 // oder fest in JAHRESZEITEN (grafik.js, braucht ein Release). Vorlage: JAHRESZEITEN.wueste.
+// Neue Gegenstände (3/4-Ansicht): in baeume mit art, r und h; die Art in optikDaten.objekte festlegen,
+// z. B. objekte: { eisblock: { form: "brocken", farben: ["#…", …] } } – Formen: krone, kegel, saeule,
+// brocken, kugel (siehe OBJEKT_FORMEN in grafik.js). --pruefen meldet unbekannte Arten und Formen.
 // Ein Thema, das eine Jahreszeit ist (z. B. Winter), nimmt einfach deren Optik.
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -375,9 +378,23 @@ function schreibe(liste) {
   const text = kopf + "window.WOCHENBAHNEN = [\n" + liste.map(e => JSON.stringify(e)).join(",\n") + "\n];\n";
   writeFileSync(DATEI, text);
 }
+// Gegenstände (3/4-Ansicht): Formen und eingebaute Arten direkt aus grafik.js lesen, damit beides gleich bleibt
+function baukasten() {
+  const g = readFileSync(join(WURZEL, "grafik.js"), "utf8");
+  const formen = JSON.parse((g.match(/window\.OBJEKT_FORMEN = (\[[^\]]*\])/) || [, "[]"])[1]);
+  const block = (g.match(/window\.OBJEKT_ARTEN = \{([\s\S]*?)\n\};/) || [, ""])[1];
+  const arten = [...block.matchAll(/^\s+(\w+): \{ form:/gm)].map(m => m[1]);
+  return { formen, arten };
+}
 function pruefe(liste) {
-  const fehler = [];
+  const fehler = [], { formen, arten } = baukasten();
   for (const e of liste) {
+    // eigene Arten des Themas: optikDaten.objekte = { art: { form, farben } }
+    const eigene = (e.optikDaten && e.optikDaten.objekte) || {};
+    for (const [art, d] of Object.entries(eigene)) {
+      if (!formen.includes(d.form)) fehler.push(e.woche + `: Art "${art}" hat unbekannte Form "${d.form}" (vorhanden: ${formen.join(", ")})`);
+      if (!(typeof d.farben === "string" || (Array.isArray(d.farben) && d.farben.length >= 5))) fehler.push(e.woche + `: Art "${art}" braucht farben (Palettenname oder mind. 5 Farben dunkel → hell)`);
+    }
     if (!/^\d{4}-\d{1,2}$/.test(e.woche) || !/^\d{4}-\d\d-\d\d$/.test(e.ab)) fehler.push(e.woche + ": woche/ab ungültig");
     const bahnen = e.bahnen || [e.bahn];
     if (!bahnen.length || bahnen.length > 30) fehler.push(e.woche + ": 1–30 Bahnen");
@@ -388,6 +405,10 @@ function pruefe(liste) {
     for (const p of [b.abwurf, b.korb]) if (!(p.x > 0 && p.y > 0 && p.x < b.welt.breite && p.y < b.welt.hoehe)) fehler.push(e.woche + ": Abwurf/Korb außerhalb");
     const imOB = p => (b.ob || []).some(o => o.insel ? p.x >= o.ab && !imPolygon(p, o.insel) : o.punkte && imPolygon(p, o.punkte));
     if (imOB(b.abwurf) || imOB(b.korb)) fehler.push(e.woche + ": Abwurf/Korb im OB (Bahn " + b.nummer + ")");
+    for (const t of b.baeume || []) {
+      if (t.art && !arten.includes(t.art) && !eigene[t.art]) fehler.push(e.woche + `: unbekannte Art "${t.art}" (Bahn ${b.nummer}) – eingebaut: ${arten.join(", ")}; sonst in optikDaten.objekte festlegen`);
+      if (t.art && !(t.h > 0)) fehler.push(e.woche + `: Gegenstand "${t.art}" ohne Höhe h (Bahn ${b.nummer})`);
+    }
     if (b.mando && !(b.baeume || []).some(t => Math.hypot(t.x - b.mando.a[0], t.y - b.mando.a[1]) < 0.5)) fehler.push(e.woche + ": Mando ohne Felsen (Bahn " + b.nummer + ")");
     }
   }

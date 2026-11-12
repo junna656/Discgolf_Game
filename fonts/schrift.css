@@ -1,3 +1,10 @@
-/* Silkscreen (SIL Open Font License 1.1, siehe OFL.txt) – lokal eingebunden, keine Verbindung zu Google */
+/* Silkscreen und Pixelify Sans (SIL Open Font License 1.1, siehe OFL.txt) – lokal eingebunden, keine Verbindung zu Google */
 @font-face { font-family: "Silkscreen"; font-style: normal; font-weight: 400; font-display: swap; src: url(silkscreen-400.woff2) format("woff2"); }
 @font-face { font-family: "Silkscreen"; font-style: normal; font-weight: 700; font-display: swap; src: url(silkscreen-700.woff2) format("woff2"); }
+/* Pixelify Sans: Schrift im Spielbild bei hoher Auflösung (feines Raster, 16-Bit-Optik) */
+@font-face { font-family: "Pixelify Sans"; font-style: normal; font-weight: 400; font-display: swap; src: url(pixelify-sans-400.woff2) format("woff2"); }
+@font-face { font-family: "Pixelify Sans"; font-style: normal; font-weight: 700; font-display: swap; src: url(pixelify-sans-700.woff2) format("woff2"); }
+/* Für Menüs und Seiten: dieselbe Schrift 25 % größer – ihre Kleinbuchstaben sind kleiner als die
+   Kapitälchen von Silkscreen, so bleiben die vorhandenen Schriftgrößen lesbar */
+@font-face { font-family: "Pixelify Menue"; font-style: normal; font-weight: 400; font-display: swap; size-adjust: 125%; src: url(pixelify-sans-400.woff2) format("woff2"); }
+@font-face { font-family: "Pixelify Menue"; font-style: normal; font-weight: 700; font-display: swap; size-adjust: 125%; src: url(pixelify-sans-700.woff2) format("woff2"); }
