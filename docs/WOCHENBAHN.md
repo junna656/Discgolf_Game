@@ -41,7 +41,7 @@ node werkzeuge/grafik_vorschau.mjs                                # (Bilder eine
 - Thema **Herbstnacht** (`--thema herbstnacht`): dunkler Herbstwald am Abend, Weiher und Bäche als OB (`art: "wasser"`),
   Bahntypen **mando** (Lücke in einem Baumriegel), **insel** (Korb auf einer Insel im Weiher), **inselkette** (Par 4:
   ab `ab` alles Wasser, mehrere Inseln hintereinander – `insel` = Korbinsel, `inseln` = weitere), **quer** (Bach quer),
-  **offen** (Wald). Reihenfolge der Typen über `plan` im Thema (`--typen a,b,…` überschreibt), `typPar` legt das Par
+  **offen** (Wald); nie zwei kreuzende Bäche. Reihenfolge der Typen über `plan` im Thema (`--typen a,b,…` überschreibt), `typPar` legt das Par
   eines Typs fest (inselkette: 4). Optik: `optikDaten` mit `nacht: true` (Mond, Sterne, dunkle Wolken in der
   Putt-Ansicht), `glow: true` (alle Scheiben leuchten grün wie Phosphor-Glow), `wasser`, `laubbaumVarianten`,
   `wolken` – das ist Spiel-Code ab dem Release nach 0.9.0; ohne ihn bleibt die Bahn spielbar, aber ohne Glow/Mond,

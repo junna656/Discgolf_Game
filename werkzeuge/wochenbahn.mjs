@@ -329,7 +329,7 @@ const THEMEN = {
 
       if (typ === "quer") {
         baeche.push(querBand(z, g, P(0.35 + z() * 0.35)));
-        if (z() < 0.4) baeche.push(laengsBand(z, g, linie));
+        z(); // früher: zweiter Bach längs – keine kreuzenden Bäche (nur ein Gewässer je Bahn)
       } else if (typ === "insel") {
         const R = 8 + z() * 4, ab = r1(korb.x - R - 6 - z() * Math.min(18, L * 0.15));
         if (ab < abwurf.x + 30) return null;
