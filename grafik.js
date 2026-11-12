@@ -21,6 +21,8 @@
 //     im Herbst fallen bunte Blätter (zeichneLaubfall, jedes Bild in der Spielschleife)
 //   - Themen-Optiken der Wochenbahnen stehen mit in JAHRESZEITEN (z. B. "wueste": Sand mit
 //     Windrippeln, Kakteen und Felsen statt Bäumen, rissige Flussbetten als OB mit art "flussbett")
+//   - Nacht-Optiken (nacht: true): Mond und Sterne in der Putt-Ansicht; glow: true lässt im Spiel alle Scheiben
+//     grün leuchten (index.html); Wasser als OB mit art "wasser"; Inseln: insel + inseln (mehrere Inseln im Wasser)
 // ============================================================
 "use strict";
 
@@ -46,7 +48,8 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   const aufFairway = maske(m => { if (bahn.fairway && bahn.fairway.length) { polygonPfad(m, bahn.fairway); m.fill(); } }, BW, BH);
   const obTests = (bahn.ob || []).map(o => {
     if (o.w !== undefined) return (px, py, x, y) => x >= o.x && x <= o.x + o.w && y >= o.y && y <= o.y + o.h;
-    const mm = maske(cc => { polygonPfad(cc, o.linie ? linienFlaeche(o) : o.punkte || o.insel); cc.fill(); }, BW, BH);
+    // Inseln (insel, inseln): mehrere Inseln hintereinander sind alle frei, OB ist nur das Wasser drumherum
+    const mm = maske(cc => { if (o.insel) for (const r of inselRinge(o)) { polygonPfad(cc, r); cc.fill(); } else { polygonPfad(cc, o.linie ? linienFlaeche(o) : o.punkte); cc.fill(); } }, BW, BH);
     return o.insel ? (px, py, x) => x >= o.ab && !mm(px, py) : (px, py) => mm(px, py);
   });
   const inBild = (px, py) => px >= 0 && py >= 0 && px < BW && py < BH;
@@ -75,6 +78,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   const R = a => a.map(rgb);
   const JZ = JAHRESZEITEN[opt.jahreszeit] || JAHRESZEITEN.sommer, winter = !!JZ.schnee, wueste = !!JZ.wueste;
   const GRAS = R(JZ.gras), AUS = R(JZ.aus), FAIR = R(JZ.fair), WEG = R(JZ.weg), FLUSS = R(JZ.flussbett || JZ.aus);
+  const WASSER = R(JZ.wasser || ["#0e2a44", "#163a5a", "#1e4a6e", "#2a5e84", "#3c7498", "#5a90b0"]);
   const ERDE = R(JZ.erde || ["#5a4228", "#735634", "#8c6c42"]);
   const DECK = R(["#5e3c1e", "#7a5530", "#9a6e3a", "#b88a4c", "#cfa262", "#e0bc7c"]);
 
@@ -146,6 +150,13 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
       const riss = (d2 - d1) * S < Math.max(1, S * 0.09);
       let t = riss ? 0.02 : 0.45 + (zelle - 0.5) * 0.35 + (n - 0.5) * 0.3 + Math.min(0.2, (d2 - d1) * 0.25) + (fein - 0.5) * 0.08;
       f = FLUSS[stufe(FLUSS.length, t - schatten * 0.18, px, py)]; a = 1;
+    } else if (zone && zone.art === "wasser") {
+      // stilles Wasser (Weiher): großflächig dunkle und hellere Stellen, feine Wellenlinien quer, am Ufer dunkler,
+      // ab und zu ein Lichtglitzern (Mond); Schatten der Bäume als dunklere Stufe
+      const welle = Math.sin(y * 3.1 + vnoise(x / 2.5, y / 2.5, 31) * 7 + x * 0.25);
+      let t = 0.38 + (n - 0.5) * 0.45 + (welle > 0.86 ? 0.22 : welle < -0.9 ? -0.1 : 0) + (fein - 0.5) * 0.06 - schatten * 0.16;
+      if (fein > 0.9965 && welle > 0.5) t = 1;
+      f = WASSER[stufe(WASSER.length, t, px, py)]; a = 1;
     } else if (zone && zone.w !== undefined && !zone.art) {
       f = WEG[stufe(WEG.length, 0.4 + n * 0.4, px, py)]; a = 3;
     } else if (wegB(px, py)) {
@@ -288,8 +299,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
 
   // ---------- OB-Grenzen: Zaun mit Pfosten und Maschen, Linie mit Pflöcken ----------
   const am = (v, m) => v <= 0.01 || v >= m - 0.01;
-  for (const [oi, o] of bahn.ob.entries()) {
-    const pk = o.linie || o.insel || o.punkte || [[o.x, o.y], [o.x + o.w, o.y], [o.x + o.w, o.y + o.h], [o.x, o.y + o.h]];
+  for (const [oi, o] of bahn.ob.entries()) for (const pk of o.insel ? inselRinge(o) : [o.linie || o.punkte || [[o.x, o.y], [o.x + o.w, o.y], [o.x + o.w, o.y + o.h], [o.x, o.y + o.h]]]) {
     // Linie nicht durch eine andere OB-Fläche ziehen (z. B. wo sich zwei Flussbetten kreuzen)
     const inAnderemOB = (px, py, x, y) => inBild(px, py) && obTests.some((t, j) => j !== oi && t(px, py, x, y));
     let weg = 0; // zurückgelegte Meter entlang der Grenze, für gleichmäßige Pfostenabstände
@@ -335,7 +345,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
 
   // ---------- Brücken: wo ein Weg ein Flussbett kreuzt (nur Bild – darunter bleibt OB) ----------
   for (const w of bahn.wege || []) {
-    const pk = w.punkte, fluss = (bahn.ob || []).filter(o => o.art === "flussbett"), imFluss = (x, y) => fluss.some(o => obTests[bahn.ob.indexOf(o)](Math.round(x * S), Math.round(y * S), x, y));
+    const pk = w.punkte, fluss = (bahn.ob || []).filter(o => o.art === "flussbett" || o.art === "wasser"), imFluss = (x, y) => fluss.some(o => obTests[bahn.ob.indexOf(o)](Math.round(x * S), Math.round(y * S), x, y));
     if (!fluss.length) continue;
     for (let i = 0; i < pk.length - 1; i++) {
       const [ax, ay] = pk[i], [bx, by] = pk[i + 1], len = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / len, uy = (by - ay) / len;
@@ -578,6 +588,8 @@ window.baumAnhebung = b => Math.max(b.r * 1.1, (b.h || Math.min(12, Math.max(3, 
 //    So kommen neue Gegenstände ohne Release live; nur eine neue Form braucht Code (und ein Release).
 //  - unbekannte Art: Form "kugel" in Felsfarben, damit nie etwas unsichtbar ist.
 //  Höhen werden mit 0,6 projiziert – wie die Flughöhe der Scheibe.
+// Inselringe einer OB-Zone mit insel/ab: insel (eine Insel) und optional inseln (weitere Inseln, z. B. Inselkette)
+window.inselRinge = o => [o.insel, ...(o.inseln || [])].filter(Boolean);
 window.OBJEKT_FORMEN = ["krone", "kegel", "saeule", "brocken", "kugel"];
 window.OBJEKT_ARTEN = {
   kaktus: { form: "saeule", farben: "laubbaum" },
@@ -931,6 +943,8 @@ for (const e of window.WOCHENBAHNEN || []) {
   if (!d || !e.optik || JAHRESZEITEN[e.optik]) continue;
   const o = Object.assign({}, JAHRESZEITEN[d.basis] || JAHRESZEITEN.sommer, d);
   if (Array.isArray(o.laubbaum)) { const f = o.laubbaum; o.laubbaum = () => f; }
+  // laubbaumVarianten: mehrere Laubfarben (Liste von Paletten), je Baum fest nach Lage gewählt
+  if (Array.isArray(d.laubbaumVarianten) && d.laubbaumVarianten.length) { const v = d.laubbaumVarianten; o.laubbaum = h => v[Math.min(v.length - 1, Math.floor(h * v.length))]; }
   JAHRESZEITEN[e.optik] = o;
 }
 
@@ -997,17 +1011,32 @@ function puttSzeneMalen(jz, bw, bh, A = 1) {
     }
     K(bw - 24, 18, 9, "#fff2a8"); K(bw - 24, 18, 7, "#ffe066"); K(bw - 26, 16, 3, "#fff6c8");
   }
+  if (JZ.nacht) {
+    // Nacht (Optik mit nacht: true): Sterne, oben mehr; Mond mit Schein und dunklen Flecken
+    for (let i = 0; i < 70 * A; i++) {
+      const y = Math.floor(Math.pow(rd(), 1.6) * (HOR - 14 * A)), x = Math.floor(rd() * BW);
+      punkt(x, y, rd() < 0.25 ? "#fff6d8" : "#9aa8c8");
+    }
+    const mx = 28, my = 22;
+    for (let y = -16 * A; y <= 16 * A; y++) for (let x = -16 * A; x <= 16 * A; x++) {
+      const d = Math.hypot(x, y) / A; if (d > 8 && d < 16 && bay(x & 3, y & 3) < (16 - d) / 14) punkt(mx * A + x, my * A + y, HIMMEL[Math.min(HIMMEL.length - 1, 2)]);
+    }
+    K(mx, my, 8, "#c8c4a8"); K(mx - 1, my - 1, 7, "#f2ecc8");
+    K(mx + 2, my + 2, 1.6, "#d4ceae"); K(mx - 3, my + 3, 1.2, "#d4ceae"); K(mx + 3, my - 3, 1, "#ddd6b6");
+  }
   const wolke = (x, y, w, hell, dunkel) => {
     // Unterseite dunkler, darüber die hellen Ballen, oben links ein Lichtrand
     for (let i = 0; i < w; i += 5) K(x + i, y + 1 - Math.round(Math.sin(i / w * Math.PI) * 5), 5 + (i % 3), dunkel);
     for (let i = 0; i < w; i += 5) K(x + i, y - Math.round(Math.sin(i / w * Math.PI) * 5), 5 + (i % 3), hell);
-    if (A > 1) for (let i = 0; i < w; i += 5) K(x + i - 1, y - 1.5 - Math.round(Math.sin(i / w * Math.PI) * 5), 2.5 + (i % 3) * 0.6, "#ffffff");
+    if (A > 1) for (let i = 0; i < w; i += 5) K(x + i - 1, y - 1.5 - Math.round(Math.sin(i / w * Math.PI) * 5), 2.5 + (i % 3) * 0.6, JZ.nacht ? hell : "#ffffff");
     R(x - 4, y + 3, w + 8, 2, dunkel);
     R(x - 5, y + 1, w + 10, 2, hell);
   };
   const wolken = { fruehling: 3, sommer: 2, herbst: 4, winter: 5, wueste: 1 }[jz] ?? 2;
   for (let i = 0; i < wolken; i++) {
     const w = 18 + Math.floor(rnd() * 22), x = 6 + rnd() * (bw - w - 12), y = 12 + rnd() * 40;
+    // eigene Wolkenfarben der Optik (wolken: [hell, dunkel]), z. B. dunkle Nachtwolken
+    if (JZ.wolken) { if (!JZ.nacht || x > 50) wolke(x, y, w, JZ.wolken[0], JZ.wolken[1]); continue; }
     wolke(x, y, w, winter ? "#eef2f6" : "#f8fbff", winter ? "#c4ccd6" : jz === "herbst" ? "#b8c4cc" : "#d8e8f2");
   }
 

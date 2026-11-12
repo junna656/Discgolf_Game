@@ -759,6 +759,21 @@ function aktuelleJahreszeit() {
   return g === "auto" || !JAHRESZEITEN[g] ? jahreszeitNachDatum() : g;
 }
 const mitSchnee = jz => !!(JAHRESZEITEN[jz] || {}).schnee;
+// Nachtbahnen (Optik mit glow: true, z. B. Wochenbahn „Herbstnacht“): alle Scheiben leuchten wie Phosphor-Glow-Plastik
+const GLOW = "#a8ff7a";
+const glowAn = () => !!(JAHRESZEITEN[aktuelleJahreszeit()] || {}).glow;
+const scheibenFarbe = typ => glowAn() ? GLOW : TYPFARBE[typ] || PAL.weiss;
+// weicher Lichtschein um eine leuchtende Scheibe (Spielpixel; r = Radius außen), pulsiert leicht
+function glowSchein(x, y, r) {
+  const q = 1 / AUF, puls = 0.85 + Math.sin(uhr * 3) * 0.15;
+  for (let j = -r; j <= r; j += q) for (let i = -r * 1.3; i <= r * 1.3; i += q) {
+    const e = Math.hypot(i / 1.3, j) / r;
+    if (e > 1) continue;
+    const a = (1 - e) * (1 - e) * 0.5 * puls;
+    if (a < 0.03) continue;
+    ctx.fillStyle = `rgba(150,255,110,${a.toFixed(3)})`; ctx.fillRect(x + i, y + j, q, q);
+  }
+}
 
 // Teile des Bahnbilds, die grafik.js mitbenutzt
 // Entfernungsmarken, Spielfeldlinien und Tore
@@ -1637,7 +1652,9 @@ function zeichneWeltObjekte(korbWackelt) {
     zeichneScheibe(sch.p, sch.dreht, "schatten");
     for (const q of sch.spur) {
       const c = zuSchirm(q);
-      liste.push({ y: c.y, zeichne: () => { ctx.fillStyle = "rgba(255,255,255,.3)"; ctx.fillRect(c.x, c.y - Math.round(q.z * S * 0.6), 1, 1); } });
+      liste.push({ y: c.y, zeichne: glowAn()
+        ? () => { const yy = c.y - Math.round(q.z * S * 0.6); ctx.fillStyle = "rgba(150,255,110,.28)"; ctx.fillRect(c.x - 1, yy - 1, 3, 3); ctx.fillStyle = "rgba(190,255,160,.75)"; ctx.fillRect(c.x, yy, 1, 1); }
+        : () => { ctx.fillStyle = "rgba(255,255,255,.3)"; ctx.fillRect(c.x, c.y - Math.round(q.z * S * 0.6), 1, 1); } });
     }
     liste.push({ y: zuSchirm(sch.p).y + 0.02, zeichne: () => zeichneScheibe(sch.p, sch.dreht, "scheibe") });
   }
@@ -1673,7 +1690,7 @@ function figurPose(s, i) {
   else if (nachWurf) { pose = "wurf"; bild = 0; }
   if (r === null) r = dran && (zustand === "zielen" || zustand === "laden" || nachWurf) ? (nachWurf && flug.richtung !== undefined ? flug.richtung : ziel) : zumKorb(ort);
   const links = (hochkant ? Math.sin(r) : Math.cos(r)) < -0.15;
-  const inHand = dran && !ort.lauf && (zustand === "zielen" || zustand === "laden") && s.tasche[s.scheibe] ? TYPFARBE[s.tasche[s.scheibe].typ] : null;
+  const inHand = dran && !ort.lauf && (zustand === "zielen" || zustand === "laden") && s.tasche[s.scheibe] ? scheibenFarbe(s.tasche[s.scheibe].typ) : null;
   return { pose, bild, links, inHand };
 }
 
@@ -1793,7 +1810,7 @@ function zeichneKraftbalkenSenkrecht(gelb, rot) {
 // teil: "schatten" (am Boden, unter allen Gegenständen), "scheibe" (in der Luft, einsortiert) oder beides
 function zeichneScheibe(p, dreht = false, teil = "beides") {
   const { x, y } = zuSchirm(p), hz = Math.round(p.z * S * 0.6 * AUF) / AUF;
-  const f = TYPFARBE[scheibe().typ] || PAL.weiss, oy = y - hz - 1, q = 1 / AUF;
+  const f = scheibenFarbe(scheibe().typ), oy = y - hz - 1, q = 1 / AUF, glow = glowAn();
   // Schatten am Boden: zeigt, wo die Scheibe wirklich ist (die Scheibe selbst ist um die Flughöhe versetzt);
   // im feinen Raster als runde Ellipse: Kontur, Rand dunkler, Flugplatte mit Licht oben links
   const rx = 3.5 * AUF, ry = 2.5 * AUF;
@@ -1801,7 +1818,10 @@ function zeichneScheibe(p, dreht = false, teil = "beides") {
     const e = ((i + 0.5) / rx) ** 2 + ((j + 0.5) / ry) ** 2;
     if (e <= 1) { ctx.fillStyle = "rgba(0,0,0,.4)"; ctx.fillRect(x + 0.5 + i * q, y + 0.5 + j * q, q, q); }
   }
+  // Glow: grüner Lichtschein auf dem Boden (um den Schatten) und um die Scheibe selbst
+  if (glow && teil !== "scheibe") glowSchein(x + 0.5, y + 0.5, 5);
   if (teil === "schatten") return;
+  if (glow) glowSchein(x + 0.5, oy + 0.5, 7);
   const rxs = rx - 1, rys = ry - 1;
   for (let j = -ry; j < ry; j++) for (let i = -rx; i < rx; i++) {
     const e = ((i + 0.5) / rxs) ** 2 + ((j + 0.5) / rys) ** 2, ea = ((i + 0.5) / rx) ** 2 + ((j + 0.5) / ry) ** 2;
@@ -1884,10 +1904,12 @@ function zeichnePuttAnsicht() {
     }
     // Putter von der Seite im feinen Raster: Kontur, Oberseite hell, Unterseite dunkel
     const q = 1 / AUF, px = Math.round(x * AUF) * q, py = Math.round(y * AUF) * q;
+    const pf = scheibenFarbe("Putter");
+    if (glowAn()) glowSchein(px, py + 1, 8);
     ctx.fillStyle = PAL.schwarz; ctx.fillRect(px - 3.5 - q, py - q, 7 + 2 * q, 2 + 2 * q); ctx.fillRect(px - 2.5, py - 2 * q, 5, q);
-    ctx.fillStyle = TYPFARBE.Putter; ctx.fillRect(px - 3.5, py, 7, 2);
-    ctx.fillStyle = hellerDunkler(TYPFARBE.Putter, 0.35); ctx.fillRect(px - 2.5, py - q, 5, q + q);
-    ctx.fillStyle = hellerDunkler(TYPFARBE.Putter, -0.35); ctx.fillRect(px - 3.5, py + 2 - q, 7, q);
+    ctx.fillStyle = pf; ctx.fillRect(px - 3.5, py, 7, 2);
+    ctx.fillStyle = hellerDunkler(pf, 0.35); ctx.fillRect(px - 2.5, py - q, 5, q + q);
+    ctx.fillStyle = hellerDunkler(pf, -0.35); ctx.fillRect(px - 3.5, py + 2 - q, 7, q);
     if (t > 1 && t < 1.05 && !f.ton) {
       f.ton = true;
       if (f.ergebnis === "drin" || f.ergebnis === "spit") sfx.ketten(); else sfx.landung();

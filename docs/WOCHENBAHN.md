@@ -38,6 +38,14 @@ node werkzeuge/grafik_vorschau.mjs                                # (Bilder eine
   nie auf einem Fels liegen. Felswände sind Mauern mit `art: "felswand"`, `h: 30` (nicht zu überfliegen), `breite`
   und `seite` (Felsband liegt außen); in der Schlucht mit `bisRand: true`: die Wandlinie läuft von Rand zu Rand,
   die Fläche dahinter ist Fels bis zum Spielfeldrand (kein Weg außen herum). Kein Text bei Treffern an Felsen, Kakteen und Felswänden.
+- Thema **Herbstnacht** (`--thema herbstnacht`): dunkler Herbstwald am Abend, Weiher und Bäche als OB (`art: "wasser"`),
+  Bahntypen **mando** (Lücke in einem Baumriegel), **insel** (Korb auf einer Insel im Weiher), **inselkette** (Par 4:
+  ab `ab` alles Wasser, mehrere Inseln hintereinander – `insel` = Korbinsel, `inseln` = weitere), **quer** (Bach quer),
+  **offen** (Wald). Reihenfolge der Typen über `plan` im Thema (`--typen a,b,…` überschreibt), `typPar` legt das Par
+  eines Typs fest (inselkette: 4). Optik: `optikDaten` mit `nacht: true` (Mond, Sterne, dunkle Wolken in der
+  Putt-Ansicht), `glow: true` (alle Scheiben leuchten grün wie Phosphor-Glow), `wasser`, `laubbaumVarianten`,
+  `wolken` – das ist Spiel-Code ab dem Release nach 0.9.0; ohne ihn bleibt die Bahn spielbar, aber ohne Glow/Mond,
+  Wasser als dunkles Aus und mit nur einer Insel (Inselkette dann nicht spielbar).
 - Par per Zufall: ~88 % Par 3 (60–140 m), ~10 % Par 4 (140–200 m), ~2 % Par 5 (201–250 m), `--par` erzwingt.
 - Namen: Kurs = Fantasiename + „ KWxx“, jede Bahn einen eigenen Fantasienamen (keiner doppelt; das Thema
   braucht mindestens Anzahl + 1 Namen).
