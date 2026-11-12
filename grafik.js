@@ -283,6 +283,20 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
       }
     }
   }
+  // Laternen (Form "laterne"): warmer Lichtkegel auf dem Boden, nach außen gedithert schwächer
+  for (const b of baeume) {
+    if (b.form !== "laterne") continue;
+    const L = rgb((b.farben && b.farben[3]) || "#ffd060"), R = 5 * S, cx = b.x * S, cy = b.y * S;
+    for (let py = Math.floor(cy - R); py <= cy + R; py++) for (let px = Math.floor(cx - R * 1.2); px <= cx + R * 1.2; px++) {
+      if (!inBild(px, py)) continue;
+      const e = Math.hypot((px - cx) / 1.2, py - cy) / R;
+      if (e >= 1) continue;
+      const a = Math.floor(((1 - e) ** 1.3 * 0.9) * 5 + bay(px, py)) / 5;
+      if (a <= 0) continue;
+      const i = (py * BW + px) * 4;
+      for (let k = 0; k < 3; k++) d[i + k] = Math.min(255, Math.round(d[i + k] + (L[k] * 0.6 - d[i + k] * 0.05) * a));
+    }
+  }
   c.putImageData(bild, 0, 0);
 
   const rechteck = (x, y, w, h, farbe) => { c.fillStyle = farbe; c.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h))); };
@@ -484,6 +498,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
     if (b.art) { // Draufsicht (Vorschau-Werkzeug): Säule wie Kaktus, Krone/Kegel/Kugel als Krone, sonst Fels
       if (b.form === "saeule") zeichneKaktus(c, cx, cy, r, LB, rr, zr);
       else if (b.form === "kugel" || b.form === "krone" || b.form === "kegel") zeichneBaumKrone(c, b, cx, cy, r, zr, winter);
+      else if (b.form === "laterne") { pixelKreis(c, cx, cy, Math.max(2, r * 1.6), LB[3]); pixelKreis(c, cx, cy, Math.max(1, r * 0.8), LB[4]); }
       else zeichneFels(c, cx, cy, r, LB, rr, zr, S);
     }
     else if (opt.kronen) zeichneBaumKrone(c, b, cx, cy, r, zr, winter);
@@ -592,7 +607,7 @@ window.baumAnhebung = b => Math.max(b.r * 1.1, (b.h || Math.min(12, Math.max(3, 
 //  Höhen werden mit 0,6 projiziert – wie die Flughöhe der Scheibe.
 // Inselringe einer OB-Zone mit insel/ab: insel (eine Insel) und optional inseln (weitere Inseln, z. B. Inselkette)
 window.inselRinge = o => [o.insel, ...(o.inseln || [])].filter(Boolean);
-window.OBJEKT_FORMEN = ["krone", "kegel", "saeule", "brocken", "kugel"];
+window.OBJEKT_FORMEN = ["krone", "kegel", "saeule", "brocken", "kugel", "laterne"];
 window.OBJEKT_ARTEN = {
   kaktus: { form: "saeule", farben: "laubbaum" },
   fels: { form: "brocken", farben: "fels" },
@@ -652,7 +667,8 @@ function zeichneStamm(c, ax, ay, cy, sb, kahl, rr, zr) {
 window.objektSprite = function (o, S, zr, winter) {
   const form = o.form || (o.kiefer ? "kegel" : "krone"), F = o.farben, r = o.r * S, rand = Math.ceil(zr * 2 + 2);
   const hp = form === "krone" || form === "kegel" ? baumAnhebung(o) * S + r * 1.3 : objektHoehe(o) * 0.6 * S + r * 0.9;
-  const BWs = Math.ceil(2 * r * 1.6 + 2 * rand), BHs = Math.ceil(hp + r + 2 * rand);
+  const rb = form === "laterne" ? Math.max(r, S * 1.8) : r; // Laterne: schmaler Pfosten, aber Platz für den Lichtschein
+  const BWs = Math.ceil(2 * rb * 1.6 + 2 * rand), BHs = Math.ceil(hp + rb + 2 * rand);
   const cv = document.createElement("canvas"); cv.width = BWs; cv.height = BHs;
   const c = cv.getContext("2d"), rr = zufall(Math.round(o.x * 31 + o.y * 17));
   const ax = Math.round(BWs / 2), ay = BHs - rand - Math.ceil(r * 0.5);
@@ -676,6 +692,28 @@ window.zeichneObjektSprite = function (c, sp, x, y, dx) {
 };
 
 const ZEICHNER = {
+  // Laterne: dunkler Pfosten, Kopf mit leuchtendem Glas (F[3] warm, F[4] hell) und gedithertem Lichtschein
+  laterne(c, o, { ax, ay, S, zr, F }) {
+    const hp = Math.round(objektHoehe(o) * 0.6 * S), pw = Math.max(zr, Math.round(S * 0.09));
+    const kw = Math.max(3 * zr, Math.round(S * 0.3)) | 1, kh = Math.max(3 * zr, Math.round(S * 0.38)), ky = ay - hp, kx = ax - (kw >> 1);
+    const [lr, lg, lb] = rgb(F[3]), my = ky + kh / 2, R = S * 1.7;
+    // Lichtschein um den Kopf: warm, nach außen durchsichtiger
+    for (let y = Math.floor(my - R); y <= my + R; y++) for (let x = Math.floor(ax - R); x <= ax + R; x++) {
+      const e = Math.hypot(x - ax, y - my) / R;
+      if (e >= 1) continue;
+      c.fillStyle = `rgba(${lr},${lg},${lb},${((1 - e) ** 1.6 * 0.5).toFixed(3)})`; c.fillRect(x, y, 1, 1);
+    }
+    // Pfosten mit Fuß, Licht von links
+    c.fillStyle = F[0]; c.fillRect(ax - (pw >> 1) - zr, ay - zr, pw + 2 * zr, 2 * zr);
+    c.fillRect(ax - (pw >> 1), ky + kh, pw, hp - kh);
+    if (pw > 1) { c.fillStyle = F[2]; c.fillRect(ax - (pw >> 1), ky + kh, Math.max(1, pw >> 1), hp - kh); }
+    // Kopf: dünner Rahmen, helles Glas (Mitte am hellsten), kleines Dach
+    c.fillStyle = F[1]; c.fillRect(kx - zr, ky - zr, kw + 2 * zr, kh + 2 * zr);
+    c.fillStyle = F[3]; c.fillRect(kx, ky, kw, kh);
+    c.fillStyle = F[4]; c.fillRect(kx + zr, ky + zr, Math.max(zr, kw - 2 * zr), Math.max(zr, kh - 2 * zr));
+    c.fillStyle = F[0]; c.fillRect(kx - 2 * zr, ky - 2 * zr, kw + 4 * zr, zr); c.fillRect(kx, ky - 3 * zr, kw, zr);
+    return null;
+  },
   // Laubbaum (oder kahl im Winter): Stamm, angehobene Krone, Schattenseite unten
   krone(c, o, { ax, ay, r, S, zr, rr, winter }) {
     const cy = Math.round(ay - baumAnhebung(o) * S);

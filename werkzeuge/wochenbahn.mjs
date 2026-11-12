@@ -304,6 +304,7 @@ const THEMEN = {
       bueschel: 0.5,
       objekte: {
         findling: { form: "brocken", farben: "fels" },
+        laterne: { form: "laterne", farben: ["#101216", "#22262c", "#3a3e46", "#ffc860", "#fff4c0"] },
         hecke: { form: "kugel", farben: "busch" },
       },
     },
@@ -408,11 +409,37 @@ const THEMEN = {
       const baeume = [...feste, ...imSpiel, ...aussen];
       // Waldweg als Bild (Brücke über Wasser), nicht über Abwurf/Korb
       const wy = z() < 0.5 ? 0 : g.welt.hoehe, wx = g.welt.breite * (0.2 + z() * 0.6);
-      const wege = typ === "insel" || typ === "inselkette" || typ === "mando" ? [] : [{ punkte: [[r1(wx), r1(wy)], [r1(wx + (z() - 0.5) * 30), r1(g.welt.hoehe / 2)], [r1(wx + (z() - 0.5) * 50), r1(g.welt.hoehe - wy)]], breite: 2.5 }];
-      if (wege.length && wege[0].punkte.some((q, i, a) => i && (abstandZurStrecke(abwurf, { x: a[i - 1][0], y: a[i - 1][1] }, { x: q[0], y: q[1] }) < 8 || abstandZurStrecke(korb, { x: a[i - 1][0], y: a[i - 1][1] }, { x: q[0], y: q[1] }) < 8))) wege.length = 0;
-      // Bäume auf dem Weg weg
-      const aufWeg = o => wege.some(w => w.punkte.some((q, i, a) => i && abstandZurStrecke(o, { x: a[i - 1][0], y: a[i - 1][1] }, { x: q[0], y: q[1] }) < o.r + w.breite / 2));
-      return { typ, baeume: baeume.filter(o => !aufWeg(o) || feste.includes(o)), ob, wege, mauern: [], mando, keinXSpiegeln };
+      const strecken = pk => pk.slice(1).map((q, i) => [{ x: pk[i][0], y: pk[i][1] }, { x: q[0], y: q[1] }]);
+      const nahWeg = (p, pk, d) => strecken(pk).some(([a, b]) => abstandZurStrecke(p, a, b) < d);
+      let wege;
+      const uferRing = (ob.find(o => o.inseln) || {}).inseln?.[0];
+      if (uferRing) {
+        // Uferweg: 5 m landeinwärts am gewellten Ufer entlang
+        wege = [{ punkte: uferRing.slice(1, -1).map(([x, y]) => [r1(x - 5), y]), breite: 2.2 }];
+      } else {
+        wege = [{ punkte: [[r1(wx), r1(wy)], [r1(wx + (z() - 0.5) * 30), r1(g.welt.hoehe / 2)], [r1(wx + (z() - 0.5) * 50), r1(g.welt.hoehe - wy)]], breite: 2.5 }];
+        // Mando: der Waldweg darf den Baumriegel nicht durchschneiden
+        if (mando && feste.some(f => nahWeg(f, wege[0].punkte, f.r + 3))) wege = [];
+      }
+      if (wege.length && (nahWeg(abwurf, wege[0].punkte, 8) || nahWeg(korb, wege[0].punkte, 8))) wege = [];
+      // Laternen am Weg: alle ~16 m, abwechselnd links und rechts, nicht im Wasser und nicht an Abwurf/Korb
+      const laternen = [];
+      for (const w of wege) {
+        let rest = 6, sei = 1;
+        for (const [a, b] of strecken(w.punkte)) {
+          const len = abstand(a, b), ux = (b.x - a.x) / (len || 1), uy = (b.y - a.y) / (len || 1);
+          for (; rest <= len; rest += 16, sei = -sei) {
+            const d = w.breite / 2 + 1.1, o = { x: r1(a.x + ux * rest - uy * d * sei), y: r1(a.y + uy * rest + ux * d * sei), r: 0.3, h: 3.2, art: "laterne", fest: true };
+            if (o.x < 1 || o.y < 1 || o.x > g.welt.breite - 1 || o.y > g.welt.hoehe - 1) continue;
+            if (imWasser(o) || wasserNah(o, 1) || abstand(o, abwurf) < 7 || abstand(o, korb) < 8 || feste.some(f => abstand(f, o) < f.r + 1.5)) continue;
+            laternen.push(o);
+          }
+          rest -= len;
+        }
+      }
+      // Bäume auf dem Weg und direkt an den Laternen weg
+      const aufWeg = o => wege.some(w => nahWeg(o, w.punkte, o.r + w.breite / 2)) || laternen.some(l => abstand(l, o) < o.r + 1);
+      return { typ, baeume: [...laternen, ...baeume.filter(o => !aufWeg(o) || feste.includes(o))], ob, wege, mauern: [], mando, keinXSpiegeln };
     },
   },
 };

@@ -46,6 +46,8 @@ node werkzeuge/grafik_vorschau.mjs                                # (Bilder eine
   Putt-Ansicht), `glow: true` (alle Scheiben leuchten grün wie Phosphor-Glow), `wasser`, `laubbaumVarianten`,
   `wolken` – das ist Spiel-Code ab dem Release nach 0.9.0; ohne ihn bleibt die Bahn spielbar, aber ohne Glow/Mond,
   Wasser als dunkles Aus und mit nur einer Insel (Inselkette dann nicht spielbar).
+  Wege bekommen Laternen (alle ~16 m, abwechselnd links/rechts); Inselbahnen einen Uferweg, Mando-Bahnen einen Waldweg,
+  wenn er den Baumriegel nicht schneidet. Laternen brauchen die Form `laterne` (Release; ohne erscheinen sie als graue Kugeln).
 - Par per Zufall: ~88 % Par 3 (60–140 m), ~10 % Par 4 (140–200 m), ~2 % Par 5 (201–250 m), `--par` erzwingt.
 - Namen: Kurs = Fantasiename + „ KWxx“, jede Bahn einen eigenen Fantasienamen (keiner doppelt; das Thema
   braucht mindestens Anzahl + 1 Namen).
@@ -80,7 +82,8 @@ Trefferfläche), `h` (Höhe in m) und `art`. Das Spiel zeichnet jeden Gegenstand
 die Höhe wird mit 0,6 auf den Bildschirm projiziert – genau wie die Flughöhe der Scheibe. Was eine Art ist,
 steht im Baukasten in `grafik.js`:
 
-- **Formen** (`OBJEKT_FORMEN`, Code): `krone` (Stamm + Laubkrone), `kegel` (Stamm + Nadelbaum-Kegel),
+- **Formen** (`OBJEKT_FORMEN`, Code): `laterne` (Pfosten mit leuchtendem Glas, Lichtschein und Lichtkegel am Boden;
+  farben: [Eisen dunkel, Rahmen, Licht am Pfosten, Glas warm, Glas hell]), `krone` (Stamm + Laubkrone), `kegel` (Stamm + Nadelbaum-Kegel),
   `saeule` (Säule mit Armen, z. B. Kaktus), `brocken` (Fels mit Seite und Oberseite), `kugel` (rund auf dem
   Boden, z. B. Busch).
 - **Eingebaute Arten** (`OBJEKT_ARTEN`): `kaktus` → saeule, `fels` → brocken, `busch` → kugel.
