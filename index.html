@@ -1637,15 +1637,46 @@ function figurOrt(s) {
   const a = s.anim || (s.anim = { x: s.lie.x, y: s.lie.y, spiel: spielNr, lauf: null });
   if (a.spiel !== spielNr || modus === "frei") { a.x = s.lie.x; a.y = s.lie.y; a.spiel = spielNr; a.lauf = null; return a; }
   if (s.fertig) return a;
-  const nach = a.lauf ? a.lauf.nach : a;
-  if (Math.hypot(s.lie.x - nach.x, s.lie.y - nach.y) > 0.05)
-    a.lauf = { von: { x: a.x, y: a.y }, nach: { x: s.lie.x, y: s.lie.y }, t0: uhr, dauer: Math.min(2.2, 0.4 + abstand(a, s.lie) / 40) };
+  const nach = a.lauf ? a.lauf.ziel : a;
+  if (Math.hypot(s.lie.x - nach.x, s.lie.y - nach.y) > 0.05) {
+    const pk = laufWeg({ x: a.x, y: a.y }, s.lie), len = pk.slice(1).reduce((l, q, i) => l + abstand(pk[i], q), 0);
+    a.lauf = { von: { x: a.x, y: a.y }, nach: { x: s.lie.x, y: s.lie.y }, ziel: { x: s.lie.x, y: s.lie.y }, pk, len, t0: uhr, dauer: Math.min(pk.length > 2 ? 3.5 : 2.2, 0.4 + len / 40) };
+  }
   if (a.lauf) {
-    const t = Math.min(1, (uhr - a.lauf.t0) / a.lauf.dauer), { von, nach: n } = a.lauf;
-    a.x = von.x + (n.x - von.x) * t; a.y = von.y + (n.y - von.y) * t;
-    if (t >= 1) a.lauf = null;
+    // entlang des Wegs (über Brücken), Richtung des aktuellen Abschnitts für die Blickrichtung
+    const t = Math.min(1, (uhr - a.lauf.t0) / a.lauf.dauer), pk = a.lauf.pk;
+    let rest = t * a.lauf.len, i = 0;
+    while (i < pk.length - 2 && rest > abstand(pk[i], pk[i + 1])) { rest -= abstand(pk[i], pk[i + 1]); i++; }
+    const l = abstand(pk[i], pk[i + 1]) || 1, f = Math.min(1, rest / l);
+    a.x = pk[i].x + (pk[i + 1].x - pk[i].x) * f; a.y = pk[i].y + (pk[i + 1].y - pk[i].y) * f;
+    a.lauf.von = pk[i]; a.lauf.nach = pk[i + 1]; // aktueller Abschnitt, für die Blickrichtung (figurPose); Ziel steht in ziel
+    if (t >= 1) { a.lauf = null; a.x = s.lie.x; a.y = s.lie.y; }
   }
   return a;
+}
+// Laufweg von a nach b: gerade, außer die Strecke führt durchs Wasser (OB mit art "wasser") – dann über die
+// Brücken der Bahn (bahn.bruecken), kürzester Weg über deren Enden (Dijkstra). Ohne Lösung: gerade (wie früher).
+function laufWeg(a, b) {
+  const br = bahn.bruecken || [];
+  const nass = p => { const z = Physik.obZone(p, bahn); return z && z.art === "wasser"; };
+  const frei = (p, q) => { const d = abstand(p, q), n = Math.ceil(d / 0.5); for (let k = 1; k < n; k++) if (nass({ x: p.x + (q.x - p.x) * k / n, y: p.y + (q.y - p.y) * k / n })) return false; return true; };
+  if (!br.length || frei(a, b)) return [a, { x: b.x, y: b.y }];
+  const knoten = [a, { x: b.x, y: b.y }, ...br.flatMap(r => [{ x: r.a[0], y: r.a[1] }, { x: r.b[0], y: r.b[1] }])];
+  const n = knoten.length, dist = Array(n).fill(Infinity), vor = Array(n).fill(-1), fertig = Array(n).fill(false);
+  const kante = (i, j) => {
+    if (i >= 2 && j >= 2 && (i >> 1) === (j >> 1) && i !== j) return abstand(knoten[i], knoten[j]); // dieselbe Brücke
+    return frei(knoten[i], knoten[j]) ? abstand(knoten[i], knoten[j]) : Infinity;
+  };
+  dist[0] = 0;
+  for (let k = 0; k < n; k++) {
+    let u = -1; for (let i = 0; i < n; i++) if (!fertig[i] && (u < 0 || dist[i] < dist[u])) u = i;
+    if (u < 0 || dist[u] === Infinity) break;
+    fertig[u] = true; if (u === 1) break;
+    for (let v = 0; v < n; v++) if (!fertig[v]) { const w = kante(u, v); if (dist[u] + w < dist[v]) { dist[v] = dist[u] + w; vor[v] = u; } }
+  }
+  if (dist[1] === Infinity) return [a, { x: b.x, y: b.y }];
+  const pk = []; for (let i = 1; i >= 0; i = vor[i]) pk.unshift(knoten[i]);
+  return pk;
 }
 // Wer gerade eingelocht hat, jubelt noch kurz. Bei Putts erst, wenn die Nahansicht zu ist – aber nur, wenn das
 // gleich danach passiert (puttet der Nächste sofort weiter, bleibt sie offen: dann kein verspäteter Jubel).

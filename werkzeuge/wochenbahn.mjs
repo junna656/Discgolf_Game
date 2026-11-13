@@ -440,7 +440,39 @@ const THEMEN = {
       }
       // Bäume auf dem Weg und direkt an den Laternen weg
       const aufWeg = o => wege.some(w => nahWeg(o, w.punkte, o.r + w.breite / 2)) || laternen.some(l => abstand(l, o) < o.r + 1);
-      return { typ, baeume: [...laternen, ...baeume.filter(o => !aufWeg(o) || feste.includes(o))], ob, wege, mauern: [], mando, keinXSpiegeln };
+      // Brücken (Fußgänger, nur Bild – darunter bleibt OB): Ufer → Inseln → Korbinsel, und je Bach eine neben der Spiellinie
+      const bruecken = [];
+      const dicht = ring => ring.flatMap((p, i) => { const q = ring[(i + 1) % ring.length], n = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]))); return Array.from({ length: n }, (_, k) => ({ x: p[0] + (q[0] - p[0]) * k / n, y: p[1] + (q[1] - p[1]) * k / n })); });
+      const imFeld = p => p.x > 0.5 && p.y > 0.5 && p.x < g.welt.breite - 0.5 && p.y < g.welt.hoehe - 0.5;
+      const verbinde = (A, B) => {
+        let best = null;
+        for (const p of dicht(A)) if (imFeld(p)) for (const q of dicht(B)) { const d = abstand(p, q); if (!best || d < best.d) best = { p, q, d }; }
+        if (!best) return;
+        const ux = (best.q.x - best.p.x) / best.d, uy = (best.q.y - best.p.y) / best.d;
+        bruecken.push({ a: [r1(best.p.x - ux * 1.2), r1(best.p.y - uy * 1.2)], b: [r1(best.q.x + ux * 1.2), r1(best.q.y + uy * 1.2)], breite: 1.8 });
+      };
+      const io = ob.find(o => o.inseln);
+      if (io) { const kette = [io.inseln[0], ...io.inseln.slice(1).reverse(), io.insel]; for (let i = 0; i < kette.length - 1; i++) verbinde(kette[i], kette[i + 1]); }
+      for (const fb of baeche) {
+        // Stelle, an der die Spiellinie den Bach kreuzt; die Brücke liegt 4 m daneben, quer über den Bach
+        let m = null, u = null;
+        for (let t = 0; t <= 1; t += 0.002) { const p = P(t); if (imPolygon(p, fb)) { m = p; u = { x: p.ux, y: p.uy }; break; } }
+        if (!m) continue;
+        for (const ver of [4, -4, 0]) {
+          const s0 = { x: m.x - u.y * ver, y: m.y + u.x * ver };
+          // entlang der Spielrichtung den Wasserabschnitt suchen, der s0 am nächsten liegt, und ganz überspannen
+          const drin = []; for (let d = -30; d <= 30; d += 0.25) drin.push([d, imPolygon({ x: s0.x + u.x * d, y: s0.y + u.y * d }, fb)]);
+          let lauf = null, best = null;
+          for (const [d, w] of drin) { if (w) lauf = lauf ? { ...lauf, bis: d } : { von: d, bis: d }; else if (lauf) { if (!best || Math.abs((lauf.von + lauf.bis) / 2) < Math.abs((best.von + best.bis) / 2)) best = lauf; lauf = null; } }
+          if (!best || best.von <= -30 || best.bis >= 30) continue;
+          const a = { x: s0.x + u.x * (best.von - 0.25), y: s0.y + u.y * (best.von - 0.25) }, b = { x: s0.x + u.x * (best.bis + 0.25), y: s0.y + u.y * (best.bis + 0.25) };
+          if (!a || !b || imWasser(a) || imWasser(b)) continue;
+          bruecken.push({ a: [r1(a.x - u.x * 1.2), r1(a.y - u.y * 1.2)], b: [r1(b.x + u.x * 1.2), r1(b.y + u.y * 1.2)], breite: 1.8 });
+          break;
+        }
+      }
+      const anBruecke = o => bruecken.some(br => abstandZurStrecke(o, { x: br.a[0], y: br.a[1] }, { x: br.b[0], y: br.b[1] }) < o.r + br.breite / 2 + 0.8);
+      return { typ, baeume: [...laternen, ...baeume.filter(o => !aufWeg(o) || feste.includes(o))].filter(o => !anBruecke(o) || feste.includes(o)), ob, wege, mauern: [], mando, keinXSpiegeln, bruecken };
     },
   },
 };
@@ -518,6 +550,7 @@ function baueBahn(T, { woche, thema, seed, nr, parErzwungen, belegteNamen, typVo
     // einmal gespiegelt dreht sich die Laufrichtung der Wandlinie um: Felsband bleibt außen
     teile.mauern = (teile.mauern || []).map(m => ({ ...m, punkte: L2(m.punkte), seite: sx !== sy ? -m.seite : m.seite }));
     if (teile.mando) teile.mando = { ...teile.mando, a: L2([teile.mando.a])[0], b: L2([teile.mando.b])[0] };
+    teile.bruecken = (teile.bruecken || []).map(br => ({ ...br, a: L2([br.a])[0], b: L2([br.b])[0] }));
     return {
       bahn: {
         nummer: nr, name, ort: "Wochenkurs · " + T.name, par, optik: T.optik,
@@ -525,6 +558,7 @@ function baueBahn(T, { woche, thema, seed, nr, parErzwungen, belegteNamen, typVo
         abwurf: g.abwurf, korb: g.korb, fairway: g.fairway,
         baeume: teile.baeume, wege: teile.wege, ob: teile.ob,
         ...(teile.mauern.length ? { mauern: teile.mauern } : {}), ...(teile.mando ? { mando: teile.mando } : {}),
+        ...(teile.bruecken.length ? { bruecken: teile.bruecken } : {}),
       },
       erzeugt: { versuch, laenge: L, typ: teile.typ },
     };
@@ -606,6 +640,7 @@ function pruefe(liste) {
       if (t.art && !arten.includes(t.art) && !eigene[t.art]) fehler.push(e.woche + `: unbekannte Art "${t.art}" (Bahn ${b.nummer}) – eingebaut: ${arten.join(", ")}; sonst in optikDaten.objekte festlegen`);
       if (t.art && !(t.h > 0)) fehler.push(e.woche + `: Gegenstand "${t.art}" ohne Höhe h (Bahn ${b.nummer})`);
     }
+    for (const br of b.bruecken || []) for (const [x, y] of [br.a, br.b]) if (imOB({ x, y })) fehler.push(e.woche + `: Brückenende im OB (Bahn ${b.nummer})`);
     if (b.mando && !(b.baeume || []).some(t => Math.hypot(t.x - b.mando.a[0], t.y - b.mando.a[1]) < 0.5)) fehler.push(e.woche + ": Mando ohne Felsen (Bahn " + b.nummer + ")");
     }
   }

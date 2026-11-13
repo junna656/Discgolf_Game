@@ -360,6 +360,11 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
     }
   }
 
+  // ---------- Fußgängerbrücken aus den Bahndaten (bruecken: {a, b, breite}) – zu Inseln und über Bäche ----------
+  for (const br of bahn.bruecken || []) {
+    const [ax, ay] = br.a, [bx, by] = br.b, len = Math.hypot(bx - ax, by - ay);
+    if (len > 0.5) brueckeZeichnen(ax, ay, (bx - ax) / len, (by - ay) / len, len, br.breite || 1.8);
+  }
   // ---------- Brücken: wo ein Weg ein Flussbett kreuzt (nur Bild – darunter bleibt OB) ----------
   for (const w of bahn.wege || []) {
     const pk = w.punkte, fluss = (bahn.ob || []).filter(o => o.art === "flussbett" || o.art === "wasser"), imFluss = (x, y) => fluss.some(o => obTests[bahn.ob.indexOf(o)](Math.round(x * S), Math.round(y * S), x, y));

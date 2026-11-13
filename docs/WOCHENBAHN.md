@@ -46,6 +46,9 @@ node werkzeuge/grafik_vorschau.mjs                                # (Bilder eine
   Putt-Ansicht), `glow: true` (alle Scheiben leuchten grün wie Phosphor-Glow), `wasser`, `laubbaumVarianten`,
   `wolken`, `circleStil` (`"land"`: Circle 1 nur auf Land, endet vor der OB-Grenze; `"glow"`: feiner grüner Leuchtring nur auf Land bis an die OB-Grenze, die OB-Linie liegt darüber) – das ist Spiel-Code ab dem Release nach 0.9.0; ohne ihn bleibt die Bahn spielbar, aber ohne Glow/Mond,
   Wasser als dunkles Aus und mit nur einer Insel (Inselkette dann nicht spielbar).
+  Brücken: `bruecken: [{a, b, breite}]` je Bahn (nur Bild, darunter bleibt OB) – der Generator verbindet Ufer → Inseln
+  → Korbinsel und legt über jeden Bach eine Brücke neben der Spiellinie. Die Figuren laufen über die Brücken, wenn der
+  gerade Weg durchs Wasser führte (`laufWeg` in index.html, Spiel-Code). `--pruefen` meldet Brückenenden im OB.
   Nacht-Effekte (`nacht: true`, Spiel-Code): Glühwürmchen über dem Land, Platschen mit Ringwellen und versinkendem
   grünem Schimmer bei OB im Wasser, eine Eule in einem Baum an der Bahn (fliegt bei einem Baumtreffer davon), in der
   Putt-Ansicht Fledermäuse vor dem Mond und Sternschnuppen (selten, bei Birdie oder besser immer).
