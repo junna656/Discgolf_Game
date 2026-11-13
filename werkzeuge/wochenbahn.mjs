@@ -305,7 +305,7 @@ const THEMEN = {
       bueschel: 0.5,
       objekte: {
         findling: { form: "brocken", farben: "fels" },
-        laterne: { form: "laterne", farben: ["#101216", "#22262c", "#3a3e46", "#ffc860", "#fff4c0"] },
+        laterne: { form: "laterne", farben: ["#101216", "#3a3e46", "#6a6e76", "#ffc860", "#fff4c0"] },
         hecke: { form: "kugel", farben: "busch" },
       },
     },
@@ -430,7 +430,7 @@ const THEMEN = {
         for (const [a, b] of strecken(w.punkte)) {
           const len = abstand(a, b), ux = (b.x - a.x) / (len || 1), uy = (b.y - a.y) / (len || 1);
           for (; rest <= len; rest += 16, sei = -sei) {
-            const d = w.breite / 2 + 1.1, o = { x: r1(a.x + ux * rest - uy * d * sei), y: r1(a.y + uy * rest + ux * d * sei), r: 0.3, h: 3.2, art: "laterne", fest: true };
+            const d = w.breite / 2 + 1.1, o = { x: r1(a.x + ux * rest - uy * d * sei), y: r1(a.y + uy * rest + ux * d * sei), r: 0.3, h: 3.6, art: "laterne", fest: true };
             if (o.x < 1 || o.y < 1 || o.x > g.welt.breite - 1 || o.y > g.welt.hoehe - 1) continue;
             if (imWasser(o) || wasserNah(o, 1) || abstand(o, abwurf) < 7 || abstand(o, korb) < 8 || feste.some(f => abstand(f, o) < f.r + 1.5)) continue;
             laternen.push(o);

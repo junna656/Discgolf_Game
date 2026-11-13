@@ -82,7 +82,7 @@ Trefferfläche), `h` (Höhe in m) und `art`. Das Spiel zeichnet jeden Gegenstand
 die Höhe wird mit 0,6 auf den Bildschirm projiziert – genau wie die Flughöhe der Scheibe. Was eine Art ist,
 steht im Baukasten in `grafik.js`:
 
-- **Formen** (`OBJEKT_FORMEN`, Code): `laterne` (Pfosten mit leuchtendem Glas, Lichtschein und Lichtkegel am Boden;
+- **Formen** (`OBJEKT_FORMEN`, Code): `laterne` (Pfosten mit leuchtendem Glas, Lichtschein und Lichtkegel am Boden; `stil` in der Art: 1 klassisch schlank, 2 Poller, 3 Hirtenstab, 4 Kugelleuchte, 5 Windlicht am Holzpfahl;
   farben: [Eisen dunkel, Rahmen, Licht am Pfosten, Glas warm, Glas hell]), `krone` (Stamm + Laubkrone), `kegel` (Stamm + Nadelbaum-Kegel),
   `saeule` (Säule mit Armen, z. B. Kaktus), `brocken` (Fels mit Seite und Oberseite), `kugel` (rund auf dem
   Boden, z. B. Busch).

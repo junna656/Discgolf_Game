@@ -88,7 +88,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
     const h = hash(Math.round(b.x * 10), Math.round(b.y * 10), 6);
     // Gegenstände mit "art" (Kaktus, Fels, Arten neuer Themen): Form und Farben aus dem Baukasten (objektArt)
     const art = b.art || (wueste ? (hash(Math.round(b.x * 10), Math.round(b.y * 10), 5) < 0.55 ? "kaktus" : "fels") : null);
-    if (art) { const def = objektArt({ art }, JZ, h); return { ...b, art, kiefer: false, kahl: false, form: def.form, farben: def.farben }; }
+    if (art) { const def = objektArt({ art }, JZ, h); return { ...b, art, kiefer: false, kahl: false, form: def.form, farben: def.farben, stil: def.stil }; }
     const kiefer = opt.kiefern && hash(Math.round(b.x * 10), Math.round(b.y * 10), 5) < 0.3;
     return { ...b, kiefer, kahl: winter && !kiefer, farben: kiefer ? JZ.kiefer : JZ.laubbaum(h) };
   });
@@ -544,7 +544,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   zeichneMando(c, z);
   // für das fallende Laub (zeichneLaubfall): Laubbäume mit ihren Farben
   // für Blätter, die beim Treffer aus der Krone fliegen (blattFarbenAn): jeder Baum mit seinen Farben
-  hg.baumFarben = baeume.map(({ x, y, r, h, farben, kiefer, kahl, art, form }) => ({ x, y, r, h, farben, kiefer, kahl, art, form }));
+  hg.baumFarben = baeume.map(({ x, y, r, h, farben, kiefer, kahl, art, form, stil }) => ({ x, y, r, h, farben, kiefer, kahl, art, form, stil }));
   hg.kronenAlsSprite = !opt.kronen; hg.winter = winter; hg.S = S; hg.zr = zr;
   if (JZ.laubfall) { hg.laubBaeume = baeume.filter(b => !b.kiefer && !b.kahl && !b.art).map(({ x, y, r, farben }) => ({ x, y, r, farben })); hg.laubBahn = bahn; }
   return hg;
@@ -654,7 +654,7 @@ window.objektArt = function (o, JZ, h01 = 0.5) {
   let f = def.farben;
   if (typeof f === "string") f = typeof JZ[f] === "function" ? JZ[f](h01) : JZ[f];
   if (!Array.isArray(f) || f.length < 5) f = (JZ.fels || ["#4a4440", "#6a625a", "#8a8278", "#aaa296", "#cac2b4"]);
-  return { form: OBJEKT_FORMEN.includes(def.form) ? def.form : "kugel", farben: f };
+  return { form: OBJEKT_FORMEN.includes(def.form) ? def.form : "kugel", farben: f, stil: def.stil };
 };
 // projizierte Höhe in m (wie weit das Sprite über den Fußpunkt reicht)
 const objektHoehe = o => o.h || Math.min(12, Math.max(3, 1.5 + o.r * 1.8));
@@ -726,26 +726,79 @@ window.zeichneObjektSprite = function (c, sp, x, y, dx) {
 };
 
 const ZEICHNER = {
-  // Laterne: dunkler Pfosten, Kopf mit leuchtendem Glas (F[3] warm, F[4] hell) und gedithertem Lichtschein
+  // Laterne in mehreren Stilen (stil in optikDaten.objekte.<art>, Standard 1); Farben: [Eisen dunkel, Rahmen,
+  // Licht am Pfosten, Glas warm, Glas hell]. Alle: dünner Pfosten, kleiner leuchtender Kopf, weicher Lichtschein.
+  //  1 klassisch schlank (Glas mit Dach und Spitze), 2 Poller (niedrig, Leuchtband oben), 3 Hirtenstab (Lampe hängt
+  //  am Bogen), 4 Kugelleuchte, 5 Windlicht am Holzpfahl
   laterne(c, o, { ax, ay, S, zr, F }) {
-    const hp = Math.round(objektHoehe(o) * 0.6 * S), pw = Math.max(zr, Math.round(S * 0.09));
-    const kw = Math.max(3 * zr, Math.round(S * 0.3)) | 1, kh = Math.max(3 * zr, Math.round(S * 0.38)), ky = ay - hp, kx = ax - (kw >> 1);
-    const [lr, lg, lb] = rgb(F[3]), my = ky + kh / 2, R = S * 1.7;
-    // Lichtschein um den Kopf: warm, nach außen durchsichtiger
-    for (let y = Math.floor(my - R); y <= my + R; y++) for (let x = Math.floor(ax - R); x <= ax + R; x++) {
-      const e = Math.hypot(x - ax, y - my) / R;
-      if (e >= 1) continue;
-      c.fillStyle = `rgba(${lr},${lg},${lb},${((1 - e) ** 1.6 * 0.5).toFixed(3)})`; c.fillRect(x, y, 1, 1);
+    // q: feinste Einheit (~6 cm), nicht zr – sonst wird bei starkem Zoom jedes Detail 0,4 m dick und die Laterne klobig
+    const stil = o.stil || 1, q = Math.max(1, Math.round(S / 16)), R1 = v => Math.max(q, Math.round(v));
+    const schein = (cx, cy, R, staerke = 0.5) => {
+      const [lr, lg, lb] = rgb(F[3]);
+      for (let y = Math.floor(cy - R); y <= cy + R; y++) for (let x = Math.floor(cx - R); x <= cx + R; x++) {
+        const e = Math.hypot(x - cx, y - cy) / R;
+        if (e < 1) { c.fillStyle = `rgba(${lr},${lg},${lb},${((1 - e) ** 1.6 * staerke).toFixed(3)})`; c.fillRect(x, y, 1, 1); }
+      }
+    };
+    // Pfosten: mittlere Farbe (auf dunklem Boden sichtbar), oben vom eigenen Licht angestrahlt
+    const pfosten = (x, oben, unten, w, dunkel = F[1], hell = F[2]) => {
+      c.fillStyle = hell; c.fillRect(x - (w >> 1), oben, w, unten - oben);
+      if (w > 1) { c.fillStyle = dunkel; c.fillRect(x - (w >> 1) + Math.max(1, w >> 1), oben, w - Math.max(1, w >> 1), unten - oben); }
+      const [lr, lg, lb] = rgb(F[3]), lang = Math.round((unten - oben) * 0.45);
+      for (let y = 0; y < lang; y++) { c.fillStyle = `rgba(${lr},${lg},${lb},${(0.45 * (1 - y / lang)).toFixed(3)})`; c.fillRect(x - (w >> 1), oben + y, Math.max(1, w >> 1), 1); }
+    };
+    const fuss = w => { c.fillStyle = F[0]; c.fillRect(ax - (w >> 1), ay - q, w, q); };
+    const pw = R1(S * 0.07);
+    if (stil === 2) { // Poller: ~1,1 m hoch, Leuchtband unter der Kappe
+      const h = Math.round(1.1 * 0.6 * S), w = R1(S * 0.2) | 1, top = ay - h, band = R1(S * 0.12);
+      schein(ax, top + band, S * 0.9, 0.45);
+      c.fillStyle = F[0]; c.fillRect(ax - (w >> 1), top, w, h);
+      c.fillStyle = F[1]; c.fillRect(ax - (w >> 1), top + q + band, Math.max(1, w >> 2), h - band - q);
+      c.fillStyle = F[3]; c.fillRect(ax - (w >> 1), top + q, w, band);
+      c.fillStyle = F[4]; c.fillRect(ax - (w >> 1) + q, top + q, Math.max(1, w - 2 * q), Math.max(1, band - q));
+      c.fillStyle = F[0]; c.fillRect(ax - (w >> 1) - q, top, w + 2 * q, q);
+      return null;
     }
-    // Pfosten mit Fuß, Licht von links
-    c.fillStyle = F[0]; c.fillRect(ax - (pw >> 1) - zr, ay - zr, pw + 2 * zr, 2 * zr);
-    c.fillRect(ax - (pw >> 1), ky + kh, pw, hp - kh);
-    if (pw > 1) { c.fillStyle = F[2]; c.fillRect(ax - (pw >> 1), ky + kh, Math.max(1, pw >> 1), hp - kh); }
-    // Kopf: dünner Rahmen, helles Glas (Mitte am hellsten), kleines Dach
-    c.fillStyle = F[1]; c.fillRect(kx - zr, ky - zr, kw + 2 * zr, kh + 2 * zr);
+    if (stil === 5) { // Windlicht: Holzpfahl, Haken, kleines Glas mit Flamme
+      const h = Math.round(2.4 * 0.6 * S), top = ay - h, arm = R1(S * 0.3), gw = R1(S * 0.14) | 1, gh = R1(S * 0.2);
+      const gx = ax + arm, gy = top + q * 2;
+      schein(gx, gy + gh / 2, S * 1.3, 0.5);
+      pfosten(ax, top, ay, R1(S * 0.1), "#2e2016", "#5a4430");
+      c.fillStyle = "#2e2016"; c.fillRect(ax, top + q, arm + q, q); c.fillRect(gx, top + q, q, q);
+      c.fillStyle = F[1]; c.fillRect(gx - (gw >> 1) - q, gy, gw + 2 * q, gh + q);
+      c.fillStyle = F[3]; c.fillRect(gx - (gw >> 1), gy + q, gw, gh - q);
+      c.fillStyle = F[4]; c.fillRect(gx - (q >> 1), gy + Math.round(gh / 2) - q, q, q * 2);
+      return null;
+    }
+    const hp = Math.round(objektHoehe(o) * 0.6 * S), top = ay - hp;
+    if (stil === 3) { // Hirtenstab: Pfosten, Bogen nach rechts, Lampe hängt
+      const arm = R1(S * 0.4), gw = R1(S * 0.16) | 1, gh = R1(S * 0.22), gx = ax + arm, gy = top + R1(S * 0.12);
+      schein(gx, gy + gh / 2, S * 1.4, 0.5);
+      pfosten(ax, top + q, ay, pw); fuss(pw + 2 * q);
+      c.fillStyle = F[0];
+      for (let i = 0; i <= arm; i++) { const t = i / arm, y = top + Math.round(Math.sin(t * Math.PI) * -q * 2 + q); c.fillRect(ax + i, y, 1, q); }
+      c.fillRect(gx, top + q, q, gy - top - q);
+      c.fillRect(gx - (gw >> 1) - q, gy, gw + 2 * q, q);
+      c.fillStyle = F[3]; c.fillRect(gx - (gw >> 1), gy + q, gw, gh);
+      c.fillStyle = F[4]; c.fillRect(gx - (gw >> 1) + (gw > 2 * q ? q : 0), gy + q, Math.max(q, gw - 2 * q), Math.max(q, gh - q));
+      return null;
+    }
+    if (stil === 4) { // Kugelleuchte: Kugel ohne Rahmen
+      const kr = Math.max(1.5 * q, S * 0.13), cy = top + kr;
+      schein(ax, cy, S * 1.5, 0.5);
+      pfosten(ax, cy + kr, ay, pw); fuss(pw + 2 * q);
+      c.fillStyle = F[0]; c.fillRect(ax - q, Math.round(cy + kr) - q, 2 * q + (pw & 1), q);
+      pixelKreis(c, ax, cy, kr, F[3]); pixelKreis(c, ax - kr * 0.25, cy - kr * 0.25, kr * 0.6, F[4]);
+      return null;
+    }
+    // Stil 1: klassisch schlank – Glas, schmales Dach mit Spitze
+    const kw = R1(S * 0.17) | 1, kh = R1(S * 0.26), ky = top + q * 2, kx = ax - (kw >> 1);
+    schein(ax, ky + kh / 2, S * 1.4, 0.5);
+    pfosten(ax, ky + kh, ay, pw); fuss(pw + 2 * q);
+    c.fillStyle = F[1]; c.fillRect(kx - q, ky, q, kh); c.fillRect(kx + kw, ky, q, kh); c.fillRect(kx - q, ky + kh, kw + 2 * q, q);
     c.fillStyle = F[3]; c.fillRect(kx, ky, kw, kh);
-    c.fillStyle = F[4]; c.fillRect(kx + zr, ky + zr, Math.max(zr, kw - 2 * zr), Math.max(zr, kh - 2 * zr));
-    c.fillStyle = F[0]; c.fillRect(kx - 2 * zr, ky - 2 * zr, kw + 4 * zr, zr); c.fillRect(kx, ky - 3 * zr, kw, zr);
+    c.fillStyle = F[4]; c.fillRect(kx + (kw > 2 * q ? q : 0), ky + q, Math.max(q, kw - 2 * q), Math.max(q, kh - 2 * q));
+    c.fillStyle = F[0]; c.fillRect(kx - 2 * q, ky - q, kw + 4 * q, q); c.fillRect(kx, ky - 2 * q, kw, q); c.fillRect(ax - (q >> 1), ky - 3 * q, q, q);
     return null;
   },
   // Laubbaum (oder kahl im Winter): Stamm, angehobene Krone, Schattenseite unten
