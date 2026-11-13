@@ -305,7 +305,7 @@ const THEMEN = {
       bueschel: 0.5,
       objekte: {
         findling: { form: "brocken", farben: "fels" },
-        laterne: { form: "laterne", farben: ["#101216", "#3a3e46", "#6a6e76", "#ffc860", "#fff4c0"] },
+        laterne: { form: "laterne", stil: 1, farben: ["#101216", "#3a3e46", "#6a6e76", "#ffc860", "#fff4c0"] }, // Stil 1: klassisch schlank
         hecke: { form: "kugel", farben: "busch" },
       },
     },
