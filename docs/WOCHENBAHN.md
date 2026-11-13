@@ -38,6 +38,22 @@ node werkzeuge/grafik_vorschau.mjs                                # (Bilder eine
   nie auf einem Fels liegen. Felswände sind Mauern mit `art: "felswand"`, `h: 30` (nicht zu überfliegen), `breite`
   und `seite` (Felsband liegt außen); in der Schlucht mit `bisRand: true`: die Wandlinie läuft von Rand zu Rand,
   die Fläche dahinter ist Fels bis zum Spielfeldrand (kein Weg außen herum). Kein Text bei Treffern an Felsen, Kakteen und Felswänden.
+- Thema **Herbstnacht** (`--thema herbstnacht`): dunkler Herbstwald am Abend, Weiher und Bäche als OB (`art: "wasser"`),
+  Bahntypen **mando** (Lücke in einem Baumriegel), **insel** (Korb auf einer Insel im Weiher), **inselkette** (Par 4:
+  ab `ab` alles Wasser, mehrere Inseln hintereinander – `insel` = Korbinsel, `inseln` = weitere; das gewellte Ufer ist ein Ring in `inseln` von Rand zu Rand, die gerade Linie bei `ab` wird nur gezeichnet, wo Wasser angrenzt), **quer** (Bach quer),
+  **offen** (Wald); nie zwei kreuzende Bäche. Reihenfolge der Typen über `plan` im Thema (`--typen a,b,…` überschreibt), `typPar` legt das Par
+  eines Typs fest (inselkette: 4). Optik: `optikDaten` mit `nacht: true` (Mond, Sterne, dunkle Wolken in der
+  Putt-Ansicht), `glow: true` (alle Scheiben leuchten grün wie Phosphor-Glow), `wasser`, `laubbaumVarianten`,
+  `wolken`, `circleStil` (`"land"`: Circle 1 nur auf Land, endet vor der OB-Grenze; `"glow"`: feiner grüner Leuchtring nur auf Land bis an die OB-Grenze, die OB-Linie liegt darüber) – das ist Spiel-Code ab dem Release nach 0.9.0; ohne ihn bleibt die Bahn spielbar, aber ohne Glow/Mond,
+  Wasser als dunkles Aus und mit nur einer Insel (Inselkette dann nicht spielbar).
+  Brücken: `bruecken: [{a, b, breite}]` je Bahn (nur Bild, darunter bleibt OB) – der Generator verbindet Ufer → Inseln
+  → Korbinsel und legt über jeden Bach eine Brücke neben der Spiellinie. Die Figuren laufen über die Brücken, wenn der
+  gerade Weg durchs Wasser führte (`laufWeg` in index.html, Spiel-Code). `--pruefen` meldet Brückenenden im OB.
+  Nacht-Effekte (`nacht: true`, Spiel-Code): Glühwürmchen über dem Land, Platschen mit Ringwellen und versinkendem
+  grünem Schimmer bei OB im Wasser, eine Eule in einem Baum an der Bahn (fliegt bei einem Baumtreffer davon), in der
+  Putt-Ansicht Fledermäuse vor dem Mond und Sternschnuppen (selten, bei Birdie oder besser immer).
+  Wege bekommen Laternen (alle ~16 m, abwechselnd links/rechts); Inselbahnen einen Uferweg, Mando-Bahnen einen Waldweg,
+  wenn er den Baumriegel nicht schneidet. Laternen brauchen die Form `laterne` (Release; ohne erscheinen sie als graue Kugeln).
 - Par per Zufall: ~88 % Par 3 (60–140 m), ~10 % Par 4 (140–200 m), ~2 % Par 5 (201–250 m), `--par` erzwingt.
 - Namen: Kurs = Fantasiename + „ KWxx“, jede Bahn einen eigenen Fantasienamen (keiner doppelt; das Thema
   braucht mindestens Anzahl + 1 Namen).
@@ -72,7 +88,8 @@ Trefferfläche), `h` (Höhe in m) und `art`. Das Spiel zeichnet jeden Gegenstand
 die Höhe wird mit 0,6 auf den Bildschirm projiziert – genau wie die Flughöhe der Scheibe. Was eine Art ist,
 steht im Baukasten in `grafik.js`:
 
-- **Formen** (`OBJEKT_FORMEN`, Code): `krone` (Stamm + Laubkrone), `kegel` (Stamm + Nadelbaum-Kegel),
+- **Formen** (`OBJEKT_FORMEN`, Code): `laterne` (Pfosten mit leuchtendem Glas, Lichtschein und Lichtkegel am Boden; `stil` in der Art: 1 klassisch schlank, 2 Poller, 3 Hirtenstab, 4 Kugelleuchte, 5 Windlicht am Holzpfahl;
+  farben: [Eisen dunkel, Rahmen, Licht am Pfosten, Glas warm, Glas hell]), `krone` (Stamm + Laubkrone), `kegel` (Stamm + Nadelbaum-Kegel),
   `saeule` (Säule mit Armen, z. B. Kaktus), `brocken` (Fels mit Seite und Oberseite), `kugel` (rund auf dem
   Boden, z. B. Busch).
 - **Eingebaute Arten** (`OBJEKT_ARTEN`): `kaktus` → saeule, `fels` → brocken, `busch` → kugel.

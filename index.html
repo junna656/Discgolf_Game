@@ -262,7 +262,7 @@
   <div class="menue-innen">
     <canvas class="korbbild" id="korbbild" width="24" height="24"></canvas>
     <h1 class="titel">BOOGIE<br>GARANTEN</h1>
-    <p class="untertitel">Discgolf in 16 Bit<br><span style="color:#9fc49a">Version 0.9.0</span></p>
+    <p class="untertitel">Discgolf in 16 Bit<br><span style="color:#9fc49a">Version 0.10.0</span></p>
     <div id="menue-start" class="liste" style="gap:10px">
       <button class="gross" data-modus="frei">Freies Werfen<small>Sportplatz – Weiten testen, ohne Zählen</small></button>
       <button class="gross" data-modus="single">Single Flight<small>Eine Person spielt die Runde</small></button>
@@ -584,14 +584,14 @@
   <button data-ansicht="feld" class="zum-spiel">← Zurück zum Spiel</button>
 </nav>
 
-<script src="taschen.js?v=0.9.0"></script>
-<script src="bahnen.js?v=0.9.0"></script>
-<script src="wochenbahnen.js?v=0.9.0"></script>
-<script src="wochen.js?v=0.9.0"></script>
-<script src="physik.js?v=0.9.0"></script>
-<script src="portraets.js?v=0.9.0"></script>
-<script src="grafik.js?v=0.9.0"></script>
-<script src="figuren.js?v=0.9.0"></script>
+<script src="taschen.js?v=0.10.0"></script>
+<script src="bahnen.js?v=0.10.0"></script>
+<script src="wochenbahnen.js?v=0.10.0"></script>
+<script src="wochen.js?v=0.10.0"></script>
+<script src="physik.js?v=0.10.0"></script>
+<script src="portraets.js?v=0.10.0"></script>
+<script src="grafik.js?v=0.10.0"></script>
+<script src="figuren.js?v=0.10.0"></script>
 <script>
 "use strict";
 const { simuliere, streue, abstand, aufBowlingbahn, istOB, DEG } = Physik;
@@ -759,6 +759,123 @@ function aktuelleJahreszeit() {
   return g === "auto" || !JAHRESZEITEN[g] ? jahreszeitNachDatum() : g;
 }
 const mitSchnee = jz => !!(JAHRESZEITEN[jz] || {}).schnee;
+// Nachtbahnen (Optik mit glow: true, z. B. Wochenbahn „Herbstnacht“): alle Scheiben leuchten wie Phosphor-Glow-Plastik
+const GLOW = "#a8ff7a";
+const glowAn = () => !!(JAHRESZEITEN[aktuelleJahreszeit()] || {}).glow;
+const scheibenFarbe = typ => glowAn() ? GLOW : TYPFARBE[typ] || PAL.weiss;
+// ============================================================
+//  NACHT-EFFEKTE (Optik mit nacht: true, z. B. Wochenbahn „Herbstnacht“)
+// ============================================================
+//  - Glühwürmchen: schweben langsam über dem Land, leuchten pulsierend auf
+//  - Platschen: Scheibe fällt ins Wasser (OB mit art "wasser") – Ringwellen, Tropfen, grüner Schimmer, der versinkt
+//  - Eule: sitzt in einem Baum an der Bahn, blinzelt; fliegt davon, sobald eine Scheibe einen Baum trifft
+//  (Fledermäuse und Sternschnuppe in der Putt-Ansicht: grafik.js, zeichnePuttNacht)
+const nachtAn = () => !!(JAHRESZEITEN[aktuelleJahreszeit()] || {}).nacht;
+const nacht = { bahn: null, wuermchen: [], platsch: [], eule: null };
+function nachtVorbereiten() {
+  if (nacht.bahn === bahn) return;
+  nacht.bahn = bahn; nacht.wuermchen = []; nacht.platsch = [];
+  const imWasser = p => { const z = Physik.obZone(p, bahn); return z && z.art === "wasser"; };
+  // Glühwürmchen: auf Land, nicht direkt auf Abwurf/Korb
+  for (let i = 0, n = 0; n < 34 && i < 400; i++) {
+    const p = { x: Math.random() * bahn.welt.breite, y: Math.random() * bahn.welt.hoehe };
+    if (imWasser(p) || Physik.istOB(p, bahn)) continue;
+    nacht.wuermchen.push({ ...p, h: 0.4 + Math.random() * 1.6, ph: Math.random() * 6.3, blink: Math.random() * 6, tempo: 0.25 + Math.random() * 0.35, w: Math.random() * 6.3 });
+    n++;
+  }
+  // Eule: großer Laubbaum 7–22 m neben der Linie Abwurf → Korb, möglichst in der Mitte der Bahn
+  const a = bahn.abwurf, k = bahn.korb, L = abstand(a, k), ux = (k.x - a.x) / L, uy = (k.y - a.y) / L;
+  let best = null, bestWert = Infinity;
+  for (const b of bahn.baeume) {
+    if (b.art || b.r < 2.2) continue;
+    const t = (b.x - a.x) * ux + (b.y - a.y) * uy, d = Math.abs(-(b.x - a.x) * uy + (b.y - a.y) * ux);
+    if (t < L * 0.2 || t > L * 0.85 || d < 7 || d > 22) continue;
+    const wert = Math.abs(t / L - 0.5) * 30 + d;
+    if (wert < bestWert) { bestWert = wert; best = b; }
+  }
+  nacht.eule = best ? { baum: best, weg: null } : null;
+}
+// Scheibe im Wasser: Stelle des Eintauchens (erster Pfadpunkt im Wasser ab obIndex)
+function nachtPlatsch(e) {
+  if (!nachtAn()) return;
+  for (let i = Math.max(0, e.obIndex); i < e.pfad.length; i++) {
+    const q = e.pfad[i], z = Physik.obZone(q, bahn);
+    if (z && z.art === "wasser" && q.z < 0.6) { nacht.platsch.push({ x: q.x, y: q.y, t0: uhr }); ton(320, 0.18, "triangle", 0.05, 70); ton(900, 0.06, "sine", 0.03, 300, 0.05); return; }
+  }
+}
+// Baumtreffer: die Eule fliegt auf
+function nachtBaumTreffer() { if (nacht.eule && !nacht.eule.weg) { nacht.eule.weg = uhr; ton(420, 0.12, "sine", 0.04, 380); ton(330, 0.25, "sine", 0.04, 300, 0.18); } }
+function zeichneNachtEffekte(dt) {
+  if (!nachtAn()) return;
+  nachtVorbereiten();
+  const q = 1 / AUF, schirm = p => projiziere(p, S / S0);
+  // Platschen: drei Ringe, Tropfen, grüner Schimmer der versinkt
+  nacht.platsch = nacht.platsch.filter(pl => uhr - pl.t0 < 2.6);
+  for (const pl of nacht.platsch) {
+    const t = uhr - pl.t0, c = schirm(pl);
+    const gl = Math.max(0, 1 - t / 2.4);
+    if (gl > 0) { ctx.fillStyle = `rgba(150,255,110,${(0.35 * gl).toFixed(3)})`; for (let j = -2; j <= 2; j++) ctx.fillRect(c.x - 2 + Math.abs(j) * 0.5, c.y + j * 0.5 * (1 + t), 4 - Math.abs(j), q); }
+    for (let r = 0; r < 3; r++) {
+      const tr = t - r * 0.25; if (tr <= 0) continue;
+      const rm = 0.5 + tr * 2.6, rad = rm * S, a = Math.max(0, 0.8 - tr * 0.4);
+      if (a <= 0) continue;
+      ctx.fillStyle = `rgba(210,230,255,${a.toFixed(3)})`;
+      const n = Math.max(16, Math.round(rad * 6 * AUF));
+      for (let i = 0; i < n; i++) {
+        // nur über Wasser: der Ringpunkt (in Metern) muss im Wasser liegen, sonst endet die Welle am Ufer
+        const w = i / n * Math.PI * 2, p = { x: pl.x + Math.cos(w) * rm, y: pl.y + Math.sin(w) * rm }, z = Physik.obZone(p, bahn);
+        if (!z || z.art !== "wasser") continue;
+        const sp = schirm(p);
+        ctx.fillRect(Math.round(sp.x * AUF) * q, Math.round(sp.y * AUF) * q, q, q); // Boden ist von oben gezeichnet: echte Kreise
+      }
+    }
+    if (t < 0.6) { ctx.fillStyle = "#dce8ff"; for (let i = 0; i < 7; i++) { const w = i / 7 * Math.PI * 2 + pl.x, v = (0.8 + (i % 3) * 0.4) * S; ctx.fillRect(c.x + Math.cos(w) * v * t * 1.6, c.y - (Math.sin(t / 0.6 * Math.PI) * 0.5 * S) + Math.sin(w) * v * t * 0.6, q * 2, q * 2); } }
+  }
+  // Glühwürmchen
+  for (const g of nacht.wuermchen) {
+    g.w += (Math.random() - 0.5) * dt * 2; g.ph += dt;
+    const nx = g.x + Math.cos(g.w) * g.tempo * dt, ny = g.y + Math.sin(g.w) * g.tempo * dt;
+    if (!Physik.istOB({ x: nx, y: ny }, bahn)) { g.x = nx; g.y = ny; } else g.w += Math.PI;
+    const zyk = (uhr + g.blink) % 4.5, hell = zyk < 1.6 ? Math.sin(zyk / 1.6 * Math.PI) : 0;
+    const c = schirm(g), y = c.y - (g.h + Math.sin(g.ph * 1.3) * 0.3) * S * 0.6;
+    if (hell > 0.05) {
+      const gx = Math.round(c.x * AUF) * q, gy = Math.round(y * AUF) * q;
+      ctx.fillStyle = `rgba(170,255,90,${(0.3 * hell).toFixed(3)})`; ctx.fillRect(gx - 1, gy, 2 + q, q); ctx.fillRect(gx, gy - 1, q, 2 + q); // weicher Schein als Kreuz
+      ctx.fillStyle = `rgba(220,255,140,${(0.95 * hell).toFixed(3)})`; ctx.fillRect(gx, gy, q, q);
+    } else { ctx.fillStyle = "rgba(60,80,40,.5)"; ctx.fillRect(Math.round(c.x * AUF) * q, Math.round(y * AUF) * q, q, q); }
+  }
+  // Eule
+  const e = nacht.eule;
+  if (e && !(e.weg && uhr - e.weg > 3)) {
+    const b = e.baum, c = schirm(b), krone = baumAnhebung(b) * S + b.r * S * 0.55;
+    let x = c.x - b.r * S * 0.15, y = c.y - krone, fl = 0;
+    if (e.weg) { const t = uhr - e.weg; x += t * t * 18 + t * 10; y -= t * 22 + Math.sin(t * 12) * 2; fl = Math.floor(t * 10) % 2 + 1; }
+    const u = Math.max(1, Math.round(S / S0 * 0.7)); // beim Reinzoomen wächst die Eule mit
+    const P = (dx, dy, f, w = 1, h = 1) => { ctx.fillStyle = f; ctx.fillRect(Math.round(x) + dx * u, Math.round(y) + dy * u, w * u, h * u); };
+    if (!fl) {
+      // sitzend: Körper 3×4, Ohren, Augen (blinzeln alle paar Sekunden)
+      P(-1, -3, "#3a2a1c", 1, 1); P(1, -3, "#3a2a1c", 1, 1);
+      P(-1, -2, "#5a4430", 3, 4); P(-1, 0, "#7a6048", 3, 2); P(0, 1, "#8a7058", 1, 1);
+      const zu = (uhr % 4.2) < 0.15;
+      P(-1, -2, zu ? "#3a2a1c" : "#ffd84a", 1, 1); P(1, -2, zu ? "#3a2a1c" : "#ffd84a", 1, 1);
+    } else {
+      // fliegend: Flügel abwechselnd oben/unten
+      P(-1, -1, "#5a4430", 3, 2);
+      if (fl === 1) { P(-3, -2, "#4a3624", 2, 1); P(2, -2, "#4a3624", 2, 1); } else { P(-3, 0, "#4a3624", 2, 1); P(2, 0, "#4a3624", 2, 1); }
+    }
+  }
+}
+// weicher Lichtschein um eine leuchtende Scheibe (Spielpixel; r = Radius außen), pulsiert leicht
+function glowSchein(x, y, r) {
+  const q = 1 / AUF, puls = 0.85 + Math.sin(uhr * 3) * 0.15;
+  for (let j = -r; j <= r; j += q) for (let i = -r * 1.3; i <= r * 1.3; i += q) {
+    const e = Math.hypot(i / 1.3, j) / r;
+    if (e > 1) continue;
+    const a = (1 - e) * (1 - e) * 0.5 * puls;
+    if (a < 0.03) continue;
+    ctx.fillStyle = `rgba(150,255,110,${a.toFixed(3)})`; ctx.fillRect(x + i, y + j, q, q);
+  }
+}
 
 // Teile des Bahnbilds, die grafik.js mitbenutzt
 // Entfernungsmarken, Spielfeldlinien und Tore
@@ -1220,7 +1337,7 @@ function zeigeErgebnis(s, extra) {
   let t = s.wuerfe === 1 ? "ACE!!!" : (namen[diff] || "+" + diff);
   if (extra && s.wuerfe > 1) t = extra + " " + t;
   else if (s.wuerfe === 1 && flug && flug.start) t += " " + Math.round(abstand(flug.start, bahn.korb)) + " M";
-  if (diff < 0) sfx.jubel();
+  if (diff < 0) { sfx.jubel(); if (window.puttSternschnuppe) puttSternschnuppe(); } // Nacht: Birdie oder besser – Sternschnuppe
   zeigeBanner(t, "#ffd84a", 1.6);
 }
 
@@ -1520,15 +1637,46 @@ function figurOrt(s) {
   const a = s.anim || (s.anim = { x: s.lie.x, y: s.lie.y, spiel: spielNr, lauf: null });
   if (a.spiel !== spielNr || modus === "frei") { a.x = s.lie.x; a.y = s.lie.y; a.spiel = spielNr; a.lauf = null; return a; }
   if (s.fertig) return a;
-  const nach = a.lauf ? a.lauf.nach : a;
-  if (Math.hypot(s.lie.x - nach.x, s.lie.y - nach.y) > 0.05)
-    a.lauf = { von: { x: a.x, y: a.y }, nach: { x: s.lie.x, y: s.lie.y }, t0: uhr, dauer: Math.min(2.2, 0.4 + abstand(a, s.lie) / 40) };
+  const nach = a.lauf ? a.lauf.ziel : a;
+  if (Math.hypot(s.lie.x - nach.x, s.lie.y - nach.y) > 0.05) {
+    const pk = laufWeg({ x: a.x, y: a.y }, s.lie), len = pk.slice(1).reduce((l, q, i) => l + abstand(pk[i], q), 0);
+    a.lauf = { von: { x: a.x, y: a.y }, nach: { x: s.lie.x, y: s.lie.y }, ziel: { x: s.lie.x, y: s.lie.y }, pk, len, t0: uhr, dauer: Math.min(pk.length > 2 ? 3.5 : 2.2, 0.4 + len / 40) };
+  }
   if (a.lauf) {
-    const t = Math.min(1, (uhr - a.lauf.t0) / a.lauf.dauer), { von, nach: n } = a.lauf;
-    a.x = von.x + (n.x - von.x) * t; a.y = von.y + (n.y - von.y) * t;
-    if (t >= 1) a.lauf = null;
+    // entlang des Wegs (über Brücken), Richtung des aktuellen Abschnitts für die Blickrichtung
+    const t = Math.min(1, (uhr - a.lauf.t0) / a.lauf.dauer), pk = a.lauf.pk;
+    let rest = t * a.lauf.len, i = 0;
+    while (i < pk.length - 2 && rest > abstand(pk[i], pk[i + 1])) { rest -= abstand(pk[i], pk[i + 1]); i++; }
+    const l = abstand(pk[i], pk[i + 1]) || 1, f = Math.min(1, rest / l);
+    a.x = pk[i].x + (pk[i + 1].x - pk[i].x) * f; a.y = pk[i].y + (pk[i + 1].y - pk[i].y) * f;
+    a.lauf.von = pk[i]; a.lauf.nach = pk[i + 1]; // aktueller Abschnitt, für die Blickrichtung (figurPose); Ziel steht in ziel
+    if (t >= 1) { a.lauf = null; a.x = s.lie.x; a.y = s.lie.y; }
   }
   return a;
+}
+// Laufweg von a nach b: gerade, außer die Strecke führt durchs Wasser (OB mit art "wasser") – dann über die
+// Brücken der Bahn (bahn.bruecken), kürzester Weg über deren Enden (Dijkstra). Ohne Lösung: gerade (wie früher).
+function laufWeg(a, b) {
+  const br = bahn.bruecken || [];
+  const nass = p => { const z = Physik.obZone(p, bahn); return z && z.art === "wasser"; };
+  const frei = (p, q) => { const d = abstand(p, q), n = Math.ceil(d / 0.5); for (let k = 1; k < n; k++) if (nass({ x: p.x + (q.x - p.x) * k / n, y: p.y + (q.y - p.y) * k / n })) return false; return true; };
+  if (!br.length || frei(a, b)) return [a, { x: b.x, y: b.y }];
+  const knoten = [a, { x: b.x, y: b.y }, ...br.flatMap(r => [{ x: r.a[0], y: r.a[1] }, { x: r.b[0], y: r.b[1] }])];
+  const n = knoten.length, dist = Array(n).fill(Infinity), vor = Array(n).fill(-1), fertig = Array(n).fill(false);
+  const kante = (i, j) => {
+    if (i >= 2 && j >= 2 && (i >> 1) === (j >> 1) && i !== j) return abstand(knoten[i], knoten[j]); // dieselbe Brücke
+    return frei(knoten[i], knoten[j]) ? abstand(knoten[i], knoten[j]) : Infinity;
+  };
+  dist[0] = 0;
+  for (let k = 0; k < n; k++) {
+    let u = -1; for (let i = 0; i < n; i++) if (!fertig[i] && (u < 0 || dist[i] < dist[u])) u = i;
+    if (u < 0 || dist[u] === Infinity) break;
+    fertig[u] = true; if (u === 1) break;
+    for (let v = 0; v < n; v++) if (!fertig[v]) { const w = kante(u, v); if (dist[u] + w < dist[v]) { dist[v] = dist[u] + w; vor[v] = u; } }
+  }
+  if (dist[1] === Infinity) return [a, { x: b.x, y: b.y }];
+  const pk = []; for (let i = 1; i >= 0; i = vor[i]) pk.unshift(knoten[i]);
+  return pk;
 }
 // Wer gerade eingelocht hat, jubelt noch kurz. Bei Putts erst, wenn die Nahansicht zu ist – aber nur, wenn das
 // gleich danach passiert (puttet der Nächste sofort weiter, bleibt sie offen: dann kein verspäteter Jubel).
@@ -1637,7 +1785,9 @@ function zeichneWeltObjekte(korbWackelt) {
     zeichneScheibe(sch.p, sch.dreht, "schatten");
     for (const q of sch.spur) {
       const c = zuSchirm(q);
-      liste.push({ y: c.y, zeichne: () => { ctx.fillStyle = "rgba(255,255,255,.3)"; ctx.fillRect(c.x, c.y - Math.round(q.z * S * 0.6), 1, 1); } });
+      liste.push({ y: c.y, zeichne: glowAn()
+        ? () => { const yy = c.y - Math.round(q.z * S * 0.6); ctx.fillStyle = "rgba(150,255,110,.28)"; ctx.fillRect(c.x - 1, yy - 1, 3, 3); ctx.fillStyle = "rgba(190,255,160,.75)"; ctx.fillRect(c.x, yy, 1, 1); }
+        : () => { ctx.fillStyle = "rgba(255,255,255,.3)"; ctx.fillRect(c.x, c.y - Math.round(q.z * S * 0.6), 1, 1); } });
     }
     liste.push({ y: zuSchirm(sch.p).y + 0.02, zeichne: () => zeichneScheibe(sch.p, sch.dreht, "scheibe") });
   }
@@ -1673,7 +1823,7 @@ function figurPose(s, i) {
   else if (nachWurf) { pose = "wurf"; bild = 0; }
   if (r === null) r = dran && (zustand === "zielen" || zustand === "laden" || nachWurf) ? (nachWurf && flug.richtung !== undefined ? flug.richtung : ziel) : zumKorb(ort);
   const links = (hochkant ? Math.sin(r) : Math.cos(r)) < -0.15;
-  const inHand = dran && !ort.lauf && (zustand === "zielen" || zustand === "laden") && s.tasche[s.scheibe] ? TYPFARBE[s.tasche[s.scheibe].typ] : null;
+  const inHand = dran && !ort.lauf && (zustand === "zielen" || zustand === "laden") && s.tasche[s.scheibe] ? scheibenFarbe(s.tasche[s.scheibe].typ) : null;
   return { pose, bild, links, inHand };
 }
 
@@ -1793,7 +1943,7 @@ function zeichneKraftbalkenSenkrecht(gelb, rot) {
 // teil: "schatten" (am Boden, unter allen Gegenständen), "scheibe" (in der Luft, einsortiert) oder beides
 function zeichneScheibe(p, dreht = false, teil = "beides") {
   const { x, y } = zuSchirm(p), hz = Math.round(p.z * S * 0.6 * AUF) / AUF;
-  const f = TYPFARBE[scheibe().typ] || PAL.weiss, oy = y - hz - 1, q = 1 / AUF;
+  const f = scheibenFarbe(scheibe().typ), oy = y - hz - 1, q = 1 / AUF, glow = glowAn();
   // Schatten am Boden: zeigt, wo die Scheibe wirklich ist (die Scheibe selbst ist um die Flughöhe versetzt);
   // im feinen Raster als runde Ellipse: Kontur, Rand dunkler, Flugplatte mit Licht oben links
   const rx = 3.5 * AUF, ry = 2.5 * AUF;
@@ -1801,7 +1951,10 @@ function zeichneScheibe(p, dreht = false, teil = "beides") {
     const e = ((i + 0.5) / rx) ** 2 + ((j + 0.5) / ry) ** 2;
     if (e <= 1) { ctx.fillStyle = "rgba(0,0,0,.4)"; ctx.fillRect(x + 0.5 + i * q, y + 0.5 + j * q, q, q); }
   }
+  // Glow: grüner Lichtschein auf dem Boden (um den Schatten) und um die Scheibe selbst
+  if (glow && teil !== "scheibe") glowSchein(x + 0.5, y + 0.5, 5);
   if (teil === "schatten") return;
+  if (glow) glowSchein(x + 0.5, oy + 0.5, 7);
   const rxs = rx - 1, rys = ry - 1;
   for (let j = -ry; j < ry; j++) for (let i = -rx; i < rx; i++) {
     const e = ((i + 0.5) / rxs) ** 2 + ((j + 0.5) / rys) ** 2, ea = ((i + 0.5) / rx) ** 2 + ((j + 0.5) / ry) ** 2;
@@ -1847,6 +2000,7 @@ function zeichnePuttAnsicht() {
   const jz = aktuelleJahreszeit();
   zeichnePuttHintergrund(ctx, wx, jz);
   zeichnePuttLaub(ctx, jz, bx, by, bw, bh, wind); // Herbst: fallende Blätter
+  zeichnePuttNacht(ctx, jz, bx, by, bw, bh); // Nacht: Fledermäuse, Sternschnuppe
 
   text("PUTT " + d.toFixed(1) + " M", bx + 4, by + 3, PAL.weiss);
   text(puttStil === "push" ? "PUSH" : "SPIN", bx + bw - 4, by + 3, "#ffe08a", "right");
@@ -1884,10 +2038,12 @@ function zeichnePuttAnsicht() {
     }
     // Putter von der Seite im feinen Raster: Kontur, Oberseite hell, Unterseite dunkel
     const q = 1 / AUF, px = Math.round(x * AUF) * q, py = Math.round(y * AUF) * q;
+    const pf = scheibenFarbe("Putter");
+    if (glowAn()) glowSchein(px, py + 1, 8);
     ctx.fillStyle = PAL.schwarz; ctx.fillRect(px - 3.5 - q, py - q, 7 + 2 * q, 2 + 2 * q); ctx.fillRect(px - 2.5, py - 2 * q, 5, q);
-    ctx.fillStyle = TYPFARBE.Putter; ctx.fillRect(px - 3.5, py, 7, 2);
-    ctx.fillStyle = hellerDunkler(TYPFARBE.Putter, 0.35); ctx.fillRect(px - 2.5, py - q, 5, q + q);
-    ctx.fillStyle = hellerDunkler(TYPFARBE.Putter, -0.35); ctx.fillRect(px - 3.5, py + 2 - q, 7, q);
+    ctx.fillStyle = pf; ctx.fillRect(px - 3.5, py, 7, 2);
+    ctx.fillStyle = hellerDunkler(pf, 0.35); ctx.fillRect(px - 2.5, py - q, 5, q + q);
+    ctx.fillStyle = hellerDunkler(pf, -0.35); ctx.fillRect(px - 3.5, py + 2 - q, 7, q);
     if (t > 1 && t < 1.05 && !f.ton) {
       f.ton = true;
       if (f.ergebnis === "drin" || f.ergebnis === "spit") sfx.ketten(); else sfx.landung();
@@ -2181,6 +2337,7 @@ function schleife(jetzt) {
   }
   if (modus === "frei") zeichneMarken();
   zeichneWeltObjekte(korbWackelt);
+  zeichneNachtEffekte(dt); // Nachtbahn: Glühwürmchen, Platschen, Eule
 
   if (zustand === "flug" || (zustand === "pause" && flug && flug.aktiv)) {
     const fp = flugPosition();
@@ -2201,6 +2358,7 @@ function schleife(jetzt) {
     for (const [i, anzahl, tempo] of blattStellen) {
       if (flug.blattFertig.has(i) || fp.i < i) continue;
       flug.blattFertig.add(i);
+      if (anzahl > 4) nachtBaumTreffer(); // Abprallen oder Abbremsen im Baum: die Eule fliegt auf
       const q = e.pfad[i];
       flug.blaetter.push({ t0: uhr, x: q.x, y: q.y, z: q.z, teile: Array.from({ length: anzahl }, () => ({ a: Math.random() * Math.PI * 2, v: (0.4 + Math.random()) * tempo })) });
     }
@@ -2221,6 +2379,7 @@ function schleife(jetzt) {
     }
     if (e.ob && !flug.obGezeigt && fp.i >= e.obIndex) {
       flug.obGezeigt = true;
+      nachtPlatsch(e);
       zeigeOB(modus !== "frei");
     }
     // Spur und Scheibe zeichnet zeichneWeltObjekte (einsortiert zwischen Gegenständen und Figuren)
@@ -3140,6 +3299,6 @@ requestAnimationFrame(schleife);
 // Als App installierbar / offline startbar
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => { /* egal */ });
 </script>
-<script src="mehrspieler.js?v=0.9.0"></script>
+<script src="mehrspieler.js?v=0.10.0"></script>
 </body>
 </html>

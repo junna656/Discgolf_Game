@@ -81,7 +81,8 @@
   // OB-Zonen: Rechteck {x, y, w, h}, Polygon {punkte: [[x, y], ...]} oder Grenzlinie {linie, innen}
   function obZone(p, bahn) {
     return (bahn.ob || []).find(o => {
-      if (o.insel) return p.x >= o.ab && !imPolygon(p, o.insel);
+      // Insel(n): OB ist ab x = ab alles außer den Inseln (inseln: weitere Inseln, z. B. eine Inselkette)
+      if (o.insel) return p.x >= o.ab && ![o.insel, ...(o.inseln || [])].some(r => imPolygon(p, r));
       if (!o.linie) return o.punkte ? imPolygon(p, o.punkte) : imRechteck(p, o);
       const sp = seiteVonLinie(p, o.linie);
       o._innen ??= seiteVonLinie({ x: o.innen[0], y: o.innen[1] }, o.linie);

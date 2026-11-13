@@ -9,6 +9,7 @@
 //             --hat-naechste  Exit 0, wenn die Bahn der kommenden Woche schon eingetragen ist
 //             --zufallsthema  gibt ein vorhandenes Thema aus (nicht das der letzten Woche)
 //             --bahnen <n>  Anzahl Bahnen (Standard ANZAHL_STANDARD = 6, später 18)
+//             --typen a,b,…  Bahntypen der Reihe nach (sonst plan des Themas oder Zufall nach Gewicht)
 //   Ohne Eintrag für die Woche wird er angehängt, sonst ersetzt (so lässt sich ein Kurs neu würfeln).
 //
 // Neues Thema: in THEMEN unten einen Eintrag mit name, optik, namen und baue(z, g, L) ergänzen.
@@ -272,7 +273,233 @@ const THEMEN = {
       return { typ, baeume, ob, wege, mauern, mando, keinXSpiegeln };
     },
   },
+  // Dunkler Herbstabend: Wald in der Dämmerung, Weiher und Bäche als OB (art "wasser"), Mandos durch Baumriegel,
+  // Inseln und eine Par-4-Inselkette. Optik mit nacht/glow: Mond und Sterne in der Putt-Ansicht, alle Scheiben
+  // leuchten grün (Phosphor-Glow) – das braucht Spiel-Code ab 0.10.0 (Release), der Rest ist reine Daten.
+  herbstnacht: {
+    name: "Herbstnacht", optik: "herbstnacht",
+    optikDaten: {
+      basis: "herbst", nacht: true, glow: true,
+      gras: ["#0e1a16", "#13221a", "#182a1e", "#1e3222", "#243a26", "#2c4430"],
+      aus: ["#0a1410", "#0e1914", "#121e17", "#16241a", "#1a2a1e", "#1f3022"],
+      fair: ["#1a3424", "#21402a", "#284a30", "#2f5436", "#365e3c", "#3f6844"],
+      weg: ["#2a2420", "#352e28", "#403830", "#4a4238", "#564c42", "#62584c"],
+      erde: ["#2a2018", "#352a1e", "#403226"],
+      wasser: ["#060e1c", "#0a1628", "#0f1e36", "#152844", "#1e3654", "#6a88b0"],
+      laubbaum: ["#1e0e06", "#44220c", "#6c3a14", "#925622", "#b47434"],
+      laubbaumVarianten: [
+        ["#1e0e06", "#44220c", "#6c3a14", "#925622", "#b47434"], // Ahorn orange
+        ["#1e0808", "#421410", "#642218", "#863424", "#a64c32"], // Ahorn rot
+        ["#1e1a06", "#423a10", "#645818", "#867426", "#a68e3a"], // Birke gelb
+        ["#1c140c", "#30221a", "#463224", "#5c4430", "#745a40"], // Eiche braun
+      ],
+      kiefer: ["#060f0c", "#0a1a14", "#10241c", "#163024", "#22402e"],
+      fels: ["#1e2024", "#2e3036", "#42444a", "#585a60", "#74767c"],
+      busch: ["#121c10", "#1a2814", "#24341a", "#2e4022", "#3c502c"],
+      himmel: ["#05081a", "#0a1230", "#141e44", "#2a2c54", "#523e5c"],
+      wolken: ["#2a3350", "#1a2038"],
+      circle: ["#d8e4f0", "#05080c"],
+      circleStil: "glow", circleGlow: "#a8ff7a", // Circle 1 als grüner Leuchtring, nur auf Land, unter der OB-Linie
+      blumen: { dichte: 0, farben: [] },
+      laub: { dichte: 0.5, farben: ["#7a3e18", "#8a5a20", "#5e2a16", "#6a4a1c", "#7a2a1a"] },
+      bueschel: 0.5,
+      objekte: {
+        findling: { form: "brocken", farben: "fels" },
+        laterne: { form: "laterne", stil: 1, farben: ["#101216", "#3a3e46", "#6a6e76", "#ffc860", "#fff4c0"] }, // Stil 1: klassisch schlank
+        hecke: { form: "kugel", farben: "busch" },
+      },
+    },
+    namen: ["Glühwürmchen-Gasse", "Mondscheinmando", "Laternenlauf", "Nebelbank", "Eulenruf", "Fledermaus-Flex", "Kürbislicht",
+      "Sternschnuppe", "Dämmerdrive", "Glow Getter", "Irrlicht", "Herbstfeuer", "Mitternachtsmando", "Blätterrauschen", "Schattenspiel",
+      "Uhu-Ufer", "Grüner Schimmer", "Novembernebel", "Spukwald", "Kastanienkurve", "Phosphorpfad", "Leuchtkäfer", "Mondsichel",
+      "Weiherweg", "Inselhüpfer", "Laubhaufen-Lob", "Nachtwanderung", "Zwielicht"],
+    typen: { quer: 1.5, insel: 1.6, inselkette: 0.5, mando: 2, offen: 1 },
+    // Reihenfolge der Bahntypen im Kurs (Wunsch: Mandos, Inseln, eine Par 4 mit Inselkette)
+    plan: ["quer", "mando", "insel", "inselkette", "mando", "insel"],
+    typPar: { inselkette: 4 },
+    typNamen: { mando: ["Mondscheinmando", "Mitternachtsmando", "Schattenspiel"], insel: ["Uhu-Ufer", "Weiherweg", "Mondsichel"],
+      inselkette: ["Inselhüpfer", "Sternschnuppe"] },
+    baue(z, g, L, vorgabe) {
+      const { abwurf, korb, linie } = g;
+      const typ = vorgabe || waehleGewichtet(z, this.typen);
+      const ob = [], baeche = [], feste = [];
+      let mando = null; const sperrZonen = [];
+      const P = t => punktAufLinie(linie, t);
+      const insel = (m, R) => { const pk = []; for (let i = 0; i < 16; i++) { const w = i / 16 * Math.PI * 2, rr = R * (0.85 + z() * 0.3); pk.push([r1(m.x + Math.cos(w) * rr), r1(m.y + Math.sin(w) * rr * 0.85)]); } return pk; };
+      const baum = (p, z, gross = 0) => ({ x: r1(p.x), y: r1(p.y), r: r1(1.6 + z() * 2 + gross), h: r1(7 + z() * 6 + gross * 2) });
+      const keinXSpiegeln = typ === "insel" || typ === "inselkette";
+      // Ufer: statt der geraden Kante bei x = ab ein Landstück mit gewelltem Rand (Ring von Rand zu Rand, gilt als
+      // Insel und ist damit nicht OB); ab rückt 8 m zurück, der Rand liegt 0,5–15,5 m dahinter (Buchten und
+      // Landzungen), aber immer 4 m vor den Inseln. Eigener Zufall aus der Korblage, damit der übrige Aufbau gleich bleibt.
+      const ufer = (ab0, ringe) => {
+        const H = g.welt.hoehe, p1 = korb.x * 1.7, p2 = korb.y * 2.3, pk = [[0, 0]];
+        const grenze = y => Math.min(Infinity, ...ringe.filter(r => r.some(q => Math.abs(q[1] - y) < 6)).map(r => Math.min(...r.map(q => q[0])) - 4));
+        for (let y = 0; y <= H + 0.01; y += 2) pk.push([r1(Math.max(ab0 + 0.5, Math.min(grenze(y), ab0 + 8 + 4 * Math.sin(y / 16 + p1) + 2.5 * Math.sin(y / 6 + p2) + Math.sin(y / 2.3 + p1)))), r1(Math.min(H, y))]);
+        if (pk[pk.length - 1][1] < H) pk.push([pk[pk.length - 1][0], r1(H)]);
+        pk.push([0, r1(H)]);
+        return pk;
+      };
+
+      if (typ === "quer") {
+        baeche.push(querBand(z, g, P(0.35 + z() * 0.35)));
+        z(); // früher: zweiter Bach längs – keine kreuzenden Bäche (nur ein Gewässer je Bahn)
+      } else if (typ === "insel") {
+        const R = 8 + z() * 4, ab = r1(korb.x - R - 6 - z() * Math.min(18, L * 0.15));
+        if (ab < abwurf.x + 30) return null;
+        const ki = insel(korb, R);
+        ob.push({ name: "Weiher", art: "wasser", insel: ki, inseln: [ufer(r1(ab - 8), [ki])], ab: r1(ab - 8) });
+      } else if (typ === "inselkette") {
+        // Par 4: Wasser ab x = ab, darin 2 Zwischeninseln auf der Linie und die Korbinsel; Lücken 8–14 m Wasser
+        if (L < 150) return null;
+        const Rk = 10 + z() * 2, inseln = [], mitten = [];
+        let t = 1, rVor = Rk;
+        for (let k = 0; k < 2; k++) {
+          const R = 13 + z() * 3, luecke = 8 + z() * 6, len = L;
+          t -= (rVor + luecke + R) / len;
+          const p = P(t), sei = (z() - 0.5) * 8;
+          mitten.push({ x: p.x - p.uy * sei, y: p.y + p.ux * sei, R }); rVor = R;
+        }
+        const erste = mitten[mitten.length - 1], ab = r1(erste.x - erste.R - 10 - z() * 6);
+        if (ab < abwurf.x + 45) return null;
+        for (const m of mitten) inseln.push(insel(m, m.R));
+        const ki = insel(korb, Rk);
+        ob.push({ name: "Weiher", art: "wasser", insel: ki, inseln: [ufer(r1(ab - 8), [ki, ...inseln]), ...inseln], ab: r1(ab - 8) });
+        sperrZonen.push(...mitten.map(m => ({ x: m.x, y: m.y, r: m.R * 0.55 })));
+      } else if (typ === "mando") {
+        // Baumriegel quer zur Bahn mit einer Lücke von 8–11 m zwischen zwei großen Eichen
+        const t = 0.35 + z() * 0.25, p = P(t), luecke = 8 + z() * 3, versatz = (z() - 0.5) * 3;
+        const rs = [3 + z(), 3 + z()], nx = -p.uy, ny = p.ux;
+        const a = { x: r1(p.x + nx * (versatz + luecke / 2 + rs[0])), y: r1(p.y + ny * (versatz + luecke / 2 + rs[0])) };
+        const b = { x: r1(p.x - nx * (luecke / 2 - versatz + rs[1])), y: r1(p.y - ny * (luecke / 2 - versatz + rs[1])) };
+        feste.push({ ...a, r: r1(rs[0]), h: r1(13 + z() * 3) }, { ...b, r: r1(rs[1]), h: r1(13 + z() * 3) });
+        mando = { a: [a.x, a.y], b: [b.x, b.y] };
+        for (const [q, sei, r0] of [[a, 1, rs[0]], [b, -1, rs[1]]]) {
+          let d = r0, x = q.x, y = q.y;
+          for (let k = 0, n = 4 + Math.floor(z() * 3); k < n; k++) {
+            const r = 2 + z() * 1.6; d = r + d * 0.8;
+            x += nx * sei * d + (z() - 0.5) * 1.5; y += ny * sei * d + (z() - 0.5) * 1.5; d = r;
+            feste.push({ x: r1(x), y: r1(y), r: r1(r), h: r1(11 + z() * 4) });
+            // Hecke dazwischen, damit der Riegel dicht wirkt
+            if (z() < 0.6) feste.push({ x: r1(x + (z() - 0.5) * 2 + p.ux * 2.5), y: r1(y + (z() - 0.5) * 2 + p.uy * 2.5), r: r1(1.2 + z() * 0.6), h: r1(1.6 + z() * 0.8), art: "hecke" });
+          }
+        }
+        sperrZonen.push({ x: p.x + nx * versatz, y: p.y + ny * versatz, r: luecke / 2 + 2 });
+        if (z() < 0.4) baeche.push(querBand(z, g, P(t < 0.5 ? 0.7 + z() * 0.06 : 0.2 + z() * 0.08)));
+      } else if (typ === "offen") {
+        if (z() < 0.5) baeche.push(laengsBand(z, g, linie));
+      }
+      for (const [i, fb] of baeche.entries()) ob.push({ name: "Bach " + (i + 1), art: "wasser", punkte: fb });
+
+      const imWasser = p => baeche.some(fb => imPolygon(p, fb)) || ob.some(o => o.insel && p.x >= o.ab && !inselRinge(o).some(r => imPolygon(p, r)));
+      const wasserNah = (p, d) => baeche.some(fb => imPolygon(p, fb) || abstandZurLinie(p, [...fb, fb[0]]) < d);
+      if (wasserNah(abwurf, 8) || wasserNah(korb, 14)) return null;
+      const frei = (o, liste) => {
+        if (abstand(o, abwurf) < 7 || abstand(o, korb) < 5 + o.r) return false;
+        if (imWasser(o) || wasserNah(o, o.r + 0.3) || sperrZonen.some(q => abstand(q, o) < q.r + o.r)) return false;
+        if ([...feste, ...liste].some(q => abstand(q, o) < q.r + o.r + 0.6)) return false;
+        return o.x > -2 && o.y > -2 && o.x < g.welt.breite + 2 && o.y < g.welt.hoehe + 2;
+      };
+      // Bäume auf Inseln: höchstens ein kleiner, nicht auf der Korbinsel
+      const naheBahn = p => abstandZurLinie(p, linie);
+      const flaeche = g.welt.breite * g.welt.hoehe, dichte = typ === "offen" ? 1.4 : 0.9 + z() * 0.5;
+      const findling = (p, z) => ({ x: r1(p.x), y: r1(p.y), r: r1(0.9 + z() * 1.3), h: r1(1 + z() * 1.2), art: "findling", fest: true });
+      const hecke = (p, z) => ({ x: r1(p.x), y: r1(p.y), r: r1(0.9 + z() * 0.9), h: r1(1.2 + z() * 1), art: "hecke" });
+      const aussen = streue(z, g, Math.round(flaeche / 120 * dichte), (p, z) => { const d = naheBahn(p); if (d < 10) return null; const w = z(); return w < 0.78 ? baum(p, z) : w < 0.9 ? hecke(p, z) : findling(p, z); }, frei);
+      const imSpielAnz = Math.round(L / 30 * (typ === "offen" ? 2 : typ === "inselkette" ? 0.4 : 1));
+      const imSpiel = streue(z, g, imSpielAnz, (p, z) => { const d = naheBahn(p); return d > 4.2 && d < (typ === "offen" ? 11 : 9) ? (z() < 0.75 ? baum(p, z) : findling(p, z)) : null; }, (o, l) => frei(o, [...aussen, ...l]));
+      const baeume = [...feste, ...imSpiel, ...aussen];
+      // Waldweg als Bild (Brücke über Wasser), nicht über Abwurf/Korb
+      const wy = z() < 0.5 ? 0 : g.welt.hoehe, wx = g.welt.breite * (0.2 + z() * 0.6);
+      const strecken = pk => pk.slice(1).map((q, i) => [{ x: pk[i][0], y: pk[i][1] }, { x: q[0], y: q[1] }]);
+      const nahWeg = (p, pk, d) => strecken(pk).some(([a, b]) => abstandZurStrecke(p, a, b) < d);
+      let wege;
+      const uferRing = (ob.find(o => o.inseln) || {}).inseln?.[0];
+      if (uferRing) {
+        // Uferweg: 5 m landeinwärts am gewellten Ufer entlang
+        wege = [{ punkte: uferRing.slice(1, -1).map(([x, y]) => [r1(x - 5), y]), breite: 2.2 }];
+      } else {
+        wege = [{ punkte: [[r1(wx), r1(wy)], [r1(wx + (z() - 0.5) * 30), r1(g.welt.hoehe / 2)], [r1(wx + (z() - 0.5) * 50), r1(g.welt.hoehe - wy)]], breite: 2.5 }];
+        // Mando: der Waldweg darf den Baumriegel nicht durchschneiden
+        if (mando && feste.some(f => nahWeg(f, wege[0].punkte, f.r + 3))) wege = [];
+      }
+      if (wege.length && (nahWeg(abwurf, wege[0].punkte, 8) || nahWeg(korb, wege[0].punkte, 8))) wege = [];
+      // Laternen am Weg: alle ~16 m, abwechselnd links und rechts, nicht im Wasser und nicht an Abwurf/Korb
+      const laternen = [];
+      for (const w of wege) {
+        let rest = 6, sei = 1;
+        for (const [a, b] of strecken(w.punkte)) {
+          const len = abstand(a, b), ux = (b.x - a.x) / (len || 1), uy = (b.y - a.y) / (len || 1);
+          for (; rest <= len; rest += 16, sei = -sei) {
+            const d = w.breite / 2 + 1.1, o = { x: r1(a.x + ux * rest - uy * d * sei), y: r1(a.y + uy * rest + ux * d * sei), r: 0.3, h: 3.6, art: "laterne", fest: true };
+            if (o.x < 1 || o.y < 1 || o.x > g.welt.breite - 1 || o.y > g.welt.hoehe - 1) continue;
+            if (imWasser(o) || wasserNah(o, 1) || abstand(o, abwurf) < 7 || abstand(o, korb) < 8 || feste.some(f => abstand(f, o) < f.r + 1.5)) continue;
+            laternen.push(o);
+          }
+          rest -= len;
+        }
+      }
+      // Bäume auf dem Weg und direkt an den Laternen weg
+      const aufWeg = o => wege.some(w => nahWeg(o, w.punkte, o.r + w.breite / 2)) || laternen.some(l => abstand(l, o) < o.r + 1);
+      // Brücken (Fußgänger, nur Bild – darunter bleibt OB): Ufer → Inseln → Korbinsel, und je Bach eine neben der Spiellinie
+      const bruecken = [];
+      const dicht = ring => ring.flatMap((p, i) => { const q = ring[(i + 1) % ring.length], n = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]))); return Array.from({ length: n }, (_, k) => ({ x: p[0] + (q[0] - p[0]) * k / n, y: p[1] + (q[1] - p[1]) * k / n })); });
+      const imFeld = p => p.x > 0.5 && p.y > 0.5 && p.x < g.welt.breite - 0.5 && p.y < g.welt.hoehe - 0.5;
+      const verbinde = (A, B) => {
+        let best = null;
+        for (const p of dicht(A)) if (imFeld(p)) for (const q of dicht(B)) { const d = abstand(p, q); if (!best || d < best.d) best = { p, q, d }; }
+        if (!best) return;
+        const ux = (best.q.x - best.p.x) / best.d, uy = (best.q.y - best.p.y) / best.d;
+        bruecken.push({ a: [r1(best.p.x - ux * 1.2), r1(best.p.y - uy * 1.2)], b: [r1(best.q.x + ux * 1.2), r1(best.q.y + uy * 1.2)], breite: 1.8 });
+      };
+      const io = ob.find(o => o.inseln);
+      if (io) { const kette = [io.inseln[0], ...io.inseln.slice(1).reverse(), io.insel]; for (let i = 0; i < kette.length - 1; i++) verbinde(kette[i], kette[i + 1]); }
+      for (const fb of baeche) {
+        // Stelle, an der die Spiellinie den Bach kreuzt; die Brücke liegt 4 m daneben, quer über den Bach
+        let m = null, u = null;
+        for (let t = 0; t <= 1; t += 0.002) { const p = P(t); if (imPolygon(p, fb)) { m = p; u = { x: p.ux, y: p.uy }; break; } }
+        if (!m) continue;
+        for (const ver of [4, -4, 0]) {
+          const s0 = { x: m.x - u.y * ver, y: m.y + u.x * ver };
+          // entlang der Spielrichtung den Wasserabschnitt suchen, der s0 am nächsten liegt, und ganz überspannen
+          const drin = []; for (let d = -30; d <= 30; d += 0.25) drin.push([d, imPolygon({ x: s0.x + u.x * d, y: s0.y + u.y * d }, fb)]);
+          let lauf = null, best = null;
+          for (const [d, w] of drin) { if (w) lauf = lauf ? { ...lauf, bis: d } : { von: d, bis: d }; else if (lauf) { if (!best || Math.abs((lauf.von + lauf.bis) / 2) < Math.abs((best.von + best.bis) / 2)) best = lauf; lauf = null; } }
+          if (!best || best.von <= -30 || best.bis >= 30) continue;
+          const a = { x: s0.x + u.x * (best.von - 0.25), y: s0.y + u.y * (best.von - 0.25) }, b = { x: s0.x + u.x * (best.bis + 0.25), y: s0.y + u.y * (best.bis + 0.25) };
+          if (!a || !b || imWasser(a) || imWasser(b)) continue;
+          bruecken.push({ a: [r1(a.x - u.x * 1.2), r1(a.y - u.y * 1.2)], b: [r1(b.x + u.x * 1.2), r1(b.y + u.y * 1.2)], breite: 1.8 });
+          break;
+        }
+      }
+      const anBruecke = o => bruecken.some(br => abstandZurStrecke(o, { x: br.a[0], y: br.a[1] }, { x: br.b[0], y: br.b[1] }) < o.r + br.breite / 2 + 0.8);
+      return { typ, baeume: [...laternen, ...baeume.filter(o => !aufWeg(o) || feste.includes(o))].filter(o => !anBruecke(o) || feste.includes(o)), ob, wege, mauern: [], mando, keinXSpiegeln, bruecken };
+    },
+  },
 };
+
+// Flussbett/Bach quer über die Bahn am Punkt p (aus punktAufLinie) bzw. längs auf einer Seite (wie ein Aus)
+function querBand(z, g, p) {
+  const nx = -p.uy, ny = p.ux;
+  const mitte = [], breiten = [], schwung = 3 + z() * 5, phase = z() * 6, schraeg = (z() - 0.5) * 0.6;
+  for (let s = -1.2; s <= 1.2001; s += 0.1) {
+    const d = s * g.welt.hoehe, m = Math.sin(s * 5 + phase) * schwung;
+    mitte.push([r1(p.x + nx * d + p.ux * (m + d * schraeg)), r1(p.y + ny * d + p.uy * (m + d * schraeg))]);
+    breiten.push(5 + z() * 2 + Math.sin(s * 3 + phase) * 2);
+  }
+  return band(mitte, breiten);
+}
+function laengsBand(z, g, linie) {
+  const seite = z() < 0.5 ? -1 : 1, mitte = [], breiten = [];
+  for (let k = 0; k <= 20; k++) {
+    const t = k / 20, x = -5 + (g.welt.breite + 10) * t;
+    const y = (() => { const [a, b, c] = linie; return x <= b[0] ? a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]) : b[1] + (c[1] - b[1]) * (x - b[0]) / (c[0] - b[0]); })();
+    mitte.push([r1(x), r1(y + seite * (21 + z() * 4 + Math.sin(t * 7) * 2.5))]);
+    breiten.push(6 + z() * 3);
+  }
+  return band(mitte, breiten);
+}
+// Inselringe einer OB-Zone (wie inselRinge in grafik.js): insel und weitere inseln
+const inselRinge = o => [o.insel, ...(o.inseln || [])].filter(Boolean);
 
 // Zufallsauswahl nach Gewichten {name: gewicht}
 function waehleGewichtet(z, gewichte) {
@@ -296,13 +523,13 @@ function punktAufLinie(pk, t) {
 
 // ---------- Kurs bauen: ANZAHL Bahnen eines Themas ----------
 const ANZAHL_STANDARD = 6; // Bahnen pro Woche (Ziel später: 18)
-function baueBahn(T, { woche, thema, seed, nr, parErzwungen, belegteNamen }) {
+function baueBahn(T, { woche, thema, seed, nr, parErzwungen, belegteNamen, typVorgabe }) {
   for (let versuch = 0; versuch < 200; versuch++) {
     // Bahn 1 nutzt denselben Zufall wie früher (eine Bahn pro Woche), die weiteren einen eigenen
     const z = zufall(hashText(`${woche}|${thema}|${seed}|${versuch}` + (nr > 1 ? `|b${nr}` : "")));
-    const { par, L } = waehlePar(z, parErzwungen);
+    const { par, L } = waehlePar(z, parErzwungen || (typVorgabe && T.typPar && T.typPar[typVorgabe]));
     const g = geruest(z, L);
-    const teile = T.baue(z, g, L);
+    const teile = T.baue(z, g, L, typVorgabe);
     if (!teile) continue;
     // Fantasiename: zufällig aus der Liste, aber jeder nur einmal pro Woche
     // passende Typ-Namen zuerst; Namen anderer Typen nie
@@ -319,10 +546,11 @@ function baueBahn(T, { woche, thema, seed, nr, parErzwungen, belegteNamen }) {
     g.abwurf = P(g.abwurf); g.korb = P(g.korb); g.fairway = L2(g.fairway);
     teile.baeume = teile.baeume.map(P);
     teile.wege = teile.wege.map(w => ({ ...w, punkte: L2(w.punkte) }));
-    teile.ob = teile.ob.map(o => o.insel ? { ...o, insel: L2(o.insel) } : { ...o, punkte: L2(o.punkte) });
+    teile.ob = teile.ob.map(o => o.insel ? { ...o, insel: L2(o.insel), ...(o.inseln ? { inseln: o.inseln.map(L2) } : {}) } : { ...o, punkte: L2(o.punkte) });
     // einmal gespiegelt dreht sich die Laufrichtung der Wandlinie um: Felsband bleibt außen
     teile.mauern = (teile.mauern || []).map(m => ({ ...m, punkte: L2(m.punkte), seite: sx !== sy ? -m.seite : m.seite }));
     if (teile.mando) teile.mando = { ...teile.mando, a: L2([teile.mando.a])[0], b: L2([teile.mando.b])[0] };
+    teile.bruecken = (teile.bruecken || []).map(br => ({ ...br, a: L2([br.a])[0], b: L2([br.b])[0] }));
     return {
       bahn: {
         nummer: nr, name, ort: "Wochenkurs · " + T.name, par, optik: T.optik,
@@ -330,19 +558,22 @@ function baueBahn(T, { woche, thema, seed, nr, parErzwungen, belegteNamen }) {
         abwurf: g.abwurf, korb: g.korb, fairway: g.fairway,
         baeume: teile.baeume, wege: teile.wege, ob: teile.ob,
         ...(teile.mauern.length ? { mauern: teile.mauern } : {}), ...(teile.mando ? { mando: teile.mando } : {}),
+        ...(teile.bruecken.length ? { bruecken: teile.bruecken } : {}),
       },
       erzeugt: { versuch, laenge: L, typ: teile.typ },
     };
   }
   throw new Error(`Bahn ${nr}: keine gültige Bahn gefunden – anderen --seed versuchen.`);
 }
-function baueKurs({ thema, woche, seed = 0, name, par: parErzwungen, anzahl = ANZAHL_STANDARD }) {
+function baueKurs({ thema, woche, seed = 0, name, par: parErzwungen, anzahl = ANZAHL_STANDARD, typen }) {
   const T = THEMEN[thema];
   if (!T) throw new Error(`Unbekanntes Thema "${thema}". Vorhanden: ${Object.keys(THEMEN).join(", ")}`);
   if (T.namen.length < anzahl + 1) throw new Error(`Thema ${thema}: zu wenige Namen (${T.namen.length}) für ${anzahl} Bahnen plus Kursname`);
   const [jahr, kw] = woche.split("-").map(Number);
   const belegteNamen = new Set(name ? [name] : []), erg = []; // vorgegebener Kursname wird kein Bahnname
-  for (let nr = 1; nr <= anzahl; nr++) erg.push(baueBahn(T, { woche, thema, seed, nr, parErzwungen, belegteNamen }));
+  // Bahntypen: --typen a,b,… oder der Plan des Themas (sonst je Bahn zufällig nach Gewicht)
+  const plan = typen || T.plan;
+  for (let nr = 1; nr <= anzahl; nr++) erg.push(baueBahn(T, { woche, thema, seed, nr, parErzwungen, belegteNamen, typVorgabe: plan ? plan[(nr - 1) % plan.length] : undefined }));
   // Kursname: eigener Fantasiename (vorgegeben oder der erste noch freie aus der Liste) + KWxx
   const z = zufall(hashText(`${woche}|${thema}|${seed}|kurs`));
   let kursname = name;
@@ -403,12 +634,13 @@ function pruefe(liste) {
     if (!b || !b.welt || Math.abs(b.welt.hoehe - b.welt.breite * 9 / 16) > 0.01) fehler.push(e.woche + ": welt.hoehe muss breite × 9/16 sein");
     if (![3, 4, 5].includes(b.par)) fehler.push(e.woche + ": par");
     for (const p of [b.abwurf, b.korb]) if (!(p.x > 0 && p.y > 0 && p.x < b.welt.breite && p.y < b.welt.hoehe)) fehler.push(e.woche + ": Abwurf/Korb außerhalb");
-    const imOB = p => (b.ob || []).some(o => o.insel ? p.x >= o.ab && !imPolygon(p, o.insel) : o.punkte && imPolygon(p, o.punkte));
+    const imOB = p => (b.ob || []).some(o => o.insel ? p.x >= o.ab && !inselRinge(o).some(r => imPolygon(p, r)) : o.punkte && imPolygon(p, o.punkte));
     if (imOB(b.abwurf) || imOB(b.korb)) fehler.push(e.woche + ": Abwurf/Korb im OB (Bahn " + b.nummer + ")");
     for (const t of b.baeume || []) {
       if (t.art && !arten.includes(t.art) && !eigene[t.art]) fehler.push(e.woche + `: unbekannte Art "${t.art}" (Bahn ${b.nummer}) – eingebaut: ${arten.join(", ")}; sonst in optikDaten.objekte festlegen`);
       if (t.art && !(t.h > 0)) fehler.push(e.woche + `: Gegenstand "${t.art}" ohne Höhe h (Bahn ${b.nummer})`);
     }
+    for (const br of b.bruecken || []) for (const [x, y] of [br.a, br.b]) if (imOB({ x, y })) fehler.push(e.woche + `: Brückenende im OB (Bahn ${b.nummer})`);
     if (b.mando && !(b.baeume || []).some(t => Math.hypot(t.x - b.mando.a[0], t.y - b.mando.a[1]) < 0.5)) fehler.push(e.woche + ": Mando ohne Felsen (Bahn " + b.nummer + ")");
     }
   }
@@ -443,7 +675,7 @@ let woche = arg("woche");
 if (!woche) { const w = naechsteWoche(); woche = `${w.jahr}-${w.kw}`; }
 const [wj, wk] = woche.split("-").map(Number); woche = `${wj}-${wk}`;
 const eintrag = baueKurs({ thema, woche, seed: Number(arg("seed") || 0), name: arg("name"), par: arg("par") ? Number(arg("par")) : undefined,
-  anzahl: arg("bahnen") ? Number(arg("bahnen")) : undefined });
+  anzahl: arg("bahnen") ? Number(arg("bahnen")) : undefined, typen: arg("typen") ? arg("typen").split(",") : undefined });
 const neu = [...liste.filter(e => e.woche !== woche), eintrag];
 const f = pruefe(neu);
 if (f.length) { console.error(f.join("\n")); process.exit(1); }
