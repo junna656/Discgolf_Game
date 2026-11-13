@@ -311,6 +311,7 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
 
   zeichneLinien(c, z);
 
+  if (JZ.circleStil === "glow") zeichneCircle(); // Leuchtring unter den OB-Linien (Funktion steht weiter unten)
   // ---------- OB-Grenzen: Zaun mit Pfosten und Maschen, Linie mit Pflöcken ----------
   const am = (v, m) => v <= 0.01 || v >= m - 0.01;
   for (const [oi, o] of bahn.ob.entries()) for (const pk of o.insel ? inselRinge(o) : [o.linie || o.punkte || [[o.x, o.y], [o.x + o.w, o.y], [o.x + o.w, o.y + o.h], [o.x, o.y + o.h]]]) {
@@ -407,17 +408,49 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
   }
 
   // ---------- Circle 1 (10 m) gepunktet ----------
-  // auf hellem Boden (z. B. Sand) mit eigener Farbe: dunkle Markierung mit hellem Schatten, etwas kräftiger
-  if (JZ.circle) {
-    const [dunkel, hell] = JZ.circle, g = zr;
-    for (let w = 0; w < Math.PI * 2; w += 0.22 / z) {
-      const px = Math.round((bahn.korb.x + Math.cos(w) * 10) * S), py = Math.round((bahn.korb.y + Math.sin(w) * 10) * S);
-      rechteck(px + zr, py + zr, g, g, hell); rechteck(px, py, g, g, dunkel);
+  // circleStil (Optik): "land" = nur auf spielbarem Boden, endet an der OB-Grenze (kleine Punkte);
+  // "glow" = feiner, durchscheinender Leuchtring, liegt unter den OB-Linien (wird vor ihnen gezeichnet)
+  function zeichneCircle() {
+    const K = bahn.korb, amOB = (x, y) => obTests.some(t => t(Math.round(x * S), Math.round(y * S), x, y));
+    if (JZ.circleStil === "glow") {
+      const [lr, lg, lb] = rgb(JZ.circleGlow || "#a8ff7a");
+      for (let w = 0; w < Math.PI * 2; w += 0.5 / (10 * S)) {
+        const x = K.x + Math.cos(w) * 10, y = K.y + Math.sin(w) * 10, px = Math.round(x * S), py = Math.round(y * S);
+        const a = amOB(x, y) ? 0.1 : 0.3, k = Math.max(1, Math.round(zr / 2)); // über Wasser nur ein schwacher Schimmer
+        c.fillStyle = `rgba(${lr},${lg},${lb},${a})`; c.fillRect(px, py, k, k);
+      }
+      return;
     }
-  } else {
-    c.fillStyle = "rgba(255,255,255,.4)";
-    for (let w = 0; w < Math.PI * 2; w += 0.12 / z) c.fillRect(Math.round((bahn.korb.x + Math.cos(w) * 10) * S), Math.round((bahn.korb.y + Math.sin(w) * 10) * S), 1, 1);
+    if (JZ.circleStil === "land") {
+      const g = Math.max(1, Math.round(zr * 0.6)), farbe = (JZ.circle || ["#ffffff"])[0];
+      // Punkte rundherum; nur auf Land mit 1,2 m Abstand zur OB-Grenze, Reststücke unter 8 m fallen weg
+      const n = Math.round(Math.PI * 2 / (0.3 / z)), pkt = [];
+      for (let i = 0; i < n; i++) {
+        const w = i / n * Math.PI * 2, x = K.x + Math.cos(w) * 10, y = K.y + Math.sin(w) * 10;
+        pkt.push({ x, y, an: ![0, 1.2].some(d => [0, Math.PI / 2, Math.PI, Math.PI * 1.5].some(v => amOB(x + Math.cos(v) * d, y + Math.sin(v) * d))) });
+      }
+      const minN = Math.ceil(8 / (Math.PI * 20 / n));
+      for (let i = 0; i < n; i++) {
+        if (!pkt[i].an) continue;
+        let l = 0; while (l < n && pkt[(i - l - 1 + n) % n].an) l++;
+        let r = 0; while (r < n && pkt[(i + r + 1) % n].an) r++;
+        if (l + r + 1 < minN) continue;
+        c.globalAlpha = 0.7; rechteck(Math.round(pkt[i].x * S), Math.round(pkt[i].y * S), g, g, farbe); c.globalAlpha = 1;
+      }
+      return;
+    }
+    if (JZ.circle) {
+      const [dunkel, hell] = JZ.circle, g = zr;
+      for (let w = 0; w < Math.PI * 2; w += 0.22 / z) {
+        const px = Math.round((bahn.korb.x + Math.cos(w) * 10) * S), py = Math.round((bahn.korb.y + Math.sin(w) * 10) * S);
+        rechteck(px + zr, py + zr, g, g, hell); rechteck(px, py, g, g, dunkel);
+      }
+    } else {
+      c.fillStyle = "rgba(255,255,255,.4)";
+      for (let w = 0; w < Math.PI * 2; w += 0.12 / z) c.fillRect(Math.round((bahn.korb.x + Math.cos(w) * 10) * S), Math.round((bahn.korb.y + Math.sin(w) * 10) * S), 1, 1);
+    }
   }
+  if (JZ.circleStil !== "glow") zeichneCircle();
 
   // ---------- Abwurf: Beton mit Kante, Sprenkeln und Schatten ----------
   {
