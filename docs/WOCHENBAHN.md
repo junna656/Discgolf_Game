@@ -44,7 +44,7 @@ node werkzeuge/grafik_vorschau.mjs                                # (Bilder eine
   **offen** (Wald); nie zwei kreuzende Bäche. Reihenfolge der Typen über `plan` im Thema (`--typen a,b,…` überschreibt), `typPar` legt das Par
   eines Typs fest (inselkette: 4). Optik: `optikDaten` mit `nacht: true` (Mond, Sterne, dunkle Wolken in der
   Putt-Ansicht), `glow: true` (alle Scheiben leuchten grün wie Phosphor-Glow), `wasser`, `laubbaumVarianten`,
-  `wolken`, `circleStil` (`"land"`: Circle 1 nur auf Land, endet vor der OB-Grenze; `"glow"`: feiner grüner Leuchtring unter den OB-Linien) – das ist Spiel-Code ab dem Release nach 0.9.0; ohne ihn bleibt die Bahn spielbar, aber ohne Glow/Mond,
+  `wolken`, `circleStil` (`"land"`: Circle 1 nur auf Land, endet vor der OB-Grenze; `"glow"`: feiner grüner Leuchtring nur auf Land bis an die OB-Grenze, die OB-Linie liegt darüber) – das ist Spiel-Code ab dem Release nach 0.9.0; ohne ihn bleibt die Bahn spielbar, aber ohne Glow/Mond,
   Wasser als dunkles Aus und mit nur einer Insel (Inselkette dann nicht spielbar).
   Wege bekommen Laternen (alle ~16 m, abwechselnd links/rechts); Inselbahnen einen Uferweg, Mando-Bahnen einen Waldweg,
   wenn er den Baumriegel nicht schneidet. Laternen brauchen die Form `laterne` (Release; ohne erscheinen sie als graue Kugeln).

@@ -299,6 +299,7 @@ const THEMEN = {
       himmel: ["#05081a", "#0a1230", "#141e44", "#2a2c54", "#523e5c"],
       wolken: ["#2a3350", "#1a2038"],
       circle: ["#d8e4f0", "#05080c"],
+      circleStil: "glow", circleGlow: "#a8ff7a", // Circle 1 als grüner Leuchtring, nur auf Land, unter der OB-Linie
       blumen: { dichte: 0, farben: [] },
       laub: { dichte: 0.5, farben: ["#7a3e18", "#8a5a20", "#5e2a16", "#6a4a1c", "#7a2a1a"] },
       bueschel: 0.5,

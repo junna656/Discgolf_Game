@@ -409,14 +409,15 @@ window.zeichneHintergrundDetail = function (z, optionen = {}) {
 
   // ---------- Circle 1 (10 m) gepunktet ----------
   // circleStil (Optik): "land" = nur auf spielbarem Boden, endet an der OB-Grenze (kleine Punkte);
-  // "glow" = feiner, durchscheinender Leuchtring, liegt unter den OB-Linien (wird vor ihnen gezeichnet)
+  // "glow" = feiner, durchscheinender Leuchtring nur auf Land bis an die OB-Grenze; liegt unter den OB-Linien
   function zeichneCircle() {
     const K = bahn.korb, amOB = (x, y) => obTests.some(t => t(Math.round(x * S), Math.round(y * S), x, y));
     if (JZ.circleStil === "glow") {
       const [lr, lg, lb] = rgb(JZ.circleGlow || "#a8ff7a");
       for (let w = 0; w < Math.PI * 2; w += 0.5 / (10 * S)) {
         const x = K.x + Math.cos(w) * 10, y = K.y + Math.sin(w) * 10, px = Math.round(x * S), py = Math.round(y * S);
-        const a = amOB(x, y) ? 0.1 : 0.3, k = Math.max(1, Math.round(zr / 2)); // über Wasser nur ein schwacher Schimmer
+        if (amOB(x, y)) continue; // nur auf Land, endet direkt an der OB-Grenze (deren Linie liegt darüber)
+        const a = 0.3, k = Math.max(1, Math.round(zr / 2));
         c.fillStyle = `rgba(${lr},${lg},${lb},${a})`; c.fillRect(px, py, k, k);
       }
       return;
