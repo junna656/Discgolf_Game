@@ -46,6 +46,9 @@ node werkzeuge/grafik_vorschau.mjs                                # (Bilder eine
   Putt-Ansicht), `glow: true` (alle Scheiben leuchten grün wie Phosphor-Glow), `wasser`, `laubbaumVarianten`,
   `wolken`, `circleStil` (`"land"`: Circle 1 nur auf Land, endet vor der OB-Grenze; `"glow"`: feiner grüner Leuchtring nur auf Land bis an die OB-Grenze, die OB-Linie liegt darüber) – das ist Spiel-Code ab dem Release nach 0.9.0; ohne ihn bleibt die Bahn spielbar, aber ohne Glow/Mond,
   Wasser als dunkles Aus und mit nur einer Insel (Inselkette dann nicht spielbar).
+  Nacht-Effekte (`nacht: true`, Spiel-Code): Glühwürmchen über dem Land, Platschen mit Ringwellen und versinkendem
+  grünem Schimmer bei OB im Wasser, eine Eule in einem Baum an der Bahn (fliegt bei einem Baumtreffer davon), in der
+  Putt-Ansicht Fledermäuse vor dem Mond und Sternschnuppen (selten, bei Birdie oder besser immer).
   Wege bekommen Laternen (alle ~16 m, abwechselnd links/rechts); Inselbahnen einen Uferweg, Mando-Bahnen einen Waldweg,
   wenn er den Baumriegel nicht schneidet. Laternen brauchen die Form `laterne` (Release; ohne erscheinen sie als graue Kugeln).
 - Par per Zufall: ~88 % Par 3 (60–140 m), ~10 % Par 4 (140–200 m), ~2 % Par 5 (201–250 m), `--par` erzwingt.

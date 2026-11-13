@@ -1364,6 +1364,54 @@ window.zeichnePuttLaub = function (c, jz, bx, by, bw, bh, wind) {
   c.restore();
 };
 
+// Nacht in der Putt-Ansicht (Optik mit nacht: true): Fledermäuse flattern ab und zu über den Himmel (oft vor
+// dem Mond vorbei), selten eine Sternschnuppe – bei Birdie oder besser immer (puttSternschnuppe)
+const puttNacht = { fl: [], stern: null, naechsteFl: 0, zuletzt: 0, sternWunsch: false };
+window.puttSternschnuppe = () => { puttNacht.sternWunsch = true; };
+window.zeichnePuttNacht = function (c, jz, bx, by, bw, bh) {
+  const JZ = JAHRESZEITEN[jz];
+  if (!JZ || !JZ.nacht) { puttNacht.fl.length = 0; puttNacht.stern = null; return; }
+  const jetzt = performance.now() / 1000, dt = Math.min(0.05, jetzt - (puttNacht.zuletzt || jetzt));
+  puttNacht.zuletzt = jetzt;
+  const A = typeof AUF === "number" ? AUF : 1, q = 1 / A, HOR = PUTT_HORIZONT;
+  // Fledermäuse: alle 4–9 s ein Schwarm aus 1–3, Zickzack quer über den Himmel
+  if (!puttNacht.naechsteFl) puttNacht.naechsteFl = jetzt + 1.5;
+  if (jetzt > puttNacht.naechsteFl) {
+    const links = Math.random() < 0.5, n = 1 + Math.floor(Math.random() * 3), y0 = Math.random() < 0.5 ? 22 : 14 + Math.random() * 50;
+    for (let i = 0; i < n; i++) puttNacht.fl.push({ x: links ? -8 - i * 9 : bw + 8 + i * 9, y: y0 + (Math.random() - 0.5) * 10, v: (links ? 1 : -1) * (34 + Math.random() * 14), ph: Math.random() * 6, t: 0 });
+    puttNacht.naechsteFl = jetzt + 4 + Math.random() * 5;
+  }
+  // Sternschnuppe: zufällig selten (~alle 30 s), bei Birdie sofort
+  if (!puttNacht.stern && (puttNacht.sternWunsch || Math.random() < dt / 30)) {
+    puttNacht.sternWunsch = false;
+    puttNacht.stern = { x: 30 + Math.random() * (bw - 40), y: 6 + Math.random() * 20, vx: -(70 + Math.random() * 40) * (Math.random() < 0.3 ? -1 : 1), vy: 28 + Math.random() * 14, t: 0 };
+  }
+  c.save();
+  c.beginPath(); c.rect(bx, by, bw, HOR - 4); c.clip();
+  const st = puttNacht.stern;
+  if (st) {
+    st.t += dt;
+    const dauer = 1.1, a = Math.min(1, st.t * 6) * Math.max(0, 1 - st.t / dauer);
+    for (let k = 0; k < 18; k++) {
+      const f = k / 18, x = bx + st.x + st.vx * (st.t - f * 0.22), y = by + st.y + st.vy * (st.t - f * 0.22);
+      c.fillStyle = k === 0 ? `rgba(255,255,240,${a})` : `rgba(200,220,255,${(a * (1 - f) * 0.85).toFixed(3)})`;
+      c.fillRect(Math.round(x), Math.round(y), k < 2 ? 2 : 1, k < 2 ? 2 : 1);
+    }
+    if (st.t > dauer) puttNacht.stern = null;
+  }
+  puttNacht.fl = puttNacht.fl.filter(f => f.x > -30 && f.x < bw + 30);
+  for (const f of puttNacht.fl) {
+    f.t += dt; f.x += f.v * dt;
+    const y = f.y + Math.sin(f.t * 5 + f.ph) * 4, x = bx + f.x, oben = Math.floor((f.t * 14 + f.ph) % 2) === 0;
+    const P = (dx, dy, w = 1, h = 1) => c.fillRect(Math.round(x) + dx, Math.round(by + y) + dy, w, h);
+    c.fillStyle = "#05060c";
+    P(0, 0, 2, 2); P(0, -1, 1, 1); P(1, -1, 1, 1); // Körper mit Ohren
+    if (oben) { P(-2, -1, 2, 1); P(-3, -2, 1, 1); P(2, -1, 2, 1); P(4, -2, 1, 1); }
+    else { P(-2, 1, 2, 1); P(-3, 1, 1, 1); P(2, 1, 2, 1); P(4, 1, 1, 1); P(-1, 0, 1, 1); P(2, 0, 1, 1); }
+  }
+  c.restore();
+};
+
 // ============================================================
 //  KORB IM DETAIL (nur mit Jahreszeiten-Grafik)
 // ============================================================

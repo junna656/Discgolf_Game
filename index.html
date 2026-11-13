@@ -763,6 +763,102 @@ const mitSchnee = jz => !!(JAHRESZEITEN[jz] || {}).schnee;
 const GLOW = "#a8ff7a";
 const glowAn = () => !!(JAHRESZEITEN[aktuelleJahreszeit()] || {}).glow;
 const scheibenFarbe = typ => glowAn() ? GLOW : TYPFARBE[typ] || PAL.weiss;
+// ============================================================
+//  NACHT-EFFEKTE (Optik mit nacht: true, z. B. Wochenbahn „Herbstnacht“)
+// ============================================================
+//  - Glühwürmchen: schweben langsam über dem Land, leuchten pulsierend auf
+//  - Platschen: Scheibe fällt ins Wasser (OB mit art "wasser") – Ringwellen, Tropfen, grüner Schimmer, der versinkt
+//  - Eule: sitzt in einem Baum an der Bahn, blinzelt; fliegt davon, sobald eine Scheibe einen Baum trifft
+//  (Fledermäuse und Sternschnuppe in der Putt-Ansicht: grafik.js, zeichnePuttNacht)
+const nachtAn = () => !!(JAHRESZEITEN[aktuelleJahreszeit()] || {}).nacht;
+const nacht = { bahn: null, wuermchen: [], platsch: [], eule: null };
+function nachtVorbereiten() {
+  if (nacht.bahn === bahn) return;
+  nacht.bahn = bahn; nacht.wuermchen = []; nacht.platsch = [];
+  const imWasser = p => { const z = Physik.obZone(p, bahn); return z && z.art === "wasser"; };
+  // Glühwürmchen: auf Land, nicht direkt auf Abwurf/Korb
+  for (let i = 0, n = 0; n < 34 && i < 400; i++) {
+    const p = { x: Math.random() * bahn.welt.breite, y: Math.random() * bahn.welt.hoehe };
+    if (imWasser(p) || Physik.istOB(p, bahn)) continue;
+    nacht.wuermchen.push({ ...p, h: 0.4 + Math.random() * 1.6, ph: Math.random() * 6.3, blink: Math.random() * 6, tempo: 0.25 + Math.random() * 0.35, w: Math.random() * 6.3 });
+    n++;
+  }
+  // Eule: großer Laubbaum 7–22 m neben der Linie Abwurf → Korb, möglichst in der Mitte der Bahn
+  const a = bahn.abwurf, k = bahn.korb, L = abstand(a, k), ux = (k.x - a.x) / L, uy = (k.y - a.y) / L;
+  let best = null, bestWert = Infinity;
+  for (const b of bahn.baeume) {
+    if (b.art || b.r < 2.2) continue;
+    const t = (b.x - a.x) * ux + (b.y - a.y) * uy, d = Math.abs(-(b.x - a.x) * uy + (b.y - a.y) * ux);
+    if (t < L * 0.2 || t > L * 0.85 || d < 7 || d > 22) continue;
+    const wert = Math.abs(t / L - 0.5) * 30 + d;
+    if (wert < bestWert) { bestWert = wert; best = b; }
+  }
+  nacht.eule = best ? { baum: best, weg: null } : null;
+}
+// Scheibe im Wasser: Stelle des Eintauchens (erster Pfadpunkt im Wasser ab obIndex)
+function nachtPlatsch(e) {
+  if (!nachtAn()) return;
+  for (let i = Math.max(0, e.obIndex); i < e.pfad.length; i++) {
+    const q = e.pfad[i], z = Physik.obZone(q, bahn);
+    if (z && z.art === "wasser" && q.z < 0.6) { nacht.platsch.push({ x: q.x, y: q.y, t0: uhr }); ton(320, 0.18, "triangle", 0.05, 70); ton(900, 0.06, "sine", 0.03, 300, 0.05); return; }
+  }
+}
+// Baumtreffer: die Eule fliegt auf
+function nachtBaumTreffer() { if (nacht.eule && !nacht.eule.weg) { nacht.eule.weg = uhr; ton(420, 0.12, "sine", 0.04, 380); ton(330, 0.25, "sine", 0.04, 300, 0.18); } }
+function zeichneNachtEffekte(dt) {
+  if (!nachtAn()) return;
+  nachtVorbereiten();
+  const q = 1 / AUF, schirm = p => projiziere(p, S / S0);
+  // Platschen: drei Ringe, Tropfen, grüner Schimmer der versinkt
+  nacht.platsch = nacht.platsch.filter(pl => uhr - pl.t0 < 2.6);
+  for (const pl of nacht.platsch) {
+    const t = uhr - pl.t0, c = schirm(pl);
+    const gl = Math.max(0, 1 - t / 2.4);
+    if (gl > 0) { ctx.fillStyle = `rgba(150,255,110,${(0.35 * gl).toFixed(3)})`; for (let j = -2; j <= 2; j++) ctx.fillRect(c.x - 2 + Math.abs(j) * 0.5, c.y + j * 0.5 * (1 + t), 4 - Math.abs(j), q); }
+    for (let r = 0; r < 3; r++) {
+      const tr = t - r * 0.25; if (tr <= 0) continue;
+      const rad = (0.5 + tr * 2.6) * S, a = Math.max(0, 0.8 - tr * 0.4);
+      if (a <= 0) continue;
+      ctx.fillStyle = `rgba(210,230,255,${a.toFixed(3)})`;
+      const n = Math.max(16, Math.round(rad * 6 * AUF));
+      for (let i = 0; i < n; i++) { const w = i / n * Math.PI * 2; ctx.fillRect(Math.round((c.x + Math.cos(w) * rad) * AUF) * q, Math.round((c.y + Math.sin(w) * rad * 0.6) * AUF) * q, 2 * q, q); }
+    }
+    if (t < 0.6) { ctx.fillStyle = "#dce8ff"; for (let i = 0; i < 7; i++) { const w = i / 7 * Math.PI * 2 + pl.x, v = (0.8 + (i % 3) * 0.4) * S; ctx.fillRect(c.x + Math.cos(w) * v * t * 1.6, c.y - (Math.sin(t / 0.6 * Math.PI) * 0.5 * S) + Math.sin(w) * v * t * 0.6, q * 2, q * 2); } }
+  }
+  // Glühwürmchen
+  for (const g of nacht.wuermchen) {
+    g.w += (Math.random() - 0.5) * dt * 2; g.ph += dt;
+    const nx = g.x + Math.cos(g.w) * g.tempo * dt, ny = g.y + Math.sin(g.w) * g.tempo * dt;
+    if (!Physik.istOB({ x: nx, y: ny }, bahn)) { g.x = nx; g.y = ny; } else g.w += Math.PI;
+    const zyk = (uhr + g.blink) % 4.5, hell = zyk < 1.6 ? Math.sin(zyk / 1.6 * Math.PI) : 0;
+    const c = schirm(g), y = c.y - (g.h + Math.sin(g.ph * 1.3) * 0.3) * S * 0.6;
+    if (hell > 0.05) {
+      const gx = Math.round(c.x * AUF) * q, gy = Math.round(y * AUF) * q;
+      ctx.fillStyle = `rgba(170,255,90,${(0.3 * hell).toFixed(3)})`; ctx.fillRect(gx - 1, gy, 2 + q, q); ctx.fillRect(gx, gy - 1, q, 2 + q); // weicher Schein als Kreuz
+      ctx.fillStyle = `rgba(220,255,140,${(0.95 * hell).toFixed(3)})`; ctx.fillRect(gx, gy, q, q);
+    } else { ctx.fillStyle = "rgba(60,80,40,.5)"; ctx.fillRect(Math.round(c.x * AUF) * q, Math.round(y * AUF) * q, q, q); }
+  }
+  // Eule
+  const e = nacht.eule;
+  if (e && !(e.weg && uhr - e.weg > 3)) {
+    const b = e.baum, c = schirm(b), krone = baumAnhebung(b) * S + b.r * S * 0.55;
+    let x = c.x - b.r * S * 0.15, y = c.y - krone, fl = 0;
+    if (e.weg) { const t = uhr - e.weg; x += t * t * 18 + t * 10; y -= t * 22 + Math.sin(t * 12) * 2; fl = Math.floor(t * 10) % 2 + 1; }
+    const u = Math.max(1, Math.round(S / S0 * 0.7)); // beim Reinzoomen wächst die Eule mit
+    const P = (dx, dy, f, w = 1, h = 1) => { ctx.fillStyle = f; ctx.fillRect(Math.round(x) + dx * u, Math.round(y) + dy * u, w * u, h * u); };
+    if (!fl) {
+      // sitzend: Körper 3×4, Ohren, Augen (blinzeln alle paar Sekunden)
+      P(-1, -3, "#3a2a1c", 1, 1); P(1, -3, "#3a2a1c", 1, 1);
+      P(-1, -2, "#5a4430", 3, 4); P(-1, 0, "#7a6048", 3, 2); P(0, 1, "#8a7058", 1, 1);
+      const zu = (uhr % 4.2) < 0.15;
+      P(-1, -2, zu ? "#3a2a1c" : "#ffd84a", 1, 1); P(1, -2, zu ? "#3a2a1c" : "#ffd84a", 1, 1);
+    } else {
+      // fliegend: Flügel abwechselnd oben/unten
+      P(-1, -1, "#5a4430", 3, 2);
+      if (fl === 1) { P(-3, -2, "#4a3624", 2, 1); P(2, -2, "#4a3624", 2, 1); } else { P(-3, 0, "#4a3624", 2, 1); P(2, 0, "#4a3624", 2, 1); }
+    }
+  }
+}
 // weicher Lichtschein um eine leuchtende Scheibe (Spielpixel; r = Radius außen), pulsiert leicht
 function glowSchein(x, y, r) {
   const q = 1 / AUF, puls = 0.85 + Math.sin(uhr * 3) * 0.15;
@@ -1235,7 +1331,7 @@ function zeigeErgebnis(s, extra) {
   let t = s.wuerfe === 1 ? "ACE!!!" : (namen[diff] || "+" + diff);
   if (extra && s.wuerfe > 1) t = extra + " " + t;
   else if (s.wuerfe === 1 && flug && flug.start) t += " " + Math.round(abstand(flug.start, bahn.korb)) + " M";
-  if (diff < 0) sfx.jubel();
+  if (diff < 0) { sfx.jubel(); if (window.puttSternschnuppe) puttSternschnuppe(); } // Nacht: Birdie oder besser – Sternschnuppe
   zeigeBanner(t, "#ffd84a", 1.6);
 }
 
@@ -1867,6 +1963,7 @@ function zeichnePuttAnsicht() {
   const jz = aktuelleJahreszeit();
   zeichnePuttHintergrund(ctx, wx, jz);
   zeichnePuttLaub(ctx, jz, bx, by, bw, bh, wind); // Herbst: fallende Blätter
+  zeichnePuttNacht(ctx, jz, bx, by, bw, bh); // Nacht: Fledermäuse, Sternschnuppe
 
   text("PUTT " + d.toFixed(1) + " M", bx + 4, by + 3, PAL.weiss);
   text(puttStil === "push" ? "PUSH" : "SPIN", bx + bw - 4, by + 3, "#ffe08a", "right");
@@ -2203,6 +2300,7 @@ function schleife(jetzt) {
   }
   if (modus === "frei") zeichneMarken();
   zeichneWeltObjekte(korbWackelt);
+  zeichneNachtEffekte(dt); // Nachtbahn: Glühwürmchen, Platschen, Eule
 
   if (zustand === "flug" || (zustand === "pause" && flug && flug.aktiv)) {
     const fp = flugPosition();
@@ -2223,6 +2321,7 @@ function schleife(jetzt) {
     for (const [i, anzahl, tempo] of blattStellen) {
       if (flug.blattFertig.has(i) || fp.i < i) continue;
       flug.blattFertig.add(i);
+      if (anzahl > 4) nachtBaumTreffer(); // Abprallen oder Abbremsen im Baum: die Eule fliegt auf
       const q = e.pfad[i];
       flug.blaetter.push({ t0: uhr, x: q.x, y: q.y, z: q.z, teile: Array.from({ length: anzahl }, () => ({ a: Math.random() * Math.PI * 2, v: (0.4 + Math.random()) * tempo })) });
     }
@@ -2243,6 +2342,7 @@ function schleife(jetzt) {
     }
     if (e.ob && !flug.obGezeigt && fp.i >= e.obIndex) {
       flug.obGezeigt = true;
+      nachtPlatsch(e);
       zeigeOB(modus !== "frei");
     }
     // Spur und Scheibe zeichnet zeichneWeltObjekte (einsortiert zwischen Gegenständen und Figuren)
