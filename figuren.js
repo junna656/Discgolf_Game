@@ -7,7 +7,7 @@
 //  - Körper, Arme und Beine aus Gelenkpunkten (Posen), damit dieselbe Pose in beiden Größen gilt
 //  - automatische Kontur ("selective outline": dunklere Stufe der Nachbarfarbe), Licht von links oben
 //  - Posen: stehen (2 Bilder, atmet in groß; Bild 2 blinzelt), ausholen (Rückhand/Vorhand, 2 Stufen nach Kraft),
-//    wurf, laufen (2 Schrittbilder), jubel (2 Bilder, hüpft)
+//    wurf, laufen (2 Schrittbilder), jubel (2 Bilder, hüpft), faustAus/faustStoss (Einstimmung letzte Bahn)
 //  - jede Figur schaut zum Ziel: nach links gespiegelt, wenn das Ziel links liegt
 //  Fertige Bilder werden gemerkt (je Spieler, Pose, Bild, Größe, Richtung und Scheibenfarbe).
 // ============================================================
@@ -140,6 +140,15 @@ const POSEN = {
   jubel2: {
     armL: [[-0.5, -8.5], [-2.5, -10.5], [-3.5, -13]], armR: [[6.5, -8.5], [8.5, -10.5], [9.5, -13]],
     beinL: [[1, -3], [0, -1]], beinR: [[5, -3], [6, -1]],
+  },
+  // Faust-Stoß (Einstimmung an der letzten Bahn): Faust vor der Brust, dann zum Nachbarn gestreckt
+  faustAus: {
+    armL: [[-0.5, -8.5], [-0.5, -6.5], [-0.5, -4.5]], armR: [[6.5, -8.5], [7.5, -6.5], [8.5, -7]],
+    beinL: [[1, -3], [1, -1]], beinR: [[5, -3], [5, -1]],
+  },
+  faustStoss: {
+    armL: [[-0.5, -8.5], [-0.5, -6.5], [-0.5, -4.5]], armR: [[6.5, -8.5], [9, -8], [11.5, -7.5]],
+    beinL: [[1, -3], [0.5, -1]], beinR: [[5, -3], [6, -1]],
   },
   // nach dem Abwurf: Wurfarm zum Ziel gestreckt, Ausfallschritt
   wurf: {

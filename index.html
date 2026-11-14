@@ -284,7 +284,7 @@
       <ul>
         <li><b>Freies Werfen:</b> Sportplatz mit Fußballfeld und Entfernungsmarken alle 25 m, Korb in 130 m. Jeder Wurf startet am Abwurf, es wird nicht gezählt. Kreuze zeigen, wo deine Scheiben gelandet sind; der weiteste Wurf ist gold.</li>
         <li><b>Single Flight:</b> eine Person spielt die Runde.</li>
-        <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Für jede Person wählst du, ob ein Mensch spielt oder der Computer – <b>Locker</b>, <b>Solide</b> oder <b>Profi</b>. Mindestens eine Person muss ein Mensch sein. An der ersten Bahn wird die Abwurf-Reihenfolge ausgelost. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat. Spielen alle vier an einer Bahn ein Birdie (oder besser), gibt es einen <b>Star Frame</b> – mit eigenem Feier-Bildschirm.</li>
+        <li><b>Vierer Flight:</b> Thomas, Daniel, André und Gunnar spielen zusammen. Für jede Person wählst du, ob ein Mensch spielt oder der Computer – <b>Locker</b>, <b>Solide</b> oder <b>Profi</b>. Mindestens eine Person muss ein Mensch sein. An der ersten Bahn wird die Abwurf-Reihenfolge ausgelost. Erst werfen alle ab, danach wirft immer, wer am weitesten vom Korb weg ist. An der nächsten Bahn beginnt, wer die letzte am besten gespielt hat. Spielen alle vier an einer Bahn ein Birdie (oder besser), gibt es einen <b>Star Frame</b> – mit eigenem Feier-Bildschirm. Vor dem ersten Abwurf an der letzten Bahn einer ganzen Runde geben sich alle vier die Faust und wünschen sich eine schöne letzte (Tippen oder eine Taste überspringt das).</li>
         <li><b>Bestenliste:</b> Nach jeder ganzen Runde (alle Bahnen, Single, Vierer oder online) wird das Ergebnis jeder Person hochgeladen. In der Bestenliste im Hauptmenü steht für jede Person die beste Runde – für alle Geräte gemeinsam. Runden des Computers zählen nicht. Ohne Internet wird das Ergebnis später nachgeschickt. Der Wochenkurs hat eine eigene Bestenliste für seine Woche.</li>
         <li><b>Wochenkurs:</b> Jede Woche gibt es einen neuen, zufällig erzeugten Kurs mit eigenem Thema (z. B. Wüste mit Kakteen, Felsen und ausgetrockneten Flussbetten – die Flussbetten sind OB). Er wechselt montags um 0:00 Uhr. Frühere Wochenkurse mit ihren Siegern stehen im <a href="archiv/" style="color:var(--akzent)">Archiv</a> und können dort weiter gespielt werden (ohne Wertung).</li>
         <li><b>Online spielen:</b> Bis zu vier Handys spielen live zusammen. Eine Person tippt „Raum eröffnen“ und sagt den anderen den 4-Buchstaben-Code; die anderen geben ihn unter „Beitreten“ ein. Jeder wählt seine Figur (mit dem eigenen Bag), freie Figuren kann der Gastgeber vom Computer spielen lassen. Der Gastgeber wählt die Bahnen und startet. Alle sehen jeden Wurf live; wer dran ist, wirft auf seinem Handy. Bricht eine Verbindung ab, übernimmt der Computer, bis das Handy wieder da ist – nach dem Neuladen kommst du automatisch zurück in den Raum. Weiter zur nächsten Bahn und Bahn wählen kann nur der Gastgeber.</li>
@@ -685,6 +685,7 @@ const sfx = {
     for (let i = 0; i < 4; i++) ton(i % 2 ? 2500 : 2800, 0.05, "triangle", 0.05, null, 0.4 + i * 0.05);
     ton(150, 0.5, "sawtooth", 0.06, 90, 0.7);
   },
+  faust: () => { ton(170, 0.08, "triangle", 0.08, 80); ton(900, 0.03, "square", 0.02); },
   jubel: () => [523, 659, 784, 1046].forEach((f, i) => ton(f, 0.14, "square", 0.035, null, i * 0.1)),
   // Star Frame: kleine Fanfare, Schlussakkord und Kettenrasseln
   fanfare: () => {
@@ -1113,6 +1114,7 @@ function starteBahn() {
   banner = null;
   fertigText = null;
   naechster();
+  intro = letzteBahnIntro() ? { t0: uhr, toene: new Set() } : null;
 }
 
 function zumKorb(p) { return Math.atan2(bahn.korb.y - p.y, bahn.korb.x - p.x); }
@@ -1204,6 +1206,7 @@ let ladeZeiger = null;
 const LADE_HALB = 1.1; // Sekunden von 0 bis volle Kraft
 const ladeAbgebrochen = () => zustand === "laden" && uhr - ladeZeit >= 2 * LADE_HALB;
 function startLaden(e) {
+  if (intro) { introAus(); return; } // erster Druck überspringt die Einstimmung an der letzten Bahn
   if (zustand !== "zielen") return;
   zustand = "laden";
   ladeZeit = uhr;
@@ -2086,6 +2089,116 @@ function pixelStern(x, y, r, farbe) {
   ctx.fillRect(x - r, y, 2 * r + 1, 1); ctx.fillRect(x, y - r, 1, 2 * r + 1);
   if (r > 1) ctx.fillRect(x - 1, y - 1, 3, 3);
 }
+// ---------- Letzte Bahn: Einstimmung vor dem ersten Abwurf ----------
+// Vierer Flight und online, ganze Runde, letzte Bahn: erst die ganze Bahn mit Titel, dann am Abwurf
+// eine Faust-Kette durch den Flight (in Abwurf-Reihenfolge), jeder wünscht „Schöne letzte!“, alle jubeln.
+// Tippen oder eine Taste überspringt; online endet sie spätestens, wenn der erste Wurf ankommt.
+let intro = null;
+const INTRO = { uebersicht: 2.2, faust: [0.8, 2.0, 3.2], spruch: [0.9, 2.1, 3.3, 4.45], jubel: 4.6, ende: 5.6 };
+const letzteBahnIntro = () => (modus === "vierer" || modus === "online") && spieler.length === 4 && ganzeRunde() && rundenIndex === runde.length - 1;
+function introAus() { intro = null; kamera = null; }
+function introKamera(p, z) {
+  const q = projiziere(p, z);
+  kamera = { z, x: Math.max(SW / 2, Math.min(SW * z - SW / 2, q.x)), y: Math.max(SH / 2, Math.min(SH * z - SH / 2, q.y)) };
+  S = S0 * z; kx = Math.round(kamera.x - SW / 2); ky = Math.round(kamera.y - SH / 2);
+}
+// Bahnbild mit Korb, Figuren und Baumkronen (nach Bildschirmhöhe sortiert, wie im Spiel)
+function introWelt(figuren, dt) {
+  weltTransform();
+  const hg = bahnBild(kamera.z); ctx.drawImage(hg, 0, 0, hg.width / AUF, hg.height / AUF);
+  if (window.zeichneLaubfall) zeichneLaubfall(ctx, hg, dt, wind);
+  figurTransform();
+  const liste = [{ y: zuSchirm(bahn.korb).y - 0.005, zeichne: () => zeichneKorbOben(false) }];
+  figuren.forEach((o, i) => liste.push({ y: zuSchirm(o.p).y + i * 0.01, zeichne: () => {
+    const q = zuSchirm(o.p), f = 2;
+    if (AUF > 1 && window.zeichneFigurSprite) {
+      ctx.setTransform(1, 0, 0, 1, -kx * AUF, -ky * AUF);
+      zeichneFigurSprite(ctx, q.x * AUF + 3 * f, q.y * AUF, o.s, false, f, o.pose, o.bild, o.links, null);
+      figurTransform();
+    } else { ctx.save(); ctx.translate(q.x, q.y); ctx.scale(f, f); zeichneFigur8Bit(o.s, false); ctx.restore(); }
+  } }));
+  kronenListe(hg, liste);
+  liste.sort((a, b) => a.y - b.y);
+  for (const o of liste) o.zeichne();
+}
+// Funken beim Faust-Stoß (h: Höhe über dem Boden in Bildpunkten)
+function introFunken(p, h, t) {
+  if (t < 0 || t > 0.5) return;
+  const q = zuSchirm(p), cx = q.x + 3, cy = q.y - h, r = 2 + t * 18;
+  for (let i = 0; i < 8; i++) {
+    const a = i / 8 * Math.PI * 2 + 0.3;
+    pixelStern(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.8, t < 0.25 ? 1 : 0, i % 2 ? "#ffd84a" : PAL.weiss);
+  }
+  if (t < 0.18) pixelStern(cx, cy, 3, PAL.weiss);
+}
+function introTitel(t, t0, z1, z2) {
+  if (t < t0) return;
+  const rein = Math.min(1, (t - t0) / 0.35), y0 = SH * 0.3 - (1 - rein) * 30;
+  text(z1, SW / 2, y0, Math.floor(t * 4) % 2 ? PAL.weiss : "#ffd84a", "center", 16);
+  if (z2) text(z2, SW / 2, y0 + 22, "#9be07a", "center");
+}
+function introBlitz(a) { if (a > 0) { schirmTransform(); ctx.fillStyle = "rgba(255,255,255," + Math.min(1, a) + ")"; ctx.fillRect(0, 0, SW, SH); } }
+// zeichnet ein Bild der Einstimmung; false, wenn sie vorbei ist (dann übernimmt das Spiel)
+function zeichneIntro(dt) {
+  const t = uhr - intro.t0, u = t - INTRO.uebersicht;
+  if (u >= INTRO.ende || (zustand !== "zielen" && zustand !== "putt")) { introAus(); return false; }
+  const info = (bahn.kurz || "BAHN " + bahn.nummer) + " · PAR " + bahn.par + " · " + Math.round(abstand(bahn.abwurf, bahn.korb)) + " M";
+  if (u < 0) {
+    // ganze Bahn, Titel springt herein, zum Schluss weiß überblenden
+    introKamera({ x: (bahn.abwurf.x + bahn.korb.x) / 2, y: (bahn.abwurf.y + bahn.korb.y) / 2 }, 1);
+    introWelt([], dt);
+    schirmTransform();
+    ctx.fillStyle = "rgba(10,14,20," + 0.35 * Math.min(1, t / 0.3) + ")"; ctx.fillRect(0, 0, SW, SH);
+    introTitel(t, 0.15, "LETZTE BAHN", info);
+    introBlitz((t - (INTRO.uebersicht - 0.3)) / 0.3);
+    return true;
+  }
+  // am Abwurf: Reihe quer zum Bildschirm (r: Meter nach rechts, d: nach unten), vor dem Abwurf
+  const tee = bahn.abwurf, R = hochkant ? { x: 0, y: 1 } : { x: 1, y: 0 }, D = hochkant ? { x: -1, y: 0 } : { x: 0, y: 1 };
+  const welt = (r, d) => ({ x: tee.x + R.x * r + D.x * d, y: tee.y + R.y * r + D.y * d });
+  const r0 = hochkant ? -2.85 : 0.3, d0 = hochkant ? -2 : 0, rs = [0, 1.9, 3.8, 5.7].map(r => r0 + r), ds = [-0.25, 0.25, -0.25, 0.25].map(d => d0 + d);
+  const K = INTRO.faust, figuren = spieler.map((s, i) => {
+    const L = i > 0 ? K[i - 1] : null, Rk = i < 3 ? K[i] : null;
+    let links = L !== null && u < L + 0.6, pose = "stehen", bild = Math.floor((u + i * 0.37) / 0.8) % 2;
+    for (const [k, li] of [[L, true], [Rk, false]]) if (k !== null && u > k - 0.45 && u < k + 0.55) { links = li; pose = u < k - 0.1 || u > k + 0.3 ? "faustAus" : "faustStoss"; bild = 0; }
+    if (u > INTRO.jubel) { pose = "jubel" + (Math.floor((u - INTRO.jubel) / 0.22 + i) % 2 + 1); links = false; bild = 0; }
+    return { s, p: welt(rs[i], ds[i]), pose, bild, links };
+  });
+  // Töne: dumpfer Stoß bei jeder Faust, Jubel am Ende
+  K.forEach((k, j) => { if (u >= k && !intro.toene.has(j)) { intro.toene.add(j); sfx.faust(); } });
+  if (u >= INTRO.jubel && !intro.toene.has("jubel")) { intro.toene.add("jubel"); sfx.jubel(); }
+  const mitte = welt(r0 + 2.85, d0);
+  introKamera(mitte, 3);
+  introWelt(figuren, dt);
+  figurTransform();
+  K.forEach((k, j) => introFunken(welt((rs[j] + rs[j + 1]) / 2, d0), 8, u - k));
+  // Ausschnitt um den Flight 2× vergrößern (pixelgenau)
+  const fokus = zuSchirm(welt(r0 + 2.85, d0 - 0.9));
+  const sx = Math.round(Math.max(0, Math.min(cv.width / 2, (fokus.x - kx) * AUF - cv.width / 4)));
+  const sy = Math.round(Math.max(0, Math.min(cv.height / 2, (fokus.y - ky) * AUF - cv.height / 4)));
+  const kopie = intro.kopie || (intro.kopie = document.createElement("canvas"));
+  kopie.width = cv.width; kopie.height = cv.height;
+  kopie.getContext("2d").drawImage(cv, 0, 0);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(kopie, sx, sy, cv.width / 2, cv.height / 2, 0, 0, cv.width, cv.height);
+  // Sprechblasen in normaler Größe über dem vergrößerten Bild: Maßstab und Ecke vorübergehend verdoppelt
+  const alt = { S, kx, ky, sprechblase };
+  S = S * 2; kx = 2 * (kx + sx / AUF); ky = 2 * (ky + sy / AUF);
+  figurTransform();
+  INTRO.spruch.forEach((t0, i) => {
+    if (u < t0 || u > t0 + 1.1) return;
+    sprechblase = { text: "Schöne letzte!", pos: welt(rs[i], ds[i] - 1.5), t0: uhr - (u - t0), dauer: 1.1 };
+    zeichneSprechblase();
+  });
+  ({ S, kx, ky, sprechblase } = alt);
+  schirmTransform();
+  zeichneWind();
+  text("LETZTE BAHN", 4, 4, "#ffd84a");
+  text(info, 4, 13, PAL.weiss);
+  introBlitz(1 - u / 0.3);
+  return true;
+}
+
 function zeichneSternFrame() {
   const t = uhr - sternFrame.t0;
   schirmTransform();
@@ -2315,6 +2428,7 @@ function schleife(jetzt) {
   letzte = jetzt;
   uhr += dt;
   if (!spieler) { requestAnimationFrame(schleife); return; }
+  if (intro && zeichneIntro(dt)) { requestAnimationFrame(schleife); return; }
 
   if (dreh && zustand === "zielen" && uhr - drehStart > 0.3) ziel += dreh * 25 * DEG * dt;
   if (zustand === "laden") {
@@ -2625,6 +2739,7 @@ cv.addEventListener("pointerdown", e => {
     try { cv.setPointerCapture(e.pointerId); } catch (err) { /* egal */ }
     return;
   }
+  if (intro) { introAus(); return; }
   if (zustand === "ende") { if (sternFrame && !sternFrame.zu) { sternFrame.zu = true; return; } weiterKlick(); return; }
   if (gesperrt()) return;
   if (windWechselbar() && aufWindanzeige(e) && neuerWind()) return;
@@ -2642,6 +2757,7 @@ window.addEventListener("keydown", e => {
   }
   if (!el("menue").hidden || !spieler) return;
   if (k === "m" || k === "M") { hauptmenueKlick(); return; }
+  if (intro) { introAus(); return; } // jede andere Taste überspringt die Einstimmung
   if (k === "0") { setzeZoom(null); setzeUmsehen(false); return; }
   if (k === "u" || k === "U") { setzeUmsehen(!umsehen); return; }
   if (gesperrt() && k !== "r" && k !== "R") return;
@@ -2783,6 +2899,7 @@ function kiPlane(s, k) {
 }
 
 function kiZug() {
+  if (intro) { spaeter(kiZug, 400); return; } // der Computer wartet, bis die Einstimmung vorbei ist
   if (!kiAmZug()) return;
   if (modus === "online" && !mpKiDarf()) return; // online: jeden Zug nur einmal planen
   const s = ich(), k = KI[modus === "online" ? mpKiStufe(s) : s.steuerung];
