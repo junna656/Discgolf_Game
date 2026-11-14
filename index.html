@@ -1696,7 +1696,7 @@ function jubelt(s) {
 function zeichneSpieler(liste) {
   const gezaehlt = {}, f = figurMasstab();
   spieler.forEach((s, i) => {
-    if (s.fertig && !jubelt(s)) return;
+    if (!jubelt(s) && s.fertig) return; // jubelt() immer aufrufen: setzt den Jubel zurück, sobald eine neue Bahn beginnt
     if (liste) { liste.push({ y: zuSchirm(figurOrt(s)).y + i * 0.01, zeichne: () => zeichneSpielerNr(s, i, gezaehlt, f) }); return; }
     zeichneSpielerNr(s, i, gezaehlt, f);
   });
