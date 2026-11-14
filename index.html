@@ -1636,7 +1636,9 @@ const puttAnsichtOffen = () => puttModus && (zustand === "putt" || zustand === "
 function figurOrt(s) {
   const a = s.anim || (s.anim = { x: s.lie.x, y: s.lie.y, spiel: spielNr, lauf: null });
   if (a.spiel !== spielNr || modus === "frei") { a.x = s.lie.x; a.y = s.lie.y; a.spiel = spielNr; a.lauf = null; return a; }
-  if (s.fertig) return a;
+  // eingelocht: ein Lauf, der während der Putt-Nahansicht stehen blieb (gezeichnet und damit weitergerechnet wird
+  // nur das Spielfeld), ist zu Ende – sonst jubelt die Figur irgendwo auf halber Strecke außerhalb des Bildes
+  if (s.fertig) { if (a.lauf) { a.x = a.lauf.ziel.x; a.y = a.lauf.ziel.y; a.lauf = null; } return a; }
   const nach = a.lauf ? a.lauf.ziel : a;
   if (Math.hypot(s.lie.x - nach.x, s.lie.y - nach.y) > 0.05) {
     const pk = laufWeg({ x: a.x, y: a.y }, s.lie), len = pk.slice(1).reduce((l, q, i) => l + abstand(pk[i], q), 0);
