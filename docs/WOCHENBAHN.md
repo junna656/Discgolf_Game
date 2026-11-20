@@ -54,6 +54,13 @@ node werkzeuge/grafik_vorschau.mjs                                # (Bilder eine
   Putt-Ansicht Fledermäuse vor dem Mond und Sternschnuppen (selten, bei Birdie oder besser immer).
   Wege bekommen Laternen (alle ~16 m, abwechselnd links/rechts); Inselbahnen einen Uferweg, Mando-Bahnen einen Waldweg,
   wenn er den Baumriegel nicht schneidet. Laternen brauchen die Form `laterne` (Release; ohne erscheinen sie als graue Kugeln).
+- Thema **Weihnachtsmarkt** (`--thema weihnachtsmarkt`): Winter-Optik als `optikDaten` (`basis: "winter"`, Eis als
+  `wasser`, Dämmerungshimmel), gleicher Aufbau wie die Herbstnacht (`baueWasserWald` im Generator, Teile je Thema):
+  **mando** = Budengasse (Lücke in einer Reihe Marktbuden, `fest`), **insel** (Korb auf einer Insel im Eisweiher),
+  **quer** (Eisbach), **offen** (Tannenwald). Tannen, Christbäume mit roten/goldenen Kugeln (`kegel`), Schneemänner
+  (`kugel`), Laternen und Marktbuden beidseits des Wegs. Die Buden nutzen die Form `bude` (Holzhütte mit Satteldach,
+  beleuchteter Theke und Lichterkette; farben: [Holz dunkel, Holz, Dach dunkel, Dach hell, Licht]) – Spiel-Code ab
+  dem Release nach 0.10.1; ohne ihn erscheinen die Buden als rote/grüne Kugeln.
 - Par per Zufall: ~88 % Par 3 (60–140 m), ~10 % Par 4 (140–200 m), ~2 % Par 5 (201–250 m), `--par` erzwingt.
 - Namen: Kurs = Fantasiename + „ KWxx“, jede Bahn einen eigenen Fantasienamen (keiner doppelt; das Thema
   braucht mindestens Anzahl + 1 Namen).
@@ -88,7 +95,7 @@ Trefferfläche), `h` (Höhe in m) und `art`. Das Spiel zeichnet jeden Gegenstand
 die Höhe wird mit 0,6 auf den Bildschirm projiziert – genau wie die Flughöhe der Scheibe. Was eine Art ist,
 steht im Baukasten in `grafik.js`:
 
-- **Formen** (`OBJEKT_FORMEN`, Code): `laterne` (Pfosten mit leuchtendem Glas, Lichtschein und Lichtkegel am Boden; `stil` in der Art: 1 klassisch schlank, 2 Poller, 3 Hirtenstab, 4 Kugelleuchte, 5 Windlicht am Holzpfahl;
+- **Formen** (`OBJEKT_FORMEN`, Code): `bude` (Marktbude, siehe Weihnachtsmarkt), `laterne` (Pfosten mit leuchtendem Glas, Lichtschein und Lichtkegel am Boden; `stil` in der Art: 1 klassisch schlank, 2 Poller, 3 Hirtenstab, 4 Kugelleuchte, 5 Windlicht am Holzpfahl;
   farben: [Eisen dunkel, Rahmen, Licht am Pfosten, Glas warm, Glas hell]), `krone` (Stamm + Laubkrone), `kegel` (Stamm + Nadelbaum-Kegel),
   `saeule` (Säule mit Armen, z. B. Kaktus), `brocken` (Fels mit Seite und Oberseite), `kugel` (rund auf dem
   Boden, z. B. Busch).

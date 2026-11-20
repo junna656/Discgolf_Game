@@ -646,7 +646,7 @@ window.baumAnhebung = b => Math.max(b.r * 1.1, (b.h || Math.min(12, Math.max(3, 
 //  Höhen werden mit 0,6 projiziert – wie die Flughöhe der Scheibe.
 // Inselringe einer OB-Zone mit insel/ab: insel (eine Insel) und optional inseln (weitere Inseln, z. B. Inselkette)
 window.inselRinge = o => [o.insel, ...(o.inseln || [])].filter(Boolean);
-window.OBJEKT_FORMEN = ["krone", "kegel", "saeule", "brocken", "kugel", "laterne"];
+window.OBJEKT_FORMEN = ["krone", "kegel", "saeule", "brocken", "kugel", "laterne", "bude"];
 window.OBJEKT_ARTEN = {
   kaktus: { form: "saeule", farben: "laubbaum" },
   fels: { form: "brocken", farben: "fels" },
@@ -730,6 +730,11 @@ window.zeichneObjektSprite = function (c, sp, x, y, dx) {
   }
 };
 
+// zwei Farben (#rrggbb) mischen: t = 0 → a, t = 1 → b
+function mischeFarbe(a, b, t) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), A = p(a), B = p(b);
+  return "#" + A.map((v, i) => Math.round(v + (B[i] - v) * Math.max(0, Math.min(1, t))).toString(16).padStart(2, "0")).join("");
+}
 const ZEICHNER = {
   // Laterne in mehreren Stilen (stil in optikDaten.objekte.<art>, Standard 1); Farben: [Eisen dunkel, Rahmen,
   // Licht am Pfosten, Glas warm, Glas hell]. Alle: dünner Pfosten, kleiner leuchtender Kopf, weicher Lichtschein.
@@ -866,6 +871,59 @@ const ZEICHNER = {
       for (let k = 0; k < r * 0.6; k++) { c.fillRect(Math.round(x), Math.round(y), 1, 1); x += rr() - 0.3; y += rr() * 0.8; }
     }
     if (winter) fuellePolygon(c, oben.map(([x, y]) => [ax + (x - ax) * 0.75, y - 1]).filter((p, i) => i < 6), "#f4f8ff");
+  },
+  // Marktbude (Weihnachtsmarkt): Holzhütte, Satteldach (First quer zur Blickrichtung), vorne eine beleuchtete
+  // Theke mit Waren und eine Lichterkette unter der Traufe; im Winter Schnee auf dem Dach.
+  // farben: [Holz dunkel, Holz, Dach dunkel, Dach hell, Licht warm]
+  bude(c, o, { ax, ay, r, S, zr, F, rr, winter }) {
+    const Ht = objektHoehe(o) * 0.6 * S, hw = Ht * 0.74, hr = Ht * 0.26, W = r * 0.95, D = r * 0.32, ov = Math.max(zr, S * 0.25);
+    const q = Math.max(1, Math.round(S / 16));
+    // Vorderwand: Bretter senkrecht, Fugen dunkel, links etwas heller (Licht von links)
+    const x0 = Math.round(ax - W), x1 = Math.round(ax + W), yU = Math.round(ay + D), yO = Math.round(ay + D - hw);
+    for (let x = x0; x < x1; x++) {
+      const brett = Math.floor((x - x0) / Math.max(2, Math.round(S * 0.35)));
+      c.fillStyle = (x - x0) % Math.max(2, Math.round(S * 0.35)) === 0 ? F[0] : (brett % 2 ? F[1] : mischeFarbe(F[1], F[0], 0.18));
+      c.fillRect(x, yO, 1, yU - yO);
+    }
+    c.fillStyle = F[0]; c.fillRect(x0, yU - q, x1 - x0, q);
+    // Theke: Öffnung mit warmem Licht, unten das Brett, darauf Waren in bunten Tupfen
+    const tx0 = Math.round(x0 + (x1 - x0) * 0.14), tx1 = Math.round(x1 - (x1 - x0) * 0.14), ty0 = Math.round(yO + hw * 0.28), ty1 = Math.round(yO + hw * 0.7);
+    for (let y = ty0; y < ty1; y++) { const t = (y - ty0) / Math.max(1, ty1 - ty0); c.fillStyle = mischeFarbe("#3a2410", F[4], 0.35 + t * 0.55); c.fillRect(tx0, y, tx1 - tx0, 1); }
+    const WAREN = ["#e8303a", "#f4c440", "#f8f0e0", "#8a4a20", "#3e9a4a"];
+    for (let x = tx0 + q; x < tx1 - q; x += Math.max(2, q * 2)) { c.fillStyle = WAREN[Math.floor(rr() * WAREN.length)]; c.fillRect(x, ty1 - q * (2 + Math.floor(rr() * 2)), Math.max(1, q * 1.5), q * 2); }
+    c.fillStyle = F[1]; c.fillRect(tx0 - q, ty1, tx1 - tx0 + 2 * q, Math.max(q, Math.round(S * 0.14)));
+    c.fillStyle = mischeFarbe(F[1], "#ffffff", 0.25); c.fillRect(tx0 - q, ty1, tx1 - tx0 + 2 * q, q);
+    // Dach: hintere Fläche (oben), vordere Fläche bis zur Traufe; First in der Mitte
+    const dx0 = x0 - ov, dx1 = x1 + ov, yHinten = ay - D - ov - hw, yFirst = ay - hw - hr, yVorne = ay + D + ov * 0.6 - hw;
+    const dach = (yA, yB, fA, fB) => { for (let y = Math.round(Math.min(yA, yB)); y <= Math.max(yA, yB); y++) { const t = (y - yA) / ((yB - yA) || 1); c.fillStyle = t < 0.5 ? fA : fB; c.fillRect(Math.round(dx0), y, Math.round(dx1 - dx0), 1); } };
+    if (yHinten < yFirst) dach(yHinten, yFirst, F[3], F[3]);
+    dach(yFirst, yVorne, F[2], F[2]);
+    if (winter) {
+      // Schnee: hintere Fläche und obere Hälfte der vorderen weiß, mit welligem Rand; darunter bleibt das Dach farbig
+      const bis = yFirst + (yVorne - yFirst) * 0.5;
+      for (let x = Math.round(dx0); x < dx1; x++) {
+        const welle = Math.round((Math.sin(x * 0.6 + o.x) + Math.sin(x * 0.23 + o.y)) * q * 1.5);
+        c.fillStyle = "#f4f8ff"; c.fillRect(x, Math.round(Math.min(yHinten, yFirst)), 1, Math.round(bis - Math.min(yHinten, yFirst)) + welle);
+        c.fillStyle = "#c4d0e2"; c.fillRect(x, Math.round(bis) + welle, 1, q);
+      }
+      c.fillStyle = F[3]; for (let x = Math.round(dx0) + q; x < dx1; x += Math.max(2, Math.round(S * 0.4))) c.fillRect(x, Math.round(bis) + 3 * q, q, Math.max(0, Math.round(yVorne - bis) - 4 * q));
+      c.fillStyle = "#c4d0e2"; c.fillRect(Math.round(dx0), Math.round(yFirst), Math.round(dx1 - dx0), q);
+      c.fillStyle = "#dce6f2"; c.fillRect(Math.round(dx0), Math.round(Math.min(yHinten, yFirst)), Math.round(dx1 - dx0), q);
+    } else {
+      c.fillStyle = F[3]; for (let x = Math.round(dx0); x < dx1; x += Math.max(2, Math.round(S * 0.4))) c.fillRect(x, Math.round(yFirst), q, Math.round(yVorne - yFirst));
+    }
+    // Traufkante (Blende) mit Zacken, darunter die Lichterkette
+    const yT = Math.round(yVorne);
+    c.fillStyle = F[2]; c.fillRect(Math.round(dx0), yT - q, Math.round(dx1 - dx0), q * 2);
+    for (let x = Math.round(dx0); x < dx1; x += q * 3) { c.fillStyle = F[3]; c.fillRect(x, yT + q, q * 2, q); }
+    const LICHT = [F[4], "#ff5a4a", F[4], "#7aff8a"];
+    for (let i = 0, x = Math.round(dx0 + q * 2); x < dx1 - q; x += Math.max(3, q * 4), i++) {
+      const y = yT + q * 3 + Math.round(Math.sin((x - dx0) / (dx1 - dx0) * Math.PI * 3) * q);
+      c.fillStyle = "rgba(255,220,140,.35)"; c.fillRect(x - q, y - q, q * 3, q * 3);
+      c.fillStyle = LICHT[i % LICHT.length]; c.fillRect(x, y, q, q);
+    }
+    schattenUnten(c, x0, x1, yO + hw * 0.75, yU, 0.6);
+    return null;
   },
   // Kugel (Busch, Strauch oder Unbekanntes): Krone direkt auf dem Boden, unten Schatten
   kugel(c, o, { ax, ay, r, S, zr, F, winter }) {

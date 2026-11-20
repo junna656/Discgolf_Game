@@ -319,163 +319,235 @@ const THEMEN = {
     typPar: { inselkette: 4 },
     typNamen: { mando: ["Mondscheinmando", "Mitternachtsmando", "Schattenspiel"], insel: ["Uhu-Ufer", "Weiherweg", "Mondsichel"],
       inselkette: ["Inselhüpfer", "Sternschnuppe"] },
+    baue(z, g, L, vorgabe) { return baueWasserWald(this, z, g, L, vorgabe); },
+  },
+  // Weihnachtsmarkt im Schnee: Marktbuden am Weg und als Budengasse (Mando), Tannen und geschmückte Christbäume,
+  // Schneemänner, zugefrorener Weiher und Eisbach als OB. Alles nur Daten (basis winter, eigene Arten) – kein Release.
+  weihnachtsmarkt: {
+    name: "Weihnachtsmarkt", optik: "weihnachtsmarkt",
+    optikDaten: {
+      basis: "winter",
+      wasser: ["#6e8cae", "#86a2c0", "#9cb6d0", "#b2c8de", "#c8daea", "#f2f8ff"], // Eis
+      weg: ["#5a4e48", "#6e6058", "#827468", "#968a7c", "#aaa092", "#c0b8ac"],   // festgetretener Schnee auf Pflaster
+      himmel: ["#2e3e6a", "#4a5a8a", "#7a7eaa", "#b49ab4", "#f0c0a0"],              // Dämmerung
+      objekte: {
+        tanne: { form: "kegel", farben: "kiefer" },
+        christbaum: { form: "kegel", farben: ["#0a281e", "#123628", "#1a4832", "#24583c", "#e8303a"] }, // rote Kugeln
+        christbaumGold: { form: "kegel", farben: ["#0a281e", "#123628", "#1a4832", "#24583c", "#f4c440"] },
+        // Form "bude" ist Spiel-Code (Release nach 0.10.1); farben: [Holz dunkel, Holz, Dach dunkel, Dach hell, Licht]
+        bude: { form: "bude", farben: ["#3a2214", "#6a4428", "#8a2018", "#b8382c", "#ffd27a"] },      // rotes Dach
+        budeGruen: { form: "bude", farben: ["#3a2214", "#6a4428", "#1e4a2a", "#2e6a3a", "#ffd27a"] }, // grünes Dach
+        schneemann: { form: "kugel", farben: ["#8a9ab8", "#b4c2d8", "#d4deec", "#eef3fa", "#ffffff"] },
+        laterne: { form: "laterne", stil: 1, farben: ["#101216", "#3a3e46", "#6a6e76", "#ffc860", "#fff4c0"] },
+      },
+    },
+    namen: ["Glühweinbogen", "Budenzauber", "Lebkuchenlinie", "Mandelduft", "Christstollen-Chip", "Lichterglanz", "Zimtstern",
+      "Schlittschuh-Schlenker", "Eisprinzessin", "Budengasse", "Nussknacker", "Krippenkurve", "Rauschgoldengel", "Punschpfad",
+      "Tannenduft", "Schneeflöckchen", "Adventslicht", "Kerzenschein", "Glockenspiel", "Räuchermännchen", "Bratapfel-Birdie",
+      "Kinderpunsch", "Christkindl", "Eiszapfen-Eagle", "Spekulatius-Spin", "Schneegestöber", "Wichtelweg", "Lametta-Line"],
+    typen: { quer: 1.5, insel: 1.4, mando: 2, offen: 1.2 },
+    plan: ["mando", "quer", "insel", "offen", "mando", "insel"],
+    typNamen: { mando: ["Budengasse", "Glühweinbogen", "Budenzauber", "Punschpfad"], insel: ["Eisprinzessin", "Schlittschuh-Schlenker", "Krippenkurve"],
+      quer: ["Eiszapfen-Eagle", "Schneegestöber"], offen: ["Tannenduft", "Christkindl", "Lametta-Line"] },
     baue(z, g, L, vorgabe) {
-      const { abwurf, korb, linie } = g;
-      const typ = vorgabe || waehleGewichtet(z, this.typen);
-      const ob = [], baeche = [], feste = [];
-      let mando = null; const sperrZonen = [];
-      const P = t => punktAufLinie(linie, t);
-      const insel = (m, R) => { const pk = []; for (let i = 0; i < 16; i++) { const w = i / 16 * Math.PI * 2, rr = R * (0.85 + z() * 0.3); pk.push([r1(m.x + Math.cos(w) * rr), r1(m.y + Math.sin(w) * rr * 0.85)]); } return pk; };
-      const baum = (p, z, gross = 0) => ({ x: r1(p.x), y: r1(p.y), r: r1(1.6 + z() * 2 + gross), h: r1(7 + z() * 6 + gross * 2) });
-      const keinXSpiegeln = typ === "insel" || typ === "inselkette";
-      // Ufer: statt der geraden Kante bei x = ab ein Landstück mit gewelltem Rand (Ring von Rand zu Rand, gilt als
-      // Insel und ist damit nicht OB); ab rückt 8 m zurück, der Rand liegt 0,5–15,5 m dahinter (Buchten und
-      // Landzungen), aber immer 4 m vor den Inseln. Eigener Zufall aus der Korblage, damit der übrige Aufbau gleich bleibt.
-      const ufer = (ab0, ringe) => {
-        const H = g.welt.hoehe, p1 = korb.x * 1.7, p2 = korb.y * 2.3, pk = [[0, 0]];
-        const grenze = y => Math.min(Infinity, ...ringe.filter(r => r.some(q => Math.abs(q[1] - y) < 6)).map(r => Math.min(...r.map(q => q[0])) - 4));
-        for (let y = 0; y <= H + 0.01; y += 2) pk.push([r1(Math.max(ab0 + 0.5, Math.min(grenze(y), ab0 + 8 + 4 * Math.sin(y / 16 + p1) + 2.5 * Math.sin(y / 6 + p2) + Math.sin(y / 2.3 + p1)))), r1(Math.min(H, y))]);
-        if (pk[pk.length - 1][1] < H) pk.push([pk[pk.length - 1][0], r1(H)]);
-        pk.push([0, r1(H)]);
-        return pk;
-      };
-
-      if (typ === "quer") {
-        baeche.push(querBand(z, g, P(0.35 + z() * 0.35)));
-        z(); // früher: zweiter Bach längs – keine kreuzenden Bäche (nur ein Gewässer je Bahn)
-      } else if (typ === "insel") {
-        const R = 8 + z() * 4, ab = r1(korb.x - R - 6 - z() * Math.min(18, L * 0.15));
-        if (ab < abwurf.x + 30) return null;
-        const ki = insel(korb, R);
-        ob.push({ name: "Weiher", art: "wasser", insel: ki, inseln: [ufer(r1(ab - 8), [ki])], ab: r1(ab - 8) });
-      } else if (typ === "inselkette") {
-        // Par 4: Wasser ab x = ab, darin 2 Zwischeninseln auf der Linie und die Korbinsel; Lücken 8–14 m Wasser
-        if (L < 150) return null;
-        const Rk = 10 + z() * 2, inseln = [], mitten = [];
-        let t = 1, rVor = Rk;
-        for (let k = 0; k < 2; k++) {
-          const R = 13 + z() * 3, luecke = 8 + z() * 6, len = L;
-          t -= (rVor + luecke + R) / len;
-          const p = P(t), sei = (z() - 0.5) * 8;
-          mitten.push({ x: p.x - p.uy * sei, y: p.y + p.ux * sei, R }); rVor = R;
-        }
-        const erste = mitten[mitten.length - 1], ab = r1(erste.x - erste.R - 10 - z() * 6);
-        if (ab < abwurf.x + 45) return null;
-        for (const m of mitten) inseln.push(insel(m, m.R));
-        const ki = insel(korb, Rk);
-        ob.push({ name: "Weiher", art: "wasser", insel: ki, inseln: [ufer(r1(ab - 8), [ki, ...inseln]), ...inseln], ab: r1(ab - 8) });
-        sperrZonen.push(...mitten.map(m => ({ x: m.x, y: m.y, r: m.R * 0.55 })));
-      } else if (typ === "mando") {
-        // Baumriegel quer zur Bahn mit einer Lücke von 8–11 m zwischen zwei großen Eichen
-        const t = 0.35 + z() * 0.25, p = P(t), luecke = 8 + z() * 3, versatz = (z() - 0.5) * 3;
-        const rs = [3 + z(), 3 + z()], nx = -p.uy, ny = p.ux;
-        const a = { x: r1(p.x + nx * (versatz + luecke / 2 + rs[0])), y: r1(p.y + ny * (versatz + luecke / 2 + rs[0])) };
-        const b = { x: r1(p.x - nx * (luecke / 2 - versatz + rs[1])), y: r1(p.y - ny * (luecke / 2 - versatz + rs[1])) };
-        feste.push({ ...a, r: r1(rs[0]), h: r1(13 + z() * 3) }, { ...b, r: r1(rs[1]), h: r1(13 + z() * 3) });
-        mando = { a: [a.x, a.y], b: [b.x, b.y] };
-        for (const [q, sei, r0] of [[a, 1, rs[0]], [b, -1, rs[1]]]) {
-          let d = r0, x = q.x, y = q.y;
-          for (let k = 0, n = 4 + Math.floor(z() * 3); k < n; k++) {
-            const r = 2 + z() * 1.6; d = r + d * 0.8;
-            x += nx * sei * d + (z() - 0.5) * 1.5; y += ny * sei * d + (z() - 0.5) * 1.5; d = r;
-            feste.push({ x: r1(x), y: r1(y), r: r1(r), h: r1(11 + z() * 4) });
-            // Hecke dazwischen, damit der Riegel dicht wirkt
-            if (z() < 0.6) feste.push({ x: r1(x + (z() - 0.5) * 2 + p.ux * 2.5), y: r1(y + (z() - 0.5) * 2 + p.uy * 2.5), r: r1(1.2 + z() * 0.6), h: r1(1.6 + z() * 0.8), art: "hecke" });
+      const baum = (p, z, gross = 0) => { const w = z(); return { x: r1(p.x), y: r1(p.y), r: r1(1.5 + z() * 1.8 + gross), h: r1(6 + z() * 5 + gross * 2), art: w < 0.12 ? "christbaum" : w < 0.2 ? "christbaumGold" : "tanne" }; };
+      const bude = (x, y, r, z) => ({ x: r1(x), y: r1(y), r: r1(r), h: r1(3.8 + z() * 0.8), art: z() < 0.6 ? "bude" : "budeGruen", fest: true });
+      const schneemann = (p, z) => ({ x: r1(p.x), y: r1(p.y), r: r1(0.7 + z() * 0.4), h: r1(1.6 + z() * 0.4), art: "schneemann" });
+      return baueWasserWald(this, z, g, L, vorgabe, {
+        weiher: "Eisweiher", bach: "Eisbach", baum,
+        // Budengasse: zwei Buden als Tor, daneben weitere Buden dicht an dicht
+        tor: (p, r, z) => bude(p.x, p.y, Math.min(3, r * 0.8), z),
+        riegel: (x, y, r, z) => bude(x, y, Math.min(2.8, r), z),
+        aussen: (p, z) => { const w = z(); return w < 0.86 ? baum(p, z) : schneemann(p, z); },
+        imSpiel: (p, z) => { const w = z(); return w < 0.7 ? baum(p, z) : schneemann(p, z); },
+        // Marktbuden beidseits des Wegs (alle ~6,5 m), nicht an der Spiellinie, nicht im Eis, nicht an Abwurf/Korb
+        amWeg: ({ z, g, wege, strecken, imWasser, wasserNah, naheBahn, abwurf, korb, feste, laternen }) => {
+          const liste = [];
+          for (const w of wege) for (const sei of [1, -1]) {
+            let rest = 3;
+            for (const [a, b] of strecken(w.punkte)) {
+              const len = abstand(a, b), ux = (b.x - a.x) / (len || 1), uy = (b.y - a.y) / (len || 1);
+              for (; rest <= len; rest += 6.5) {
+                const r = 2 + z() * 0.5, d = w.breite / 2 + r + 0.5;
+                const o = bude(a.x + ux * rest - uy * d * sei, a.y + uy * rest + ux * d * sei, r, z);
+                if (o.x < 2 || o.y < 2 || o.x > g.welt.breite - 2 || o.y > g.welt.hoehe - 2 || z() < 0.15) continue;
+                if (naheBahn(o) < r + 6 || imWasser(o) || wasserNah(o, r + 0.5) || abstand(o, abwurf) < 10 || abstand(o, korb) < 12) continue;
+                if ([...feste, ...laternen, ...liste].some(q => abstand(q, o) < q.r + o.r + 0.4)) continue;
+                liste.push(o);
+              }
+              rest -= len;
+            }
           }
-        }
-        sperrZonen.push({ x: p.x + nx * versatz, y: p.y + ny * versatz, r: luecke / 2 + 2 });
-        if (z() < 0.4) baeche.push(querBand(z, g, P(t < 0.5 ? 0.7 + z() * 0.06 : 0.2 + z() * 0.08)));
-      } else if (typ === "offen") {
-        if (z() < 0.5) baeche.push(laengsBand(z, g, linie));
-      }
-      for (const [i, fb] of baeche.entries()) ob.push({ name: "Bach " + (i + 1), art: "wasser", punkte: fb });
-
-      const imWasser = p => baeche.some(fb => imPolygon(p, fb)) || ob.some(o => o.insel && p.x >= o.ab && !inselRinge(o).some(r => imPolygon(p, r)));
-      const wasserNah = (p, d) => baeche.some(fb => imPolygon(p, fb) || abstandZurLinie(p, [...fb, fb[0]]) < d);
-      if (wasserNah(abwurf, 8) || wasserNah(korb, 14)) return null;
-      const frei = (o, liste) => {
-        if (abstand(o, abwurf) < 7 || abstand(o, korb) < 5 + o.r) return false;
-        if (imWasser(o) || wasserNah(o, o.r + 0.3) || sperrZonen.some(q => abstand(q, o) < q.r + o.r)) return false;
-        if ([...feste, ...liste].some(q => abstand(q, o) < q.r + o.r + 0.6)) return false;
-        return o.x > -2 && o.y > -2 && o.x < g.welt.breite + 2 && o.y < g.welt.hoehe + 2;
-      };
-      // Bäume auf Inseln: höchstens ein kleiner, nicht auf der Korbinsel
-      const naheBahn = p => abstandZurLinie(p, linie);
-      const flaeche = g.welt.breite * g.welt.hoehe, dichte = typ === "offen" ? 1.4 : 0.9 + z() * 0.5;
-      const findling = (p, z) => ({ x: r1(p.x), y: r1(p.y), r: r1(0.9 + z() * 1.3), h: r1(1 + z() * 1.2), art: "findling", fest: true });
-      const hecke = (p, z) => ({ x: r1(p.x), y: r1(p.y), r: r1(0.9 + z() * 0.9), h: r1(1.2 + z() * 1), art: "hecke" });
-      const aussen = streue(z, g, Math.round(flaeche / 120 * dichte), (p, z) => { const d = naheBahn(p); if (d < 10) return null; const w = z(); return w < 0.78 ? baum(p, z) : w < 0.9 ? hecke(p, z) : findling(p, z); }, frei);
-      const imSpielAnz = Math.round(L / 30 * (typ === "offen" ? 2 : typ === "inselkette" ? 0.4 : 1));
-      const imSpiel = streue(z, g, imSpielAnz, (p, z) => { const d = naheBahn(p); return d > 4.2 && d < (typ === "offen" ? 11 : 9) ? (z() < 0.75 ? baum(p, z) : findling(p, z)) : null; }, (o, l) => frei(o, [...aussen, ...l]));
-      const baeume = [...feste, ...imSpiel, ...aussen];
-      // Waldweg als Bild (Brücke über Wasser), nicht über Abwurf/Korb
-      const wy = z() < 0.5 ? 0 : g.welt.hoehe, wx = g.welt.breite * (0.2 + z() * 0.6);
-      const strecken = pk => pk.slice(1).map((q, i) => [{ x: pk[i][0], y: pk[i][1] }, { x: q[0], y: q[1] }]);
-      const nahWeg = (p, pk, d) => strecken(pk).some(([a, b]) => abstandZurStrecke(p, a, b) < d);
-      let wege;
-      const uferRing = (ob.find(o => o.inseln) || {}).inseln?.[0];
-      if (uferRing) {
-        // Uferweg: 5 m landeinwärts am gewellten Ufer entlang
-        wege = [{ punkte: uferRing.slice(1, -1).map(([x, y]) => [r1(x - 5), y]), breite: 2.2 }];
-      } else {
-        wege = [{ punkte: [[r1(wx), r1(wy)], [r1(wx + (z() - 0.5) * 30), r1(g.welt.hoehe / 2)], [r1(wx + (z() - 0.5) * 50), r1(g.welt.hoehe - wy)]], breite: 2.5 }];
-        // Mando: der Waldweg darf den Baumriegel nicht durchschneiden
-        if (mando && feste.some(f => nahWeg(f, wege[0].punkte, f.r + 3))) wege = [];
-      }
-      if (wege.length && (nahWeg(abwurf, wege[0].punkte, 8) || nahWeg(korb, wege[0].punkte, 8))) wege = [];
-      // Laternen am Weg: alle ~16 m, abwechselnd links und rechts, nicht im Wasser und nicht an Abwurf/Korb
-      const laternen = [];
-      for (const w of wege) {
-        let rest = 6, sei = 1;
-        for (const [a, b] of strecken(w.punkte)) {
-          const len = abstand(a, b), ux = (b.x - a.x) / (len || 1), uy = (b.y - a.y) / (len || 1);
-          for (; rest <= len; rest += 16, sei = -sei) {
-            const d = w.breite / 2 + 1.1, o = { x: r1(a.x + ux * rest - uy * d * sei), y: r1(a.y + uy * rest + ux * d * sei), r: 0.3, h: 3.6, art: "laterne", fest: true };
-            if (o.x < 1 || o.y < 1 || o.x > g.welt.breite - 1 || o.y > g.welt.hoehe - 1) continue;
-            if (imWasser(o) || wasserNah(o, 1) || abstand(o, abwurf) < 7 || abstand(o, korb) < 8 || feste.some(f => abstand(f, o) < f.r + 1.5)) continue;
-            laternen.push(o);
-          }
-          rest -= len;
-        }
-      }
-      // Bäume auf dem Weg und direkt an den Laternen weg
-      const aufWeg = o => wege.some(w => nahWeg(o, w.punkte, o.r + w.breite / 2)) || laternen.some(l => abstand(l, o) < o.r + 1);
-      // Brücken (Fußgänger, nur Bild – darunter bleibt OB): Ufer → Inseln → Korbinsel, und je Bach eine neben der Spiellinie
-      const bruecken = [];
-      const dicht = ring => ring.flatMap((p, i) => { const q = ring[(i + 1) % ring.length], n = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]))); return Array.from({ length: n }, (_, k) => ({ x: p[0] + (q[0] - p[0]) * k / n, y: p[1] + (q[1] - p[1]) * k / n })); });
-      const imFeld = p => p.x > 0.5 && p.y > 0.5 && p.x < g.welt.breite - 0.5 && p.y < g.welt.hoehe - 0.5;
-      const verbinde = (A, B) => {
-        let best = null;
-        for (const p of dicht(A)) if (imFeld(p)) for (const q of dicht(B)) { const d = abstand(p, q); if (!best || d < best.d) best = { p, q, d }; }
-        if (!best) return;
-        const ux = (best.q.x - best.p.x) / best.d, uy = (best.q.y - best.p.y) / best.d;
-        bruecken.push({ a: [r1(best.p.x - ux * 1.2), r1(best.p.y - uy * 1.2)], b: [r1(best.q.x + ux * 1.2), r1(best.q.y + uy * 1.2)], breite: 1.8 });
-      };
-      const io = ob.find(o => o.inseln);
-      if (io) { const kette = [io.inseln[0], ...io.inseln.slice(1).reverse(), io.insel]; for (let i = 0; i < kette.length - 1; i++) verbinde(kette[i], kette[i + 1]); }
-      for (const fb of baeche) {
-        // Stelle, an der die Spiellinie den Bach kreuzt; die Brücke liegt 4 m daneben, quer über den Bach
-        let m = null, u = null;
-        for (let t = 0; t <= 1; t += 0.002) { const p = P(t); if (imPolygon(p, fb)) { m = p; u = { x: p.ux, y: p.uy }; break; } }
-        if (!m) continue;
-        for (const ver of [4, -4, 0]) {
-          const s0 = { x: m.x - u.y * ver, y: m.y + u.x * ver };
-          // entlang der Spielrichtung den Wasserabschnitt suchen, der s0 am nächsten liegt, und ganz überspannen
-          const drin = []; for (let d = -30; d <= 30; d += 0.25) drin.push([d, imPolygon({ x: s0.x + u.x * d, y: s0.y + u.y * d }, fb)]);
-          let lauf = null, best = null;
-          for (const [d, w] of drin) { if (w) lauf = lauf ? { ...lauf, bis: d } : { von: d, bis: d }; else if (lauf) { if (!best || Math.abs((lauf.von + lauf.bis) / 2) < Math.abs((best.von + best.bis) / 2)) best = lauf; lauf = null; } }
-          if (!best || best.von <= -30 || best.bis >= 30) continue;
-          const a = { x: s0.x + u.x * (best.von - 0.25), y: s0.y + u.y * (best.von - 0.25) }, b = { x: s0.x + u.x * (best.bis + 0.25), y: s0.y + u.y * (best.bis + 0.25) };
-          if (!a || !b || imWasser(a) || imWasser(b)) continue;
-          bruecken.push({ a: [r1(a.x - u.x * 1.2), r1(a.y - u.y * 1.2)], b: [r1(b.x + u.x * 1.2), r1(b.y + u.y * 1.2)], breite: 1.8 });
-          break;
-        }
-      }
-      const anBruecke = o => bruecken.some(br => abstandZurStrecke(o, { x: br.a[0], y: br.a[1] }, { x: br.b[0], y: br.b[1] }) < o.r + br.breite / 2 + 0.8);
-      return { typ, baeume: [...laternen, ...baeume.filter(o => !aufWeg(o) || feste.includes(o))].filter(o => !anBruecke(o) || feste.includes(o)), ob, wege, mauern: [], mando, keinXSpiegeln, bruecken };
+          return liste;
+        },
+      });
     },
   },
 };
+
+// Wald mit Wasser (Weiher, Bäche, Inseln, Inselkette), Mandos durch einen Riegel, Waldweg mit Laternen und Brücken.
+// Gemeinsam für Herbstnacht und Weihnachtsmarkt; H: Teile des Themas (ohne H genau wie die Herbstnacht):
+//  baum(p, z, gross), tor(p, r, z) / riegel(x, y, r, z) für den Mando-Riegel, aussen(p, z, d) / imSpiel(p, z, d) für
+//  gestreute Gegenstände, amWeg({…}) für Gegenstände am Weg, weiher / bach als OB-Namen.
+function baueWasserWald(T, z, g, L, vorgabe, H = {}) {
+    const { abwurf, korb, linie } = g;
+    const typ = vorgabe || waehleGewichtet(z, T.typen);
+    const ob = [], baeche = [], feste = [];
+    let mando = null; const sperrZonen = [];
+    const P = t => punktAufLinie(linie, t);
+    const insel = (m, R) => { const pk = []; for (let i = 0; i < 16; i++) { const w = i / 16 * Math.PI * 2, rr = R * (0.85 + z() * 0.3); pk.push([r1(m.x + Math.cos(w) * rr), r1(m.y + Math.sin(w) * rr * 0.85)]); } return pk; };
+    const baum = H.baum || ((p, z, gross = 0) => ({ x: r1(p.x), y: r1(p.y), r: r1(1.6 + z() * 2 + gross), h: r1(7 + z() * 6 + gross * 2) }));
+    const keinXSpiegeln = typ === "insel" || typ === "inselkette";
+    // Ufer: statt der geraden Kante bei x = ab ein Landstück mit gewelltem Rand (Ring von Rand zu Rand, gilt als
+    // Insel und ist damit nicht OB); ab rückt 8 m zurück, der Rand liegt 0,5–15,5 m dahinter (Buchten und
+    // Landzungen), aber immer 4 m vor den Inseln. Eigener Zufall aus der Korblage, damit der übrige Aufbau gleich bleibt.
+    const ufer = (ab0, ringe) => {
+      const H = g.welt.hoehe, p1 = korb.x * 1.7, p2 = korb.y * 2.3, pk = [[0, 0]];
+      const grenze = y => Math.min(Infinity, ...ringe.filter(r => r.some(q => Math.abs(q[1] - y) < 6)).map(r => Math.min(...r.map(q => q[0])) - 4));
+      for (let y = 0; y <= H + 0.01; y += 2) pk.push([r1(Math.max(ab0 + 0.5, Math.min(grenze(y), ab0 + 8 + 4 * Math.sin(y / 16 + p1) + 2.5 * Math.sin(y / 6 + p2) + Math.sin(y / 2.3 + p1)))), r1(Math.min(H, y))]);
+      if (pk[pk.length - 1][1] < H) pk.push([pk[pk.length - 1][0], r1(H)]);
+      pk.push([0, r1(H)]);
+      return pk;
+    };
+
+    if (typ === "quer") {
+      baeche.push(querBand(z, g, P(0.35 + z() * 0.35)));
+      z(); // früher: zweiter Bach längs – keine kreuzenden Bäche (nur ein Gewässer je Bahn)
+    } else if (typ === "insel") {
+      const R = 8 + z() * 4, ab = r1(korb.x - R - 6 - z() * Math.min(18, L * 0.15));
+      if (ab < abwurf.x + 30) return null;
+      const ki = insel(korb, R);
+      ob.push({ name: H.weiher || "Weiher", art: "wasser", insel: ki, inseln: [ufer(r1(ab - 8), [ki])], ab: r1(ab - 8) });
+    } else if (typ === "inselkette") {
+      // Par 4: Wasser ab x = ab, darin 2 Zwischeninseln auf der Linie und die Korbinsel; Lücken 8–14 m Wasser
+      if (L < 150) return null;
+      const Rk = 10 + z() * 2, inseln = [], mitten = [];
+      let t = 1, rVor = Rk;
+      for (let k = 0; k < 2; k++) {
+        const R = 13 + z() * 3, luecke = 8 + z() * 6, len = L;
+        t -= (rVor + luecke + R) / len;
+        const p = P(t), sei = (z() - 0.5) * 8;
+        mitten.push({ x: p.x - p.uy * sei, y: p.y + p.ux * sei, R }); rVor = R;
+      }
+      const erste = mitten[mitten.length - 1], ab = r1(erste.x - erste.R - 10 - z() * 6);
+      if (ab < abwurf.x + 45) return null;
+      for (const m of mitten) inseln.push(insel(m, m.R));
+      const ki = insel(korb, Rk);
+      ob.push({ name: H.weiher || "Weiher", art: "wasser", insel: ki, inseln: [ufer(r1(ab - 8), [ki, ...inseln]), ...inseln], ab: r1(ab - 8) });
+      sperrZonen.push(...mitten.map(m => ({ x: m.x, y: m.y, r: m.R * 0.55 })));
+    } else if (typ === "mando") {
+      // Baumriegel quer zur Bahn mit einer Lücke von 8–11 m zwischen zwei großen Eichen
+      const t = 0.35 + z() * 0.25, p = P(t), luecke = 8 + z() * 3, versatz = (z() - 0.5) * 3;
+      const rs = [3 + z(), 3 + z()], nx = -p.uy, ny = p.ux;
+      const a = { x: r1(p.x + nx * (versatz + luecke / 2 + rs[0])), y: r1(p.y + ny * (versatz + luecke / 2 + rs[0])) };
+      const b = { x: r1(p.x - nx * (luecke / 2 - versatz + rs[1])), y: r1(p.y - ny * (luecke / 2 - versatz + rs[1])) };
+      if (H.tor) feste.push(H.tor(a, rs[0], z), H.tor(b, rs[1], z));
+      else feste.push({ ...a, r: r1(rs[0]), h: r1(13 + z() * 3) }, { ...b, r: r1(rs[1]), h: r1(13 + z() * 3) });
+      mando = { a: [a.x, a.y], b: [b.x, b.y] };
+      for (const [q, sei, r0] of [[a, 1, rs[0]], [b, -1, rs[1]]]) {
+        let d = r0, x = q.x, y = q.y;
+        for (let k = 0, n = 4 + Math.floor(z() * 3); k < n; k++) {
+          const r = 2 + z() * 1.6; d = r + d * 0.8;
+          x += nx * sei * d + (z() - 0.5) * 1.5; y += ny * sei * d + (z() - 0.5) * 1.5; d = r;
+          if (H.riegel) { feste.push(H.riegel(x, y, r, z)); continue; }
+          feste.push({ x: r1(x), y: r1(y), r: r1(r), h: r1(11 + z() * 4) });
+          // Hecke dazwischen, damit der Riegel dicht wirkt
+          if (z() < 0.6) feste.push({ x: r1(x + (z() - 0.5) * 2 + p.ux * 2.5), y: r1(y + (z() - 0.5) * 2 + p.uy * 2.5), r: r1(1.2 + z() * 0.6), h: r1(1.6 + z() * 0.8), art: "hecke" });
+        }
+      }
+      sperrZonen.push({ x: p.x + nx * versatz, y: p.y + ny * versatz, r: luecke / 2 + 2 });
+      if (z() < 0.4) baeche.push(querBand(z, g, P(t < 0.5 ? 0.7 + z() * 0.06 : 0.2 + z() * 0.08)));
+    } else if (typ === "offen") {
+      if (z() < 0.5) baeche.push(laengsBand(z, g, linie));
+    }
+    for (const [i, fb] of baeche.entries()) ob.push({ name: (H.bach || "Bach") + " " + (i + 1), art: "wasser", punkte: fb });
+
+    const imWasser = p => baeche.some(fb => imPolygon(p, fb)) || ob.some(o => o.insel && p.x >= o.ab && !inselRinge(o).some(r => imPolygon(p, r)));
+    const wasserNah = (p, d) => baeche.some(fb => imPolygon(p, fb) || abstandZurLinie(p, [...fb, fb[0]]) < d);
+    if (wasserNah(abwurf, 8) || wasserNah(korb, 14)) return null;
+    const frei = (o, liste) => {
+      if (abstand(o, abwurf) < 7 || abstand(o, korb) < 5 + o.r) return false;
+      if (imWasser(o) || wasserNah(o, o.r + 0.3) || sperrZonen.some(q => abstand(q, o) < q.r + o.r)) return false;
+      if ([...feste, ...liste].some(q => abstand(q, o) < q.r + o.r + 0.6)) return false;
+      return o.x > -2 && o.y > -2 && o.x < g.welt.breite + 2 && o.y < g.welt.hoehe + 2;
+    };
+    // Bäume auf Inseln: höchstens ein kleiner, nicht auf der Korbinsel
+    const naheBahn = p => abstandZurLinie(p, linie);
+    const flaeche = g.welt.breite * g.welt.hoehe, dichte = typ === "offen" ? 1.4 : 0.9 + z() * 0.5;
+    const findling = (p, z) => ({ x: r1(p.x), y: r1(p.y), r: r1(0.9 + z() * 1.3), h: r1(1 + z() * 1.2), art: "findling", fest: true });
+    const hecke = (p, z) => ({ x: r1(p.x), y: r1(p.y), r: r1(0.9 + z() * 0.9), h: r1(1.2 + z() * 1), art: "hecke" });
+    const aussen = streue(z, g, Math.round(flaeche / 120 * dichte), (p, z) => { const d = naheBahn(p); if (d < 10) return null; if (H.aussen) return H.aussen(p, z, d); const w = z(); return w < 0.78 ? baum(p, z) : w < 0.9 ? hecke(p, z) : findling(p, z); }, frei);
+    const imSpielAnz = Math.round(L / 30 * (typ === "offen" ? 2 : typ === "inselkette" ? 0.4 : 1));
+    const imSpiel = streue(z, g, imSpielAnz, (p, z) => { const d = naheBahn(p); return d > 4.2 && d < (typ === "offen" ? 11 : 9) ? (H.imSpiel ? H.imSpiel(p, z, d) : z() < 0.75 ? baum(p, z) : findling(p, z)) : null; }, (o, l) => frei(o, [...aussen, ...l]));
+    const baeume = [...feste, ...imSpiel, ...aussen];
+    // Waldweg als Bild (Brücke über Wasser), nicht über Abwurf/Korb
+    const wy = z() < 0.5 ? 0 : g.welt.hoehe, wx = g.welt.breite * (0.2 + z() * 0.6);
+    const strecken = pk => pk.slice(1).map((q, i) => [{ x: pk[i][0], y: pk[i][1] }, { x: q[0], y: q[1] }]);
+    const nahWeg = (p, pk, d) => strecken(pk).some(([a, b]) => abstandZurStrecke(p, a, b) < d);
+    let wege;
+    const uferRing = (ob.find(o => o.inseln) || {}).inseln?.[0];
+    if (uferRing) {
+      // Uferweg: 5 m landeinwärts am gewellten Ufer entlang
+      wege = [{ punkte: uferRing.slice(1, -1).map(([x, y]) => [r1(x - 5), y]), breite: 2.2 }];
+    } else {
+      wege = [{ punkte: [[r1(wx), r1(wy)], [r1(wx + (z() - 0.5) * 30), r1(g.welt.hoehe / 2)], [r1(wx + (z() - 0.5) * 50), r1(g.welt.hoehe - wy)]], breite: 2.5 }];
+      // Mando: der Waldweg darf den Baumriegel nicht durchschneiden
+      if (mando && feste.some(f => nahWeg(f, wege[0].punkte, f.r + 3))) wege = [];
+    }
+    if (wege.length && (nahWeg(abwurf, wege[0].punkte, 8) || nahWeg(korb, wege[0].punkte, 8))) wege = [];
+    // Laternen am Weg: alle ~16 m, abwechselnd links und rechts, nicht im Wasser und nicht an Abwurf/Korb
+    const laternen = [];
+    for (const w of wege) {
+      let rest = 6, sei = 1;
+      for (const [a, b] of strecken(w.punkte)) {
+        const len = abstand(a, b), ux = (b.x - a.x) / (len || 1), uy = (b.y - a.y) / (len || 1);
+        for (; rest <= len; rest += 16, sei = -sei) {
+          const d = w.breite / 2 + 1.1, o = { x: r1(a.x + ux * rest - uy * d * sei), y: r1(a.y + uy * rest + ux * d * sei), r: 0.3, h: 3.6, art: "laterne", fest: true };
+          if (o.x < 1 || o.y < 1 || o.x > g.welt.breite - 1 || o.y > g.welt.hoehe - 1) continue;
+          if (imWasser(o) || wasserNah(o, 1) || abstand(o, abwurf) < 7 || abstand(o, korb) < 8 || feste.some(f => abstand(f, o) < f.r + 1.5)) continue;
+          laternen.push(o);
+        }
+        rest -= len;
+      }
+    }
+    // eigene Gegenstände am Weg (z. B. Marktbuden), nicht an Laternen
+    const amWeg = H.amWeg ? H.amWeg({ z, g, wege, strecken, imWasser, wasserNah, naheBahn, abwurf, korb, feste, laternen }) : [];
+    // Bäume auf dem Weg und direkt an den Laternen (und Gegenständen am Weg) weg
+    const aufWeg = o => wege.some(w => nahWeg(o, w.punkte, o.r + w.breite / 2)) || laternen.some(l => abstand(l, o) < o.r + 1) || amWeg.some(q => abstand(q, o) < q.r + o.r + 0.6);
+    // Brücken (Fußgänger, nur Bild – darunter bleibt OB): Ufer → Inseln → Korbinsel, und je Bach eine neben der Spiellinie
+    const bruecken = [];
+    const dicht = ring => ring.flatMap((p, i) => { const q = ring[(i + 1) % ring.length], n = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]))); return Array.from({ length: n }, (_, k) => ({ x: p[0] + (q[0] - p[0]) * k / n, y: p[1] + (q[1] - p[1]) * k / n })); });
+    const imFeld = p => p.x > 0.5 && p.y > 0.5 && p.x < g.welt.breite - 0.5 && p.y < g.welt.hoehe - 0.5;
+    const verbinde = (A, B) => {
+      let best = null;
+      for (const p of dicht(A)) if (imFeld(p)) for (const q of dicht(B)) { const d = abstand(p, q); if (!best || d < best.d) best = { p, q, d }; }
+      if (!best) return;
+      const ux = (best.q.x - best.p.x) / best.d, uy = (best.q.y - best.p.y) / best.d;
+      bruecken.push({ a: [r1(best.p.x - ux * 1.2), r1(best.p.y - uy * 1.2)], b: [r1(best.q.x + ux * 1.2), r1(best.q.y + uy * 1.2)], breite: 1.8 });
+    };
+    const io = ob.find(o => o.inseln);
+    if (io) { const kette = [io.inseln[0], ...io.inseln.slice(1).reverse(), io.insel]; for (let i = 0; i < kette.length - 1; i++) verbinde(kette[i], kette[i + 1]); }
+    for (const fb of baeche) {
+      // Stelle, an der die Spiellinie den Bach kreuzt; die Brücke liegt 4 m daneben, quer über den Bach
+      let m = null, u = null;
+      for (let t = 0; t <= 1; t += 0.002) { const p = P(t); if (imPolygon(p, fb)) { m = p; u = { x: p.ux, y: p.uy }; break; } }
+      if (!m) continue;
+      for (const ver of [4, -4, 0]) {
+        const s0 = { x: m.x - u.y * ver, y: m.y + u.x * ver };
+        // entlang der Spielrichtung den Wasserabschnitt suchen, der s0 am nächsten liegt, und ganz überspannen
+        const drin = []; for (let d = -30; d <= 30; d += 0.25) drin.push([d, imPolygon({ x: s0.x + u.x * d, y: s0.y + u.y * d }, fb)]);
+        let lauf = null, best = null;
+        for (const [d, w] of drin) { if (w) lauf = lauf ? { ...lauf, bis: d } : { von: d, bis: d }; else if (lauf) { if (!best || Math.abs((lauf.von + lauf.bis) / 2) < Math.abs((best.von + best.bis) / 2)) best = lauf; lauf = null; } }
+        if (!best || best.von <= -30 || best.bis >= 30) continue;
+        const a = { x: s0.x + u.x * (best.von - 0.25), y: s0.y + u.y * (best.von - 0.25) }, b = { x: s0.x + u.x * (best.bis + 0.25), y: s0.y + u.y * (best.bis + 0.25) };
+        if (!a || !b || imWasser(a) || imWasser(b)) continue;
+        bruecken.push({ a: [r1(a.x - u.x * 1.2), r1(a.y - u.y * 1.2)], b: [r1(b.x + u.x * 1.2), r1(b.y + u.y * 1.2)], breite: 1.8 });
+        break;
+      }
+    }
+    const anBruecke = o => bruecken.some(br => abstandZurStrecke(o, { x: br.a[0], y: br.a[1] }, { x: br.b[0], y: br.b[1] }) < o.r + br.breite / 2 + 0.8);
+    return { typ, baeume: [...laternen, ...amWeg, ...baeume.filter(o => !aufWeg(o) || feste.includes(o))].filter(o => !anBruecke(o) || feste.includes(o)), ob, wege, mauern: [], mando, keinXSpiegeln, bruecken };
+}
 
 // Flussbett/Bach quer über die Bahn am Punkt p (aus punktAufLinie) bzw. längs auf einer Seite (wie ein Aus)
 function querBand(z, g, p) {
