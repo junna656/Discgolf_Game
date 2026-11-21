@@ -824,6 +824,20 @@ const ZEICHNER = {
     const cy = Math.round(ay - baumAnhebung(o) * S);
     zeichneStamm(c, ax, ay, cy, Math.max(2, Math.round(S * (0.32 + o.r * 0.05))), false, rr, zr);
     zeichneKiefernKegel(c, o, ax, cy, r, zr, winter, rr);
+    // stil "lichter" (z. B. Christbaum auf dem Weihnachtsmarkt): Lichterkette in Bögen über jede Etage
+    if (o.stil === "lichter") {
+      const oben = cy - r * 1.25, H = r * 2.1, n = 4, q = Math.max(1, Math.round(S / 16)), LICHT = ["#ffe08a", "#ff6a50", "#ffe08a", "#8ad8ff"];
+      for (let e = 0; e < n; e++) {
+        const y1 = oben + H * ((e + 1) / n), w = r * (0.45 + 0.55 * (e + 1) / n) * 0.72, yk = y1 - H / n * 0.38;
+        const k = Math.max(1, Math.round(S / 10)); // Größe einer Birne
+        for (let i = 0, x = ax - w; x <= ax + w; x += Math.max(3, k * 3), i++) {
+          const t = (x - (ax - w)) / (2 * w), y = Math.round(yk + Math.sin(t * Math.PI) * H / n * 0.3 - t * H / n * 0.15);
+          c.fillStyle = "rgba(255,230,150,.45)"; c.fillRect(Math.round(x) - k, y - k, k * 3, k * 3);
+          c.fillStyle = LICHT[(i + e) % LICHT.length]; c.fillRect(Math.round(x), y, k, k);
+        }
+      }
+      const k = Math.max(1, Math.round(S / 10)); c.fillStyle = "#ffe066"; c.fillRect(ax - k, Math.round(oben) - 2 * k, 3 * k, 3 * k); c.fillRect(ax - (k >> 1), Math.round(oben) - 3 * k, k, 5 * k); // Stern
+    }
     return Math.round(cy + r * 0.85);
   },
   // Säule mit Armen (Saguaro): Rippen senkrecht, Licht links, runde Kuppe, Stacheln, manchmal Blüte

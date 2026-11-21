@@ -57,7 +57,8 @@ node werkzeuge/grafik_vorschau.mjs                                # (Bilder eine
 - Thema **Weihnachtsmarkt** (`--thema weihnachtsmarkt`): Winter-Optik als `optikDaten` (`basis: "winter"`, Eis als
   `wasser`, Dämmerungshimmel), gleicher Aufbau wie die Herbstnacht (`baueWasserWald` im Generator, Teile je Thema):
   **mando** = Budengasse (Lücke in einer Reihe Marktbuden, `fest`), **insel** (Korb auf einer Insel im Eisweiher),
-  **quer** (Eisbach), **offen** (Tannenwald). Tannen, Christbäume mit roten/goldenen Kugeln (`kegel`), Schneemänner
+  **quer** (Eisbach), **offen** (Tannenwald). Tannen, Christbäume mit roten/goldenen Kugeln (`kegel`), Lichterbäume (`kegel` mit `stil: "lichter"`: Lichterkette
+  und Stern, Spiel-Code; ohne Release ein Baum mit goldenen Kugeln), Circle 1 rot-gold (`circle`), Schneemänner
   (`kugel`), Laternen und Marktbuden beidseits des Wegs. Die Buden nutzen die Form `bude` (Holzhütte mit Satteldach,
   beleuchteter Theke und Lichterkette; farben: [Holz dunkel, Holz, Dach dunkel, Dach hell, Licht]) – Spiel-Code ab
   dem Release nach 0.10.1; ohne ihn erscheinen die Buden als rote/grüne Kugeln.

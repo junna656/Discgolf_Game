@@ -330,9 +330,12 @@ const THEMEN = {
       wasser: ["#6e8cae", "#86a2c0", "#9cb6d0", "#b2c8de", "#c8daea", "#f2f8ff"], // Eis
       weg: ["#5a4e48", "#6e6058", "#827468", "#968a7c", "#aaa092", "#c0b8ac"],   // festgetretener Schnee auf Pflaster
       himmel: ["#2e3e6a", "#4a5a8a", "#7a7eaa", "#b49ab4", "#f0c0a0"],              // Dämmerung
+      circle: ["#b0182a", "#ffd27a"],                                                // Circle 1 rot-gold, auf Schnee gut sichtbar
       objekte: {
         tanne: { form: "kegel", farben: "kiefer" },
         christbaum: { form: "kegel", farben: ["#0a281e", "#123628", "#1a4832", "#24583c", "#e8303a"] }, // rote Kugeln
+        // Christbaum mit Lichterkette und Stern (stil "lichter" ist Spiel-Code; ohne Release: Baum mit goldenen Kugeln)
+        lichterbaum: { form: "kegel", stil: "lichter", farben: ["#0a281e", "#123628", "#1a4832", "#24583c", "#f4c440"] },
         christbaumGold: { form: "kegel", farben: ["#0a281e", "#123628", "#1a4832", "#24583c", "#f4c440"] },
         // Form "bude" ist Spiel-Code (Release nach 0.10.1); farben: [Holz dunkel, Holz, Dach dunkel, Dach hell, Licht]
         bude: { form: "bude", farben: ["#3a2214", "#6a4428", "#8a2018", "#b8382c", "#ffd27a"] },      // rotes Dach
@@ -350,14 +353,14 @@ const THEMEN = {
     typNamen: { mando: ["Budengasse", "Glühweinbogen", "Budenzauber", "Punschpfad"], insel: ["Eisprinzessin", "Schlittschuh-Schlenker", "Krippenkurve"],
       quer: ["Eiszapfen-Eagle", "Schneegestöber"], offen: ["Tannenduft", "Christkindl", "Lametta-Line"] },
     baue(z, g, L, vorgabe) {
-      const baum = (p, z, gross = 0) => { const w = z(); return { x: r1(p.x), y: r1(p.y), r: r1(1.5 + z() * 1.8 + gross), h: r1(6 + z() * 5 + gross * 2), art: w < 0.12 ? "christbaum" : w < 0.2 ? "christbaumGold" : "tanne" }; };
-      const bude = (x, y, r, z) => ({ x: r1(x), y: r1(y), r: r1(r), h: r1(3.8 + z() * 0.8), art: z() < 0.6 ? "bude" : "budeGruen", fest: true });
+      const baum = (p, z, gross = 0) => { const w = z(); return { x: r1(p.x), y: r1(p.y), r: r1(1.5 + z() * 1.8 + gross), h: r1(6 + z() * 5 + gross * 2), art: w < 0.1 ? "christbaum" : w < 0.16 ? "christbaumGold" : w < 0.26 ? "lichterbaum" : "tanne" }; };
+      const bude = (x, y, r, z) => ({ x: r1(x), y: r1(y), r: r1(r), h: r1(5 + z() * 0.8), art: z() < 0.6 ? "bude" : "budeGruen", fest: true });
       const schneemann = (p, z) => ({ x: r1(p.x), y: r1(p.y), r: r1(0.7 + z() * 0.4), h: r1(1.6 + z() * 0.4), art: "schneemann" });
       return baueWasserWald(this, z, g, L, vorgabe, {
         weiher: "Eisweiher", bach: "Eisbach", baum,
         // Budengasse: zwei Buden als Tor, daneben weitere Buden dicht an dicht
-        tor: (p, r, z) => bude(p.x, p.y, Math.min(3, r * 0.8), z),
-        riegel: (x, y, r, z) => bude(x, y, Math.min(2.8, r), z),
+        tor: (p, r, z) => bude(p.x, p.y, Math.min(2.2, r * 0.65), z),
+        riegel: (x, y, r, z) => bude(x, y, Math.min(2.1, r * 0.8), z),
         aussen: (p, z) => { const w = z(); return w < 0.86 ? baum(p, z) : schneemann(p, z); },
         imSpiel: (p, z) => { const w = z(); return w < 0.7 ? baum(p, z) : schneemann(p, z); },
         // Marktbuden beidseits des Wegs (alle ~6,5 m), nicht an der Spiellinie, nicht im Eis, nicht an Abwurf/Korb
@@ -367,8 +370,8 @@ const THEMEN = {
             let rest = 3;
             for (const [a, b] of strecken(w.punkte)) {
               const len = abstand(a, b), ux = (b.x - a.x) / (len || 1), uy = (b.y - a.y) / (len || 1);
-              for (; rest <= len; rest += 6.5) {
-                const r = 2 + z() * 0.5, d = w.breite / 2 + r + 0.5;
+              for (; rest <= len; rest += 5) {
+                const r = 1.7 + z() * 0.4, d = w.breite / 2 + r + 0.5;
                 const o = bude(a.x + ux * rest - uy * d * sei, a.y + uy * rest + ux * d * sei, r, z);
                 if (o.x < 2 || o.y < 2 || o.x > g.welt.breite - 2 || o.y > g.welt.hoehe - 2 || z() < 0.15) continue;
                 if (naheBahn(o) < r + 6 || imWasser(o) || wasserNah(o, r + 0.5) || abstand(o, abwurf) < 10 || abstand(o, korb) < 12) continue;
