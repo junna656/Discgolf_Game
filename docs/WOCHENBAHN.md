@@ -62,6 +62,12 @@ node werkzeuge/grafik_vorschau.mjs                                # (Bilder eine
   (`kugel`), Laternen und Marktbuden beidseits des Wegs. Die Buden nutzen die Form `bude` (Holzhütte mit Satteldach,
   beleuchteter Theke und Lichterkette; farben: [Holz dunkel, Holz, Dach dunkel, Dach hell, Licht]) – Spiel-Code ab
   dem Release nach 0.10.1; ohne ihn erscheinen die Buden als rote/grüne Kugeln.
+- Thema **Zuckerstangenland** (`--thema nikolaus`, Nikolaus): nur Daten, kein Release (Formen, die schon auf `main` sind).
+  Winter-Optik mit Schokoladenfluss/-see als OB (`wasser` in Schokofarben), rosa Abendhimmel, Circle 1 rot-weiß.
+  Gleicher Aufbau wie Weihnachtsmarkt (`baueWasserWald`): **mando** = Gummidrop-Gasse (zwei Lebkuchenfelsen als Tor,
+  dazu Gummidrops als Riegel, alle `fest`), **insel** (Korb auf einer Insel im Schokosee), **quer** (Schokofluss),
+  **offen**. Arten: Zuckerwattebäume (`krone` rosa/blau), Zuckerstangen (`saeule` rot-weiß), Lebkuchenfelsen mit
+  Zuckerguss (`brocken`), Gummidrops (`kugel` rot/grün/gelb), Tannen, Schneemänner, Laternen als Hirtenstab (Stil 3, rot-weiß).
 - Par per Zufall: ~88 % Par 3 (60–140 m), ~10 % Par 4 (140–200 m), ~2 % Par 5 (201–250 m), `--par` erzwingt.
 - Namen: Kurs = Fantasiename + „ KWxx“, jede Bahn einen eigenen Fantasienamen (keiner doppelt; das Thema
   braucht mindestens Anzahl + 1 Namen).

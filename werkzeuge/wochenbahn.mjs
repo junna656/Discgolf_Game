@@ -386,6 +386,59 @@ const THEMEN = {
       });
     },
   },
+  // Nikolaus im Zuckerstangenland: Schnee, Schokoladenfluss und -see als OB (art "wasser" in Schokofarben),
+  // Zuckerwattebäume (krone), Zuckerstangen (saeule rot-weiß), Lebkuchenfelsen mit Zuckerguss (brocken, fest),
+  // Gummidrops (kugel), Tannen, Schneemänner, Zuckerstangen-Laternen (Hirtenstab). Nur Formen, die schon auf main
+  // sind (krone, kegel, saeule, brocken, kugel, laterne) – kein Release nötig.
+  nikolaus: {
+    name: "Zuckerstangenland", optik: "nikolaus",
+    optikDaten: {
+      basis: "winter",
+      wasser: ["#2a140a", "#3a1e10", "#4a2816", "#5a321c", "#6e4026", "#a87a5a"], // Schokolade
+      weg: ["#8a6a5a", "#a07e6c", "#b6927e", "#c8a690", "#dab8a2", "#ecd0bc"],   // Lebkuchenpflaster
+      himmel: ["#3a2a6a", "#5a4a9a", "#8a7ac0", "#d0a0d0", "#ffd0e0"],              // rosa Abendhimmel
+      circle: ["#c8102e", "#ffffff"],                                                 // Circle 1 rot-weiß wie eine Zuckerstange
+      objekte: {
+        tanne: { form: "kegel", farben: "kiefer" },
+        zuckerwatte: { form: "krone", farben: ["#8a2a5a", "#b8487e", "#e070a6", "#f4a0c8", "#ffd6ea"] },
+        zuckerwatteBlau: { form: "krone", farben: ["#2a4a8a", "#4a74b8", "#74a0e0", "#a0c8f4", "#d6ecff"] },
+        zuckerstange: { form: "saeule", farben: ["#8a0a1a", "#d8203a", "#fbf6f2", "#ffffff", "#ffe0e4"] },
+        lebkuchen: { form: "brocken", farben: ["#4a2410", "#8a4a22", "#f2e8dc", "#ffffff", "#ffffff"] },
+        gummiRot: { form: "kugel", farben: ["#6a0a18", "#a8182e", "#e0304a", "#ff6a80", "#ffb0c0"] },
+        gummiGruen: { form: "kugel", farben: ["#0a4a1a", "#18782e", "#30a848", "#6ad87a", "#b0f4b8"] },
+        gummiGelb: { form: "kugel", farben: ["#7a5208", "#b88010", "#e8b020", "#ffd860", "#fff0b0"] },
+        schneemann: { form: "kugel", farben: ["#8a9ab8", "#b4c2d8", "#d4deec", "#eef3fa", "#ffffff"] },
+        laterne: { form: "laterne", stil: 3, farben: ["#c8102e", "#e8e0dc", "#ffffff", "#ffc860", "#fff4c0"] }, // Hirtenstab = Zuckerstange
+      },
+    },
+    namen: ["Zuckerstangen-Zick", "Nikolausstiefel", "Knecht Ruprecht", "Schokofluss", "Lebkuchenland", "Rentierrennen",
+      "Zuckerwatte-Wald", "Gummidrop-Gasse", "Marzipan-Mando", "Stiefelputzer", "Nussknacker-Nase", "Schlittenspur",
+      "Rute oder Rabatt", "Pfeffernuss-Pass", "Kakao-Kurve", "Spekulatius-Sprung", "Sack voller Birdies", "Bischofsstab",
+      "Mandarinen-Mulde", "Nikolaus-Nachtflug", "Lakritz-Linie", "Schoko-Insel", "Zimtschnecke", "Glocken-Gully",
+      "Puderzucker-Putt", "Sternsinger-Shot", "Rotnase", "Stollen-Stopp"],
+    typen: { quer: 1.5, insel: 1.4, mando: 2, offen: 1.2 },
+    plan: ["mando", "quer", "insel", "offen", "mando", "insel"],
+    typNamen: { mando: ["Gummidrop-Gasse", "Marzipan-Mando", "Pfeffernuss-Pass"], insel: ["Schoko-Insel", "Kakao-Kurve", "Mandarinen-Mulde"],
+      quer: ["Schokofluss", "Schlittenspur"], offen: ["Zuckerwatte-Wald", "Zuckerstangen-Zick", "Lebkuchenland"] },
+    baue(z, g, L, vorgabe) {
+      const baum = (p, z, gross = 0) => {
+        const w = z(), art = w < 0.3 ? "zuckerwatte" : w < 0.45 ? "zuckerwatteBlau" : w < 0.6 ? "zuckerstange" : "tanne";
+        if (art === "zuckerstange") return { x: r1(p.x), y: r1(p.y), r: r1(0.8 + z() * 0.5), h: r1(4 + z() * 2), art };
+        return { x: r1(p.x), y: r1(p.y), r: r1(1.5 + z() * 1.8 + gross), h: r1(6 + z() * 5 + gross * 2), art };
+      };
+      const gummi = (x, y, r, z, fest = false) => { const w = z(); return { x: r1(x), y: r1(y), r: r1(r), h: r1(r * 1.3), art: w < 0.34 ? "gummiRot" : w < 0.67 ? "gummiGruen" : "gummiGelb", ...(fest ? { fest: true } : {}) }; };
+      const lebkuchen = (p, r, z) => ({ x: r1(p.x), y: r1(p.y), r: r1(r), h: r1(2 + z() * 1.5), art: "lebkuchen", fest: true });
+      const schneemann = (p, z) => ({ x: r1(p.x), y: r1(p.y), r: r1(0.7 + z() * 0.4), h: r1(1.6 + z() * 0.4), art: "schneemann" });
+      return baueWasserWald(this, z, g, L, vorgabe, {
+        weiher: "Schokosee", bach: "Schokofluss", baum,
+        // Gummidrop-Gasse: zwei Lebkuchenfelsen als Tor, daneben dicht an dicht Gummidrops
+        tor: (p, r, z) => lebkuchen(p, Math.min(2.6, r * 0.75), z),
+        riegel: (x, y, r, z) => gummi(x, y, Math.min(2.2, r * 0.85), z, true),
+        aussen: (p, z) => { const w = z(); return w < 0.78 ? baum(p, z) : w < 0.88 ? gummi(p.x, p.y, 0.9 + z() * 0.8, z) : w < 0.94 ? lebkuchen(p, 1 + z() * 1.2, z) : schneemann(p, z); },
+        imSpiel: (p, z) => { const w = z(); return w < 0.6 ? baum(p, z) : w < 0.8 ? gummi(p.x, p.y, 0.8 + z() * 0.6, z) : schneemann(p, z); },
+      });
+    },
+  },
 };
 
 // Wald mit Wasser (Weiher, Bäche, Inseln, Inselkette), Mandos durch einen Riegel, Waldweg mit Laternen und Brücken.
